@@ -1,11 +1,16 @@
 <template>
-  <div v-if="loggedIn && user" class="landing-shell landing-shell--authenticated">
+  <div
+    v-if="loggedIn && user"
+    class="landing-shell landing-shell--authenticated is-flex is-justify-content-center is-align-items-center"
+  >
     <AuthenticatedLandingCard :user="user" @logout="handleLogout" />
   </div>
 
   <div v-else class="landing-shell">
     <div class="columns is-variable is-8 is-vcentered landing-shell__columns">
-      <div class="column is-6-desktop has-text-left landing-shell__copy">
+      <div
+        class="column is-6-desktop has-text-left-tablet has-text-centered-mobile landing-shell__copy"
+      >
         <div class="landing-shell__logo mb-5">
           <RoundImg src="/icon.png" alt="GitPulse Logo" width="84" height="84" />
         </div>
@@ -104,18 +109,7 @@ const handleLogout = async () => {
 }
 
 .landing-shell--authenticated {
-  display: flex;
-  justify-content: center;
-  align-items: center;
   min-height: calc(100vh - 12rem);
-}
-
-.landing-shell__columns {
-  align-items: center;
-}
-
-.landing-shell__copy {
-  text-align: left;
 }
 
 .landing-shell__eyebrow {
@@ -167,7 +161,6 @@ const handleLogout = async () => {
   }
 
   .landing-shell__copy {
-    text-align: center;
     margin-bottom: 2rem;
   }
 

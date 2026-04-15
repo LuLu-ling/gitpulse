@@ -10,7 +10,7 @@
       <Button
         v-if="providers.oauthEnabled"
         href="/auth/github"
-        class="is-fullwidth is-justify-content-center auth-gateway__oauth-button"
+        class="is-fullwidth is-justify-content-center mb-0"
       >
         <GitHubIcon class="mr-3" />
         {{ t('auth.connectWithGithub') }}
@@ -23,7 +23,7 @@
       <button
         v-if="showPatToggle"
         type="button"
-        class="button is-ghost auth-gateway__toggle"
+        class="button is-ghost is-fullwidth is-justify-content-center mb-4 auth-gateway__toggle"
         @click="showPatInput = true"
       >
         <KeyRoundIcon class="mr-2" :size="16" />
@@ -170,10 +170,6 @@ const handlePatSubmit = async () => {
   color: #4f46e5;
 }
 
-.auth-gateway__oauth-button {
-  margin-bottom: 0;
-}
-
 .auth-gateway__divider {
   position: relative;
   margin: 1.4rem 0;
@@ -200,9 +196,6 @@ const handlePatSubmit = async () => {
 }
 
 .auth-gateway__toggle {
-  width: 100%;
-  justify-content: center;
-  margin-bottom: 1rem;
   color: #4b5563;
 }
 

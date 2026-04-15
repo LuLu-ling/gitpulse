@@ -1,5 +1,5 @@
 <template>
-  <div class="auth-shell auth-shell--signed-in">
+  <div class="auth-shell auth-shell--signed-in is-flex is-justify-content-center">
     <div class="box auth-shell__box has-text-centered">
       <div class="auth-shell__avatar mb-5">
         <RoundImg :src="user.avatar_url" :alt="user.name" width="108" height="108" />
@@ -55,11 +55,6 @@ const handleGoToDashboard = async () => {
 </script>
 
 <style scoped lang="scss">
-.auth-shell {
-  display: flex;
-  justify-content: center;
-}
-
 .auth-shell__box {
   width: min(100%, 32rem);
   padding: 2.5rem 2.25rem;
