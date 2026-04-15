@@ -1,22 +1,27 @@
 <template>
-  <div class="card notification-card" :class="{ 'is-unread': notification.unread }">
+  <div
+    class="card dashboard-list-card dashboard-list-card--activity notification-card"
+    :class="{ 'is-unread': currentNotification.unread }"
+  >
     <div class="card-content p-3">
       <div class="media mb-2">
         <div class="media-left">
           <figure class="image is-32x32">
             <img
-              :src="notification.repository.owner.avatar_url"
-              :alt="notification.repository.owner.login"
+              :src="currentNotification.repository.owner.avatar_url"
+              :alt="currentNotification.repository.owner.login"
               class="is-rounded"
             />
           </figure>
         </div>
-        <div class="media-content">
+        <div class="media-content dashboard-list-card__content">
           <div class="is-flex is-flex-direction-row">
             <div class="is-flex-grow-1">
-              <p class="title is-6">{{ notification.repository.full_name }}</p>
+              <p class="title is-6 dashboard-list-card__title">
+                {{ currentNotification.repository.full_name }}
+              </p>
               <p class="subtitle is-7 has-text-grey">
-                {{ formatDurationFromNow(notification.updated_at, localeCode) }}
+                {{ formatDurationFromNow(currentNotification.updated_at, localeCode) }}
               </p>
             </div>
             <div class="ml-4">
@@ -29,10 +34,12 @@
       <div class="is-flex is-justify-content-space-between is-align-items-center">
         <div class="is-flex is-justify-content-flex-start is-align-items-center">
           <component :is="typeIcon" class="mr-2" />
-          <span class="has-text-weight-semibold is-size-6">{{ notification.subject.title }}</span>
+          <span class="has-text-weight-semibold is-size-6 dashboard-list-card__subject">
+            {{ currentNotification.subject.title }}
+          </span>
         </div>
         <button
-          v-if="notification.unread"
+          v-if="currentNotification.unread"
           class="mark-read-btn"
           @click.stop="markAsRead"
           :disabled="markingAsRead"
@@ -80,7 +87,7 @@ const localeCode = computed(() => locale.value);
 const markingAsRead = ref(false);
 const localNotification = ref({ ...props.notification });
 
-const notification = computed(() => localNotification.value);
+const currentNotification = computed(() => localNotification.value);
 
 const markAsRead = async () => {
   if (markingAsRead.value || !localNotification.value.unread) return;

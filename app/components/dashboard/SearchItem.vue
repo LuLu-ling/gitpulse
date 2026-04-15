@@ -1,18 +1,18 @@
 <template>
-  <div class="card">
+  <div class="card dashboard-list-card dashboard-list-card--activity">
     <div class="card-content p-3">
       <div class="media mb-2">
         <div class="media-left ml-2 mt-2">
           <component :size="24" :is="stateIcon" :style="stateColor" />
         </div>
-        <div class="media-content">
+        <div class="media-content dashboard-list-card__content">
           <div class="is-flex is-justify-content-space-between is-align-items-center">
-            <p class="title is-6 mb-0">{{ issue.title }}</p>
+            <p class="title is-6 mb-0 dashboard-list-card__title">{{ issue.title }}</p>
             <span class="tag is-info is-light ml-2">#{{ issue.number }}</span>
           </div>
 
           <!-- Type and Labels -->
-          <div class="is-flex flex-wrap mt-2">
+          <div class="is-flex dashboard-list-card__tags mt-2">
             <span
               v-if="issue.type?.name"
               class="tag mr-2 has-text-weight-medium"
@@ -62,13 +62,12 @@ const props = defineProps<{
   issue: any;
 }>();
 
-const { issue } = props;
 const { locale } = useI18n();
 const localeCode = computed(() => locale.value);
 
 const typeStyle = computed(() => {
-  if (!issue.type?.name) return null;
-  const bg = getTypeColor(issue.type.name);
+  if (!props.issue.type?.name) return null;
+  const bg = getTypeColor(props.issue.type.name);
   return {
     backgroundColor: `#${bg}`,
     color: `#${getTextColorFromBackground(bg)}`,
@@ -93,20 +92,20 @@ const getTypeColor = (typeName: string) => {
 };
 
 const stateIcon = computed(() => {
-  return issue.pull_request
-    ? issue.state === 'open'
+  return props.issue.pull_request
+    ? props.issue.state === 'open'
       ? GitPullRequestIcon
-      : issue.state === 'merged'
+      : props.issue.state === 'merged'
         ? GitMergeIcon
         : GitPullRequestClosedIcon
-    : issue.state === 'open'
+    : props.issue.state === 'open'
       ? CircleDotIcon
       : CircleMinusIcon;
 });
 
 const stateColor = computed(() => {
   return {
-    color: issue.state === 'open' ? '#1a7f37' : '#000000',
+    color: props.issue.state === 'open' ? '#1a7f37' : '#000000',
   };
 });
 </script>

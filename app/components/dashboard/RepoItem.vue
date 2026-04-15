@@ -1,10 +1,10 @@
 <template>
-  <div class="card">
+  <div class="card dashboard-list-card dashboard-list-card--repo">
     <div class="card-content p-3 pl-4">
       <div class="media mb-2">
-        <div class="media-content">
+        <div class="media-content dashboard-list-card__content">
           <div class="is-flex is-justify-content-space-between is-align-items-center">
-            <p class="title is-6 mb-0">{{ repo.name }}</p>
+            <p class="title is-6 mb-0 dashboard-list-card__title">{{ repo.name }}</p>
             <div class="is-flex items-center">
               <span v-if="repo.language" class="tag mr-2 is-info is-light">
                 {{ repo.language }}
@@ -12,7 +12,10 @@
               <span v-if="repo.private" class="tag is-dark">Private</span>
             </div>
           </div>
-          <p v-if="repo.description" class="subtitle is-7 has-text-grey mt-1">
+          <p
+            v-if="repo.description"
+            class="subtitle is-7 has-text-grey mt-1 dashboard-list-card__description"
+          >
             {{ repo.description }}
           </p>
         </div>
