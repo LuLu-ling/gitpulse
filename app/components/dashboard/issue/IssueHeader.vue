@@ -1,12 +1,12 @@
 <template>
   <div class="mb-6">
     <!-- Issue title and metadata -->
-    <div class="is-flex items-center mb-4">
+    <div class="is-flex is-align-items-center mb-4">
       <component :size="24" :is="stateIcon" :style="stateColor" />
       <h1 class="title is-3 ml-4">{{ issue?.title }}</h1>
     </div>
 
-    <div class="is-flex items-center my-4 flex-wrap">
+    <div class="is-flex is-align-items-center my-4 is-flex-wrap-wrap">
       <span class="tag mr-2" :style="typeStyle">
         {{ issue?.type?.name || 'Issue' }}
       </span>
@@ -29,7 +29,7 @@
     <hr class="mr-4" />
 
     <!-- Issue description -->
-    <div class="mb-8">
+    <div>
       <div class="is-flex is-align-items-center mb-4">
         <RoundImg
           class="mr-4"

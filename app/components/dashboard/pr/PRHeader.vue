@@ -1,12 +1,12 @@
 <template>
   <div class="mb-6">
     <!-- PR title and metadata -->
-    <div class="is-flex items-center mb-4">
+    <div class="is-flex is-align-items-center mb-4">
       <component :size="24" :is="stateIcon" :style="stateColor" />
       <h1 class="title is-3 ml-4">{{ pullRequest?.title }}</h1>
     </div>
 
-    <div class="is-flex items-center my-4 flex-wrap">
+    <div class="is-flex is-align-items-center my-4 is-flex-wrap-wrap">
       <span class="tag mr-2" :style="typeStyle">Pull Request</span>
       <span class="tag is-info is-light ml-2">#{{ pullRequest?.number }}</span>
       <span
@@ -44,7 +44,7 @@
     <hr class="mr-4" />
 
     <!-- PR description -->
-    <div class="mb-8">
+    <div>
       <div class="is-flex is-align-items-center mb-4">
         <RoundImg
           class="mr-4"
