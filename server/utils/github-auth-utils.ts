@@ -1,14 +1,11 @@
 import { Octokit } from '@octokit/core';
-import { paginateGraphQL, type paginateGraphQLInterface } from '@octokit/plugin-paginate-graphql';
 import type { H3Event } from 'h3';
 
 const GITHUB_API_VERSION = '2026-03-10';
 const GITHUB_ACCEPT_HEADER = 'application/vnd.github+json';
 
 export function createGitHubClient(accessToken: string): Octokit & paginateGraphQLInterface {
-  const MyOctokit = Octokit.plugin(paginateGraphQL);
-
-  return new MyOctokit({
+  return new Octokit({
     auth: accessToken,
     request: {
       headers: {
