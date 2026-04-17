@@ -7,54 +7,40 @@
   </div>
 
   <div v-else class="landing-shell">
-    <div class="columns is-variable is-8 is-vcentered landing-shell__columns">
-      <div
-        class="column is-6-desktop has-text-left-tablet has-text-centered-mobile landing-shell__copy"
-      >
-        <div class="landing-shell__logo mb-5">
-          <RoundImg src="/icon.png" alt="GitPulse Logo" width="84" height="84" />
-        </div>
+    <div class="landing-shell__frame card">
+      <div class="landing-shell__panel landing-shell__panel--copy">
+        <div class="landing-shell__copy has-text-left-tablet has-text-centered-mobile">
+          <div class="landing-shell__logo mb-4">
+            <RoundImg src="/icon.png" alt="GitPulse Logo" width="80" height="80" />
+          </div>
 
-        <p class="landing-shell__eyebrow mb-4">{{ t('landing.heroEyebrow') }}</p>
-        <h1 class="title is-2 has-text-weight-bold mb-4">{{ t('app.title') }}</h1>
-        <p class="subtitle is-5 has-text-grey-dark landing-shell__subtitle">
-          {{ t('landing.heroDescription') }}
-        </p>
-
-        <div class="landing-shell__highlights">
-          <div class="landing-shell__highlight box">
-            <p class="landing-shell__highlight-title">{{ t('landing.highlightFlexibleTitle') }}</p>
-            <p class="landing-shell__highlight-copy">{{ t('landing.highlightFlexibleBody') }}</p>
-          </div>
-          <div class="landing-shell__highlight box">
-            <p class="landing-shell__highlight-title">{{ t('landing.highlightUnifiedTitle') }}</p>
-            <p class="landing-shell__highlight-copy">{{ t('landing.highlightUnifiedBody') }}</p>
-          </div>
-          <div class="landing-shell__highlight box">
-            <p class="landing-shell__highlight-title">{{ t('landing.highlightPrivateTitle') }}</p>
-            <p class="landing-shell__highlight-copy">{{ t('landing.highlightPrivateBody') }}</p>
-          </div>
+          <p class="landing-shell__eyebrow mb-3">{{ t('landing.heroEyebrow') }}</p>
+          <h1 class="title is-2 has-text-weight-bold mb-3">{{ t('app.title') }}</h1>
+          <p class="subtitle is-5 has-text-grey-dark mb-4">{{ t('app.subtitle') }}</p>
+          <p class="landing-shell__subtitle">
+            {{ t('landing.heroDescription') }}
+          </p>
         </div>
       </div>
 
-      <div class="column is-5-desktop is-offset-1-desktop">
-        <div v-if="pageErrorMessage" class="notification is-danger is-light mb-4">
+      <div class="landing-shell__panel landing-shell__panel--auth">
+        <div v-if="pageErrorMessage" class="notification is-danger is-light landing-shell__notice">
           {{ pageErrorMessage }}
         </div>
 
         <div
           v-for="warning in providerWarnings"
           :key="warning"
-          class="notification is-warning is-light mb-4"
+          class="notification is-warning is-light landing-shell__notice"
         >
           {{ warning }}
         </div>
 
-        <div v-if="providersError" class="notification is-danger is-light mb-4">
+        <div v-if="providersError" class="notification is-danger is-light landing-shell__notice">
           {{ t('auth.providerStateUnavailable') }}
         </div>
 
-        <div v-if="providersPending" class="box landing-shell__loading has-text-centered">
+        <div v-if="providersPending" class="landing-shell__loading has-text-centered">
           <LoadingIcon :size="22" />
           <p class="mt-3 has-text-grey">{{ t('auth.loadingProviders') }}</p>
         </div>
@@ -105,11 +91,43 @@ const handleLogout = async () => {
 
 <style scoped lang="scss">
 .landing-shell {
-  padding: 2rem 0 6rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 100%;
 }
 
 .landing-shell--authenticated {
   min-height: calc(100vh - 12rem);
+}
+
+.landing-shell__frame {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(22rem, 0.95fr);
+  width: min(100%, 1040px);
+  overflow: hidden;
+  border: 1px solid rgba(10, 10, 10, 0.06);
+  border-radius: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.landing-shell__panel {
+  padding: 2.5rem;
+}
+
+.landing-shell__panel--copy {
+  background:
+    radial-gradient(circle at top left, rgba(79, 70, 229, 0.18), transparent 45%),
+    linear-gradient(180deg, rgba(248, 250, 252, 0.96), rgba(241, 245, 249, 0.92));
+  border-right: 1px solid rgba(10, 10, 10, 0.06);
+}
+
+.landing-shell__panel--auth {
+  display: grid;
+  align-content: center;
+  gap: 1rem;
+  background: #fff;
 }
 
 .landing-shell__eyebrow {
@@ -121,52 +139,46 @@ const handleLogout = async () => {
 }
 
 .landing-shell__subtitle {
-  max-width: 36rem;
-  line-height: 1.7;
-}
-
-.landing-shell__highlights {
-  display: grid;
-  gap: 1rem;
-  margin-top: 2rem;
-}
-
-.landing-shell__highlight {
-  padding: 1.1rem 1.15rem;
   margin: 0;
   text-align: left;
-  border: 1px solid rgba(10, 10, 10, 0.05);
-  box-shadow: 0 14px 34px rgba(10, 10, 10, 0.05);
-}
-
-.landing-shell__highlight-title {
-  margin-bottom: 0.35rem;
-  font-size: 0.96rem;
-  font-weight: 700;
-}
-
-.landing-shell__highlight-copy {
-  margin: 0;
   color: #4b5563;
-  line-height: 1.65;
+  line-height: 1.7;
+  max-width: 32rem;
+}
+
+.landing-shell__notice {
+  margin-bottom: 0;
 }
 
 .landing-shell__loading {
   padding: 2rem;
+  border: 1px solid rgba(10, 10, 10, 0.06);
+  border-radius: 18px;
+  background: rgba(248, 250, 252, 0.96);
 }
 
 @media (max-width: 1023px) {
   .landing-shell {
-    padding-top: 1rem;
+    align-items: stretch;
   }
 
-  .landing-shell__copy {
-    margin-bottom: 2rem;
+  .landing-shell__frame {
+    grid-template-columns: 1fr;
+  }
+
+  .landing-shell__panel {
+    padding: 2rem;
+  }
+
+  .landing-shell__panel--copy {
+    border-right: 0;
+    border-bottom: 1px solid rgba(10, 10, 10, 0.06);
   }
 
   .landing-shell__subtitle {
     margin-left: auto;
     margin-right: auto;
+    text-align: center;
   }
 }
 </style>
