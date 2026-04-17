@@ -1,7 +1,6 @@
 import type { Octokit } from '@octokit/core';
-import type { paginateGraphQLInterface } from '@octokit/plugin-paginate-graphql';
 
-type GitHubClient = Octokit & paginateGraphQLInterface;
+type GitHubClient = Octokit;
 
 export interface TimelineWarning {
   code: string;

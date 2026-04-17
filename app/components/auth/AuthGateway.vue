@@ -69,7 +69,6 @@ import { GitHubIcon } from 'vue3-simple-icons';
 
 import Button from '~/components/ui/Button.vue';
 import LoadingIcon from '~/components/ui/LoadingIcon.vue';
-import type { AuthProviderState } from '~/shared/types/auth-provider';
 
 const props = defineProps<{
   providers: AuthProviderState;
@@ -83,7 +82,7 @@ const submitting = ref(false);
 
 watch(
   () => props.providers,
-  (providers) => {
+  (_) => {
     patError.value = '';
     token.value = '';
   },

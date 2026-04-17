@@ -4,7 +4,7 @@ import type { H3Event } from 'h3';
 const GITHUB_API_VERSION = '2026-03-10';
 const GITHUB_ACCEPT_HEADER = 'application/vnd.github+json';
 
-export function createGitHubClient(accessToken: string): Octokit & paginateGraphQLInterface {
+export function createGitHubClient(accessToken: string): Octokit {
   return new Octokit({
     auth: accessToken,
     request: {
@@ -31,7 +31,7 @@ export async function getAccessToken(event: H3Event): Promise<string> {
   return accessToken;
 }
 
-export async function getGitHubClient(event: H3Event): Promise<Octokit & paginateGraphQLInterface> {
+export async function getGitHubClient(event: H3Event): Promise<Octokit> {
   const accessToken = await getAccessToken(event);
 
   return createGitHubClient(accessToken);
