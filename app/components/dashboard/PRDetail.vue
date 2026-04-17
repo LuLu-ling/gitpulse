@@ -100,6 +100,22 @@ const getPullRequestIdentity = () => {
   return `${repoOwner.value}/${repoName.value}/${currentPullRequest.value.number}`;
 };
 
+const hasHydratedPullRequestDetails = (pullRequest: Record<string, unknown> | null | undefined) => {
+  if (!pullRequest) {
+    return false;
+  }
+
+  return [
+    'requested_reviewers',
+    'commits',
+    'changed_files',
+    'additions',
+    'deletions',
+    'base',
+    'head',
+  ].some((key) => key in pullRequest);
+};
+
 const resetPullRequestScopedState = (pullRequest: any) => {
   currentPullRequest.value = pullRequest;
   timeline.value = [];
@@ -179,6 +195,10 @@ watch(
     resetPullRequestScopedState(newPullRequest);
     if (newPullRequest) {
       fetchTimeline();
+      if (hasHydratedPullRequestDetails(newPullRequest as Record<string, unknown>)) {
+        return;
+      }
+
       fetchPullRequestDetails();
     }
   },
