@@ -52,7 +52,12 @@
         </div>
       </div>
       <div class="content">
-        <MarkdownRenderer v-if="issue?.body" :value="issue.body" />
+        <MarkdownRenderer
+          v-if="issue?.body"
+          :value="issue.body"
+          :repo-owner="repoOwner"
+          :repo-name="repoName"
+        />
         <p v-else>No description provided</p>
       </div>
     </div>

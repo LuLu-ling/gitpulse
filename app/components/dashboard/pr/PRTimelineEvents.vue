@@ -14,9 +14,16 @@
           v-if="item.kind === 'comment' || item.kind === 'review-comment'"
           :item="item"
           empty-text="No comment body"
+          :repo-owner="repoOwner"
+          :repo-name="repoName"
         />
 
-        <PRTimelineReviewCard v-else-if="item.kind === 'review'" :item="item" />
+        <PRTimelineReviewCard
+          v-else-if="item.kind === 'review'"
+          :item="item"
+          :repo-owner="repoOwner"
+          :repo-name="repoName"
+        />
 
         <PRTimelineCommitCard
           v-else-if="item.kind === 'commit'"

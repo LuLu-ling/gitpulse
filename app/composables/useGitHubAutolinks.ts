@@ -1,0 +1,271 @@
+import type { MDCElement, MDCNode, MDCRoot, MDCText } from '@nuxtjs/mdc';
+
+interface GitHubAutolinkContext {
+  repoOwner?: string;
+  repoName?: string;
+}
+
+interface GitHubAutolinkTarget {
+  owner: string;
+  repo: string;
+  number: number;
+  text: string;
+}
+
+interface GitHubAutolinkResolution {
+  exists: boolean;
+  href?: string;
+}
+
+interface GitHubIssueReferencePayload {
+  html_url?: string;
+}
+
+const AUTOLINKABLE_TEXT_PARENT_TAGS = new Set([
+  'p',
+  'li',
+  'blockquote',
+  'em',
+  'strong',
+  'del',
+  'td',
+  'th',
+  'h1',
+  'h2',
+  'h3',
+  'h4',
+  'h5',
+  'h6',
+]);
+
+const SKIPPED_TAGS = new Set(['a', 'code', 'pre']);
+
+const REFERENCE_PATTERN =
+  /(^|[^\w/])(?:(?<qualified>[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+#(?<qualifiedNumber>\d+))|(?<gh>GH-(?<ghNumber>\d+))|(?<short>#(?<shortNumber>\d+)))/g;
+
+const referenceCache = new Map<string, Promise<GitHubAutolinkResolution>>();
+
+function isTextNode(node: MDCNode): node is MDCText {
+  return node.type === 'text';
+}
+
+function isElementNode(node: MDCNode): node is MDCElement {
+  return node.type === 'element';
+}
+
+function createTextNode(value: string): MDCText {
+  return {
+    type: 'text',
+    value,
+  };
+}
+
+function createLinkNode(href: string, text: string): MDCElement {
+  return {
+    type: 'element',
+    tag: 'a',
+    props: {
+      href,
+    },
+    children: [createTextNode(text)],
+  };
+}
+
+function shouldAutolinkInParent(parentTag?: string) {
+  return !parentTag || AUTOLINKABLE_TEXT_PARENT_TAGS.has(parentTag);
+}
+
+function parseReferenceTarget(
+  matchedText: string,
+  context: GitHubAutolinkContext
+): GitHubAutolinkTarget | null {
+  const qualifiedMatch = matchedText.match(
+    /^(?<owner>[A-Za-z0-9_.-]+)\/(?<repo>[A-Za-z0-9_.-]+)#(?<number>\d+)$/
+  );
+
+  if (qualifiedMatch?.groups?.owner && qualifiedMatch.groups.repo && qualifiedMatch.groups.number) {
+    const number = Number.parseInt(qualifiedMatch.groups.number, 10);
+
+    if (!Number.isFinite(number)) {
+      return null;
+    }
+
+    return {
+      owner: qualifiedMatch.groups.owner,
+      repo: qualifiedMatch.groups.repo,
+      number,
+      text: matchedText,
+    };
+  }
+
+  const shortMatch = matchedText.match(/^(?:GH-|#)(?<number>\d+)$/);
+  if (!shortMatch?.groups?.number || !context.repoOwner || !context.repoName) {
+    return null;
+  }
+
+  const number = Number.parseInt(shortMatch.groups.number, 10);
+  if (!Number.isFinite(number)) {
+    return null;
+  }
+
+  return {
+    owner: context.repoOwner,
+    repo: context.repoName,
+    number,
+    text: matchedText,
+  };
+}
+
+async function resolveReference(target: GitHubAutolinkTarget): Promise<GitHubAutolinkResolution> {
+  const cacheKey = `${target.owner}/${target.repo}#${target.number}`;
+  const cachedResolution = referenceCache.get(cacheKey);
+
+  if (cachedResolution) {
+    return cachedResolution;
+  }
+
+  const resolutionPromise = (async () => {
+    try {
+      const issue = await $fetch<GitHubIssueReferencePayload>(
+        `/api/issues/${target.owner}/${target.repo}/${target.number}`,
+        {
+          method: 'GET',
+        }
+      );
+
+      if (!issue?.html_url) {
+        return { exists: false };
+      }
+
+      return {
+        exists: true,
+        href: issue.html_url,
+      };
+    } catch {
+      return { exists: false };
+    }
+  })();
+
+  referenceCache.set(cacheKey, resolutionPromise);
+  return resolutionPromise;
+}
+
+async function transformTextNode(
+  node: MDCText,
+  context: GitHubAutolinkContext,
+  parentTag?: string
+): Promise<MDCNode[]> {
+  if (!node.value || !shouldAutolinkInParent(parentTag)) {
+    return [node];
+  }
+
+  const matches: Array<{
+    prefix: string;
+    start: number;
+    end: number;
+    matchedText: string;
+    target: GitHubAutolinkTarget;
+  }> = [];
+
+  REFERENCE_PATTERN.lastIndex = 0;
+
+  let match: RegExpExecArray | null = null;
+  while ((match = REFERENCE_PATTERN.exec(node.value)) !== null) {
+    const prefix = match[1] ?? '';
+    const matchedText = match[0].slice(prefix.length);
+    const target = parseReferenceTarget(matchedText, context);
+
+    if (!target) {
+      continue;
+    }
+
+    const start = match.index + prefix.length;
+    const end = match.index + match[0].length;
+
+    matches.push({
+      prefix,
+      start,
+      end,
+      matchedText,
+      target,
+    });
+  }
+
+  if (matches.length === 0) {
+    return [node];
+  }
+
+  const resolutions = await Promise.all(matches.map(({ target }) => resolveReference(target)));
+  const transformedNodes: MDCNode[] = [];
+  let cursor = 0;
+
+  for (const [index, item] of matches.entries()) {
+    const resolution = resolutions[index];
+    const prefixStart = item.start - item.prefix.length;
+
+    if (prefixStart > cursor) {
+      transformedNodes.push(createTextNode(node.value.slice(cursor, prefixStart)));
+    }
+
+    if (item.prefix) {
+      transformedNodes.push(createTextNode(item.prefix));
+    }
+
+    if (resolution?.exists && resolution.href) {
+      transformedNodes.push(createLinkNode(resolution.href, item.matchedText));
+    } else {
+      transformedNodes.push(createTextNode(item.matchedText));
+    }
+
+    cursor = item.end;
+  }
+
+  if (cursor < node.value.length) {
+    transformedNodes.push(createTextNode(node.value.slice(cursor)));
+  }
+
+  return transformedNodes;
+}
+
+async function transformChildren(
+  children: MDCNode[],
+  context: GitHubAutolinkContext,
+  parentTag?: string
+): Promise<MDCNode[]> {
+  const transformedChildren: MDCNode[] = [];
+
+  for (const child of children) {
+    if (isTextNode(child)) {
+      transformedChildren.push(...(await transformTextNode(child, context, parentTag)));
+      continue;
+    }
+
+    if (!isElementNode(child)) {
+      transformedChildren.push(child);
+      continue;
+    }
+
+    if (SKIPPED_TAGS.has(child.tag)) {
+      transformedChildren.push(child);
+      continue;
+    }
+
+    transformedChildren.push({
+      ...child,
+      children: await transformChildren(child.children, context, child.tag),
+    });
+  }
+
+  return transformedChildren;
+}
+
+export default function useGitHubAutolinks() {
+  const applyGitHubAutolinks = async (body: MDCRoot, context: GitHubAutolinkContext) => {
+    body.children = await transformChildren(body.children, context);
+    return body;
+  };
+
+  return {
+    applyGitHubAutolinks,
+  };
+}

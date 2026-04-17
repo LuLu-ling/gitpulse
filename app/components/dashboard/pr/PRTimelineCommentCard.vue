@@ -1,5 +1,10 @@
 <template>
-  <TimelineCommentCard :item="item" :empty-text="emptyText" />
+  <TimelineCommentCard
+    :item="item"
+    :empty-text="emptyText"
+    :repo-owner="repoOwner"
+    :repo-name="repoName"
+  />
 </template>
 
 <script setup lang="ts">
@@ -10,6 +15,8 @@ withDefaults(
   defineProps<{
     item: PRTimelineItem;
     emptyText?: string;
+    repoOwner: string;
+    repoName: string;
   }>(),
   {
     emptyText: 'No comment body',

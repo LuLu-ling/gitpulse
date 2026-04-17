@@ -1,5 +1,10 @@
 <template>
-  <TimelineCommentCard :item="item" :empty-text="t('issueDetail.noCommentBody')" />
+  <TimelineCommentCard
+    :item="item"
+    :empty-text="t('issueDetail.noCommentBody')"
+    :repo-owner="repoOwner"
+    :repo-name="repoName"
+  />
 </template>
 
 <script setup lang="ts">
@@ -10,6 +15,8 @@ import type { IssueTimelineItem } from '~/composables/useIssueTimelineEvents';
 
 defineProps<{
   item: IssueTimelineItem;
+  repoOwner: string;
+  repoName: string;
 }>();
 
 const { t } = useI18n();

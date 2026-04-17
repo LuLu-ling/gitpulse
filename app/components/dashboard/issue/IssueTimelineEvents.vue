@@ -15,6 +15,8 @@
         <IssueTimelineCommentCard
           v-if="item.kind === 'comment' && item.eventType === 'commented'"
           :item="item"
+          :repo-owner="repoOwner"
+          :repo-name="repoName"
         />
 
         <IssueTimelineReferencedEventCard

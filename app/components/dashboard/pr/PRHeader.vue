@@ -67,7 +67,12 @@
         </div>
       </div>
       <div class="content">
-        <MarkdownRenderer v-if="pullRequest?.body" :value="pullRequest.body" />
+        <MarkdownRenderer
+          v-if="pullRequest?.body"
+          :value="pullRequest.body"
+          :repo-owner="repoOwner"
+          :repo-name="repoName"
+        />
         <p v-else>No description provided</p>
       </div>
     </div>

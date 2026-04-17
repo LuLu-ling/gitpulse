@@ -29,7 +29,12 @@
       </div>
       <hr class="my-2" />
       <div class="content">
-        <MarkdownRenderer v-if="item.body" :value="item.body" />
+        <MarkdownRenderer
+          v-if="item.body"
+          :value="item.body"
+          :repo-owner="repoOwner"
+          :repo-name="repoName"
+        />
         <p v-else class="has-text-grey is-size-7">No review body</p>
       </div>
     </div>
@@ -47,6 +52,8 @@ import formatDurationFromNow from '~/utils/formatDurationFromNow';
 
 defineProps<{
   item: PRTimelineItem;
+  repoOwner: string;
+  repoName: string;
 }>();
 
 const { locale } = useI18n();

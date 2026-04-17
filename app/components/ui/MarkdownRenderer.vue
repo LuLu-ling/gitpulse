@@ -3,25 +3,45 @@ import { parseMarkdown } from '@nuxtjs/mdc/runtime';
 import { shallowRef } from 'vue';
 
 import MarkdownRendererProseA from '~/components/ui/MarkdownRendererProseA.vue';
+import useGitHubAutolinks from '~/composables/useGitHubAutolinks';
 
 const props = defineProps<{
   value: string;
+  repoOwner?: string;
+  repoName?: string;
 }>();
 
 const ast = shallowRef<Awaited<ReturnType<typeof parseMarkdown>> | null>(null);
+const renderRequestId = shallowRef(0);
+const { applyGitHubAutolinks } = useGitHubAutolinks();
 
 const rendererComponents = {
   a: MarkdownRendererProseA,
 };
 
 watch(
-  () => props.value,
-  async (v) => {
-    if (!v) {
+  () => [props.value, props.repoOwner, props.repoName],
+  async ([value, repoOwner, repoName]) => {
+    const requestId = renderRequestId.value + 1;
+    renderRequestId.value = requestId;
+
+    if (!value) {
       ast.value = null;
       return;
     }
-    ast.value = await parseMarkdown(v);
+
+    const parsedMarkdown = await parseMarkdown(value);
+
+    await applyGitHubAutolinks(parsedMarkdown.body, {
+      repoOwner,
+      repoName,
+    });
+
+    if (requestId !== renderRequestId.value) {
+      return;
+    }
+
+    ast.value = parsedMarkdown;
   },
   { immediate: true }
 );
