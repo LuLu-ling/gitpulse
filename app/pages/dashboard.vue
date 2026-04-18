@@ -13,7 +13,7 @@
             </div>
 
             <div class="buttons is-centered mt-4">
-              <button class="button is-small is-light is-fullwidth" @click="clear">
+              <button class="button is-small is-light is-fullwidth" @click="handleLogout">
                 <LogOutIcon :size="16" class="mr-2" />
                 Logout
               </button>
@@ -184,7 +184,7 @@ import RepoItem from '~/components/dashboard/RepoItem.vue';
 import SearchItem from '~/components/dashboard/SearchItem.vue';
 import type { DashboardTab } from '~/composables/useDashboardTabs';
 
-const { user, clear } = useUserSession();
+const { user } = useUserSession();
 const { t } = useI18n();
 const route = useRoute();
 const router = useRouter();
@@ -349,6 +349,12 @@ const goToPage = async (page: number) => {
   } catch (error) {
     console.error('Error updating dashboard page route:', error);
   }
+};
+
+const handleLogout = async () => {
+  await navigateTo('/auth/logout', {
+    external: true,
+  });
 };
 
 watch(

@@ -64,7 +64,7 @@ import PersonalLockForm from '~/components/auth/PersonalLockForm.vue';
 import LoadingIcon from '~/components/ui/LoadingIcon.vue';
 import RoundImg from '~/components/ui/RoundImg.vue';
 
-const { user, loggedIn, clear, fetch: fetchUserSession } = useUserSession();
+const { user, loggedIn, fetch: fetchUserSession } = useUserSession();
 const { t } = useI18n();
 const route = useRoute();
 const autoRestoreAttempted = ref(false);
@@ -125,7 +125,9 @@ watch(
 );
 
 const handleLogout = async () => {
-  await clear();
+  await navigateTo('/auth/logout', {
+    external: true,
+  });
 };
 </script>
 
