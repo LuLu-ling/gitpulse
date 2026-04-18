@@ -10,15 +10,18 @@
 
         <hr />
 
-        <PRTimelineEvents
-          :timeline="timeline"
-          :loading="loadingTimeline"
-          :repo-owner="repoOwner"
-          :repo-name="repoName"
-          :pull-number="currentPullRequest?.number || 0"
-          @switch-issue="switchToIssue"
-          @switch-pull-request="switchToPullRequest"
-        />
+        <div class="pr-detail__timeline mt-4">
+          <PRTimelineEvents
+            :timeline="timeline"
+            :loading="loadingTimeline"
+            :repo-owner="repoOwner"
+            :repo-name="repoName"
+            :pull-number="currentPullRequest?.number || 0"
+            @switch-issue="switchToIssue"
+            @switch-pull-request="switchToPullRequest"
+            @comment-created="addTimelineEvent"
+          />
+        </div>
       </div>
 
       <div class="column is-one-quarter ml-6">
@@ -93,6 +96,10 @@ const switchToIssue = (owner: string, repo: string, issueNumber: number) => {
 
 const switchToPullRequest = (owner: string, repo: string, pullNumber: number) => {
   emit('switch-pull-request', owner, repo, pullNumber);
+};
+
+const addTimelineEvent = (event: PRTimelineItem) => {
+  timeline.value.push(event);
 };
 
 const getPullRequestIdentity = () => {
@@ -221,5 +228,9 @@ useHead({
 
 .pr-detail-layout {
   min-height: 100%;
+}
+
+.pr-detail__timeline {
+  padding-bottom: 5rem;
 }
 </style>

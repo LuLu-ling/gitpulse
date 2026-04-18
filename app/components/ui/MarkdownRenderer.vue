@@ -63,6 +63,9 @@ watch(
 <style lang="scss">
 .markdown-body {
   font-size: 14px;
+  p {
+    white-space: pre-wrap;
+  }
   hr {
     display: revert;
   }

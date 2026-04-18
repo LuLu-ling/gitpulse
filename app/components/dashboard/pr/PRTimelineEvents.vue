@@ -48,6 +48,14 @@
     </div>
 
     <div v-else-if="!loading" class="has-text-grey is-size-7">No activity yet</div>
+
+    <CommentComposer
+      class="pr-timeline-events__composer mt-4"
+      :repo-owner="repoOwner"
+      :repo-name="repoName"
+      :item-number="pullNumber"
+      @comment-created="emit('comment-created', $event)"
+    />
   </div>
 </template>
 
@@ -56,6 +64,7 @@ import PRTimelineCommentCard from '~/components/dashboard/pr/PRTimelineCommentCa
 import PRTimelineCommitCard from '~/components/dashboard/pr/PRTimelineCommitCard.vue';
 import PRTimelineEventBody from '~/components/dashboard/pr/PRTimelineEventBody.vue';
 import PRTimelineReviewCard from '~/components/dashboard/pr/PRTimelineReviewCard.vue';
+import CommentComposer from '~/components/dashboard/timeline/CommentComposer.vue';
 import TimelineEventActorRow from '~/components/dashboard/timeline/TimelineEventActorRow.vue';
 import LoadingIcon from '~/components/ui/LoadingIcon.vue';
 import { usePRTimelineEvents, type PRTimelineItem } from '~/composables/usePRTimelineEvents';
@@ -71,6 +80,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: 'switch-issue', owner: string, repo: string, issueNumber: number): void;
   (e: 'switch-pull-request', owner: string, repo: string, pullNumber: number): void;
+  (e: 'comment-created', item: PRTimelineItem): void;
 }>();
 
 const { processedTimeline } = usePRTimelineEvents(() => props.timeline);
@@ -83,3 +93,9 @@ const handleSwitchPullRequest = (owner: string, repo: string, pullNumber: number
   emit('switch-pull-request', owner, repo, pullNumber);
 };
 </script>
+
+<style scoped lang="scss">
+.pr-timeline-events__composer {
+  padding-top: 1rem;
+}
+</style>

@@ -48,6 +48,14 @@
     <div v-else-if="!loading" class="has-text-grey is-size-7">
       {{ t('issueDetail.noActivity') }}
     </div>
+
+    <CommentComposer
+      class="issue-timeline-events__composer mt-4"
+      :repo-owner="repoOwner"
+      :repo-name="repoName"
+      :item-number="issueNumber"
+      @comment-created="emit('comment-created', $event)"
+    />
   </div>
 </template>
 
@@ -58,6 +66,7 @@ import IssueTimelineCommentCard from '~/components/dashboard/issue/IssueTimeline
 import IssueTimelineCommitCard from '~/components/dashboard/issue/IssueTimelineCommitCard.vue';
 import IssueTimelineEventBody from '~/components/dashboard/issue/IssueTimelineEventBody.vue';
 import IssueTimelineReferencedEventCard from '~/components/dashboard/issue/IssueTimelineReferencedEventCard.vue';
+import CommentComposer from '~/components/dashboard/timeline/CommentComposer.vue';
 import TimelineEventActorRow from '~/components/dashboard/timeline/TimelineEventActorRow.vue';
 import LoadingIcon from '~/components/ui/LoadingIcon.vue';
 import {
@@ -78,6 +87,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: 'switch-issue', owner: string, repo: string, issueNumber: number): void;
   (e: 'switch-pull-request', owner: string, repo: string, pullNumber: number): void;
+  (e: 'comment-created', item: IssueTimelineItem): void;
 }>();
 
 const { processedTimeline } = useIssueTimelineEvents(
@@ -97,3 +107,9 @@ const switchToPullRequest = (owner: string, repo: string, pullNumber: number) =>
   emit('switch-pull-request', owner, repo, pullNumber);
 };
 </script>
+
+<style scoped lang="scss">
+.issue-timeline-events__composer {
+  padding-top: 1rem;
+}
+</style>

@@ -97,5 +97,18 @@
       "previous": "上一页",
       "next": "下一页"
     }
+  },
+  "commentComposer": {
+    "placeholder": "写下评论...",
+    "writeTab": "编写",
+    "previewTab": "预览",
+    "previewEmpty": "开始输入后，这里会显示预览内容。",
+    "markdownHint": "支持 Markdown 和 GitHub 风格的议题引用，例如 #100。",
+    "cancel": "取消",
+    "submit": "发表评论",
+    "submitting": "发表评论中...",
+    "emptyError": "请先输入评论内容再提交。",
+    "unavailableError": "当前条目暂时无法发表评论。",
+    "failed": "发表评论失败"
   }
 }

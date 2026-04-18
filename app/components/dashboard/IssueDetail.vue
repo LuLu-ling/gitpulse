@@ -6,15 +6,18 @@
 
         <hr />
 
-        <IssueTimelineEvents
-          :timeline="timeline"
-          :loading="loadingTimeline"
-          :repo-owner="repoOwner"
-          :repo-name="repoName"
-          :issue-number="currentIssue.number"
-          @switch-issue="switchToIssue"
-          @switch-pull-request="switchToPullRequest"
-        />
+        <div class="issue-detail__timeline mt-4">
+          <IssueTimelineEvents
+            :timeline="timeline"
+            :loading="loadingTimeline"
+            :repo-owner="repoOwner"
+            :repo-name="repoName"
+            :issue-number="currentIssue.number"
+            @switch-issue="switchToIssue"
+            @switch-pull-request="switchToPullRequest"
+            @comment-created="addTimelineEvent"
+          />
+        </div>
       </div>
 
       <div class="column is-one-quarter ml-6">
@@ -258,5 +261,9 @@ useHead({
 .sticky-container {
   position: sticky;
   top: 20px;
+}
+
+.issue-detail__timeline {
+  padding-bottom: 5rem;
 }
 </style>

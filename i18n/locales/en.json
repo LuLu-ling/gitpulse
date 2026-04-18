@@ -97,5 +97,18 @@
       "previous": "Previous Page",
       "next": "Next Page"
     }
+  },
+  "commentComposer": {
+    "placeholder": "Write a comment...",
+    "writeTab": "Write",
+    "previewTab": "Preview",
+    "previewEmpty": "Preview will appear here once you start typing.",
+    "markdownHint": "Markdown and GitHub-style issue references like #100 are supported.",
+    "cancel": "Cancel",
+    "submit": "Comment",
+    "submitting": "Commenting...",
+    "emptyError": "Please enter a comment before submitting.",
+    "unavailableError": "Comments are temporarily unavailable for this item.",
+    "failed": "Failed to create comment"
   }
 }
