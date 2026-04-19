@@ -113,15 +113,6 @@ defineEmits<{
   animation: spin 1s linear infinite;
 }
 
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
 .shadow-md {
   box-shadow:
     0 4px 6px -1px rgba(0, 0, 0, 0.1),

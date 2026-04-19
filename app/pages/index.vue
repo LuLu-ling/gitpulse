@@ -132,6 +132,8 @@ const handleLogout = async () => {
 </script>
 
 <style scoped lang="scss">
+@use '~/assets/scss/variables' as *;
+
 .landing-shell {
   display: flex;
   align-items: center;
@@ -177,7 +179,7 @@ const handleLogout = async () => {
   font-weight: 700;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: #4f46e5;
+  color: $brand-primary;
 }
 
 .landing-shell__subtitle {

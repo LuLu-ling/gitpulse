@@ -148,12 +148,6 @@ const reasonIcon = computed(() => {
 <style scoped lang="scss">
 @use 'bulma/sass/utilities/initial-variables' as iv;
 
-.card {
-  --bulma-shadow:
-    0 0.25em 0.5em -0.25em hsla(221deg, 14%, 4%, 0.1), 0 0px 0 1px hsla(221deg, 14%, 4%, 0.02);
-  border: 1px solid iv.$grey-lighter;
-}
-
 .card.is-unread {
   border-left: 4px solid #3e8ed0;
   background-color: #f5f9ff;
@@ -188,14 +182,5 @@ const reasonIcon = computed(() => {
 
 .is-spinning {
   animation: spin 1.4s linear infinite;
-}
-
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
 }
 </style>

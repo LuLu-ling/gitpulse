@@ -55,6 +55,8 @@ const handleGoToDashboard = async () => {
 </script>
 
 <style scoped lang="scss">
+@use '~/assets/scss/variables' as *;
+
 .auth-shell__box {
   width: min(100%, 32rem);
   padding: 2.5rem 2.25rem;
@@ -67,7 +69,7 @@ const handleGoToDashboard = async () => {
   font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: #4f46e5;
+  color: $brand-primary;
 }
 
 .auth-shell__actions {
