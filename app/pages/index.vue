@@ -56,7 +56,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import { computed, nextTick, ref, watch } from 'vue';
 
 import AuthenticatedLandingCard from '~/components/auth/AuthenticatedLandingCard.vue';
 import AuthGateway from '~/components/auth/AuthGateway.vue';
@@ -105,18 +105,26 @@ watch(
     autoRestorePending.value = true;
 
     try {
-      await $fetch('/auth/unlock', {
-        method: 'POST',
-        body: {},
-      });
-
-      await fetchUserSession();
-
-      if (loggedIn.value) {
-        await navigateTo('/dashboard');
+      try {
+        await $fetch('/auth/unlock', {
+          method: 'POST',
+          body: {},
+        });
+      } catch {
+        // Ignore: missing/invalid remember cookie falls back to manual unlock.
+        return;
       }
-    } catch {
-      // Ignore: missing/invalid remember cookie falls back to manual unlock.
+
+      try {
+        await fetchUserSession();
+        await nextTick();
+
+        if (loggedIn.value) {
+          await navigateTo('/dashboard');
+        }
+      } catch (error) {
+        console.error('Auto-restore session refresh failed', error);
+      }
     } finally {
       autoRestorePending.value = false;
     }

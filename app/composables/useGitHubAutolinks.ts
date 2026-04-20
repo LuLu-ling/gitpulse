@@ -124,7 +124,14 @@ async function resolveReference(target: GitHubAutolinkTarget): Promise<GitHubAut
     return cachedResolution;
   }
 
-  const resolutionPromise = (async () => {
+  let resolvePending!: (value: GitHubAutolinkResolution) => void;
+  const resolutionPromise = new Promise<GitHubAutolinkResolution>((resolve) => {
+    resolvePending = resolve;
+  });
+
+  referenceCache.set(cacheKey, resolutionPromise);
+
+  void (async () => {
     try {
       const issue = await $fetch<GitHubIssueReferencePayload>(
         `/api/issues/${target.owner}/${target.repo}/${target.number}`,
@@ -134,19 +141,19 @@ async function resolveReference(target: GitHubAutolinkTarget): Promise<GitHubAut
       );
 
       if (!issue?.html_url) {
-        return { exists: false };
+        resolvePending({ exists: false });
+        return;
       }
 
-      return {
+      resolvePending({
         exists: true,
         href: issue.html_url,
-      };
+      });
     } catch {
-      return { exists: false };
+      resolvePending({ exists: false });
     }
   })();
 
-  referenceCache.set(cacheKey, resolutionPromise);
   return resolutionPromise;
 }
 

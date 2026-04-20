@@ -25,9 +25,9 @@
         </div>
 
         <span
-          v-if="item.commit?.messageHeadlineHTML"
+          v-if="sanitizedCommitMessageHeadlineHtml"
           class="is-size-6 has-text-weight-medium commit-message"
-          v-html="item.commit?.messageHeadlineHTML"
+          v-html="sanitizedCommitMessageHeadlineHtml"
         />
         <span v-else class="is-size-7 has-text-grey">Referenced this issue from a commit</span>
       </div>
@@ -48,12 +48,25 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue';
+
 import RoundImg from '~/components/ui/RoundImg.vue';
 import type { IssueTimelineItem } from '~/composables/useIssueTimelineEvents';
+import { sanitizeHtml } from '~/utils/sanitizeHtml';
 
-defineProps<{
+const props = defineProps<{
   item: IssueTimelineItem;
 }>();
+
+const sanitizedCommitMessageHeadlineHtml = computed(() => {
+  const headlineHtml = props.item.commit?.messageHeadlineHTML;
+
+  if (!headlineHtml) {
+    return '';
+  }
+
+  return sanitizeHtml(headlineHtml);
+});
 </script>
 
 <style scoped lang="scss">

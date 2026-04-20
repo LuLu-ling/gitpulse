@@ -2,6 +2,7 @@ import { computed, nextTick, ref, watch, type Ref } from 'vue';
 import type { LocationQueryRaw } from 'vue-router';
 
 import type { DashboardTab } from '~/composables/useDashboardTabs';
+import getQueryParamValue from '~/utils/getQueryParamValue';
 import parseGitHubRepoPath from '~/utils/parseGitHubRepoPath';
 
 interface DashboardEntity {
@@ -42,13 +43,8 @@ export function useDashboardDetails(currentTab: Ref<DashboardTab>) {
   const issueRequestId = ref(0);
   const prRequestId = ref(0);
 
-  const getQueryValue = (value: unknown) => {
-    if (Array.isArray(value)) return typeof value[0] === 'string' ? value[0] : undefined;
-    return typeof value === 'string' ? value : undefined;
-  };
-
   const parseDetailTarget = (value: unknown): DetailTarget | null => {
-    const rawValue = getQueryValue(value);
+    const rawValue = getQueryParamValue(value);
     if (!rawValue) return null;
 
     const segments = rawValue.split('/').filter(Boolean);

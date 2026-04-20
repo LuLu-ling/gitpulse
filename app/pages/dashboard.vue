@@ -183,6 +183,7 @@ import NotificationItem from '~/components/dashboard/NotificationItem.vue';
 import RepoItem from '~/components/dashboard/RepoItem.vue';
 import SearchItem from '~/components/dashboard/SearchItem.vue';
 import type { DashboardTab } from '~/composables/useDashboardTabs';
+import getQueryParamValue from '~/utils/getQueryParamValue';
 
 const { user } = useUserSession();
 const { t } = useI18n();
@@ -191,18 +192,13 @@ const router = useRouter();
 
 const dashboardTabs: DashboardTab[] = ['notifications', 'issues', 'pulls', 'repos'];
 
-const getQueryValue = (value: unknown) => {
-  if (Array.isArray(value)) return typeof value[0] === 'string' ? value[0] : undefined;
-  return typeof value === 'string' ? value : undefined;
-};
-
 const parseDashboardTab = (value: unknown): DashboardTab => {
-  const tab = getQueryValue(value);
+  const tab = getQueryParamValue(value);
   return dashboardTabs.includes(tab as DashboardTab) ? (tab as DashboardTab) : 'notifications';
 };
 
 const parseDashboardPage = (value: unknown) => {
-  const rawValue = getQueryValue(value);
+  const rawValue = getQueryParamValue(value);
 
   if (!rawValue || !/^\d+$/.test(rawValue)) {
     return 1;
