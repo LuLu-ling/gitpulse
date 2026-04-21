@@ -2,6 +2,10 @@
   <div class="pr-detail-layout mr-6">
     <div class="columns">
       <div class="column is-three-quarters">
+        <div v-if="detailError" class="notification is-danger is-light mb-4 py-2 px-3">
+          <p class="is-size-7">{{ detailError }}</p>
+        </div>
+
         <PRHeader
           :pull-request="currentPullRequest"
           :repo-owner="repoOwner"
@@ -69,6 +73,7 @@ const emit = defineEmits<{
 // State variables
 const loadingTimeline = ref(false);
 const currentPullRequest = ref(props.pullRequest);
+const detailError = ref('');
 const timeline = ref<PRTimelineItem[]>([]);
 const timelineRequestId = ref(0);
 const detailRequestId = ref(0);
@@ -125,6 +130,7 @@ const hasHydratedPullRequestDetails = (pullRequest: Record<string, unknown> | nu
 
 const resetPullRequestScopedState = (pullRequest: any) => {
   currentPullRequest.value = pullRequest;
+  detailError.value = '';
   timeline.value = [];
 };
 
@@ -173,6 +179,7 @@ const fetchPullRequestDetails = async () => {
   const pullRequestIdentity = getPullRequestIdentity();
   const basePullRequest = currentPullRequest.value;
   detailRequestId.value = requestId;
+  detailError.value = '';
 
   try {
     const { owner, repo } = repoInfo.value;
@@ -190,6 +197,11 @@ const fetchPullRequestDetails = async () => {
     }
   } catch (err: any) {
     console.error('Error fetching PR details:', err);
+    if (requestId === detailRequestId.value && pullRequestIdentity === getPullRequestIdentity()) {
+      currentPullRequest.value = basePullRequest;
+      detailError.value =
+        err?.data?.statusMessage || err?.message || 'Failed to load pull request details.';
+    }
   }
 };
 
