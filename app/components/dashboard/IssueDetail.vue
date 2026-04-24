@@ -13,9 +13,12 @@
             :repo-owner="repoOwner"
             :repo-name="repoName"
             :issue-number="currentIssue.number"
+            :has-next-page="hasNextTimelinePage"
+            :loading-more="loadingMoreTimeline"
             @switch-issue="switchToIssue"
             @switch-pull-request="switchToPullRequest"
             @comment-created="addTimelineEvent"
+            @load-more="loadMoreTimeline"
           />
         </div>
       </div>
@@ -92,6 +95,9 @@ const timeline = ref<IssueTimelineItem[]>([]);
 const isLabelEditorVisible = ref(false);
 const timelineRequestId = ref(0);
 const permissionRequestId = ref(0);
+const currentTimelinePage = ref(1);
+const hasNextTimelinePage = ref(false);
+const loadingMoreTimeline = ref(false);
 
 // Computed properties
 const repoInfo = computed(() => {
@@ -147,6 +153,9 @@ const resetIssueScopedState = (issue: any) => {
   repoPermissions.value = createEmptyRepoPermissions();
   isLocked.value = issue?.locked || false;
   isLabelEditorVisible.value = false;
+  currentTimelinePage.value = 1;
+  hasNextTimelinePage.value = false;
+  loadingMoreTimeline.value = false;
   emit('update:non-sticky-header', false);
 };
 
@@ -159,29 +168,75 @@ const fetchTimeline = async () => {
   const issueIdentity = getIssueIdentity();
   timelineRequestId.value = requestId;
   loadingTimeline.value = true;
+  currentTimelinePage.value = 1;
+  hasNextTimelinePage.value = false;
 
   try {
     const { owner, repo } = repoInfo.value;
     const issueNumber = currentIssue.value.number;
 
-    const data = await $fetch<{ timeline?: IssueTimelineItem[] }>(
-      `/api/issues/${owner}/${repo}/${issueNumber}/timeline`,
-      {
-        method: 'GET',
-      }
-    );
+    const data = await $fetch<{
+      timeline?: IssueTimelineItem[];
+      pageInfo?: { hasNextPage?: boolean };
+    }>(`/api/issues/${owner}/${repo}/${issueNumber}/timeline`, {
+      method: 'GET',
+      query: { page: 1 },
+    });
 
     if (requestId === timelineRequestId.value && issueIdentity === getIssueIdentity()) {
       timeline.value = data?.timeline || [];
+      hasNextTimelinePage.value = Boolean(data?.pageInfo?.hasNextPage);
     }
   } catch (err: any) {
     console.error('Error fetching issue timeline:', err);
     if (requestId === timelineRequestId.value) {
       timeline.value = [];
+      hasNextTimelinePage.value = false;
     }
   } finally {
     if (requestId === timelineRequestId.value) {
       loadingTimeline.value = false;
+    }
+  }
+};
+
+const loadMoreTimeline = async () => {
+  if (
+    !repoInfo.value ||
+    !currentIssue.value?.number ||
+    !hasNextTimelinePage.value ||
+    loadingMoreTimeline.value
+  ) {
+    return;
+  }
+
+  const requestId = timelineRequestId.value;
+  const issueIdentity = getIssueIdentity();
+  const nextPage = currentTimelinePage.value + 1;
+  loadingMoreTimeline.value = true;
+
+  try {
+    const { owner, repo } = repoInfo.value;
+    const issueNumber = currentIssue.value.number;
+
+    const data = await $fetch<{
+      timeline?: IssueTimelineItem[];
+      pageInfo?: { hasNextPage?: boolean };
+    }>(`/api/issues/${owner}/${repo}/${issueNumber}/timeline`, {
+      method: 'GET',
+      query: { page: nextPage },
+    });
+
+    if (requestId === timelineRequestId.value && issueIdentity === getIssueIdentity()) {
+      timeline.value = [...timeline.value, ...(data?.timeline || [])];
+      hasNextTimelinePage.value = Boolean(data?.pageInfo?.hasNextPage);
+      currentTimelinePage.value = nextPage;
+    }
+  } catch (err: any) {
+    console.error('Error loading more issue timeline:', err);
+  } finally {
+    if (requestId === timelineRequestId.value) {
+      loadingMoreTimeline.value = false;
     }
   }
 };

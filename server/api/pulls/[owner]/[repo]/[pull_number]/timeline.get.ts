@@ -2,6 +2,7 @@ import {
   buildPRTimelineCapabilities,
   createUnsupportedWarnings,
   fetchPaginatedArray,
+  fetchTimelinePage,
   normalizePRTimelineEvent,
   sortTimelineItems,
   throwTimelineFatalError,
@@ -65,15 +66,20 @@ export default defineEventHandler(async (event) => {
     const octokit = await getGitHubClient(event);
     const pullNumber = parseInt(pull_number, 10);
 
-    const [rawTimeline, pullCommits] = await Promise.all([
-      fetchPaginatedArray<Record<string, any>>(
+    const query = getQuery(event);
+    const parsedPage = Number.parseInt(String(query.page ?? '1'), 10);
+    const page = Number.isFinite(parsedPage) && parsedPage > 0 ? parsedPage : 1;
+
+    const [timelinePage, pullCommits] = await Promise.all([
+      fetchTimelinePage<Record<string, any>>(
         octokit,
         'GET /repos/{owner}/{repo}/issues/{issue_number}/timeline',
         {
           owner,
           repo,
           issue_number: pullNumber,
-        }
+        },
+        page
       ),
       fetchPaginatedArray<Record<string, any>>(
         octokit,
@@ -87,7 +93,7 @@ export default defineEventHandler(async (event) => {
     ]);
 
     const pullCommitsBySha = buildPullCommitLookup(pullCommits);
-    const enrichedTimeline = rawTimeline.map((rawEvent) =>
+    const enrichedTimeline = timelinePage.items.map((rawEvent) =>
       enrichTimelineEventWithPullCommit(rawEvent, pullCommitsBySha)
     );
 
@@ -98,7 +104,7 @@ export default defineEventHandler(async (event) => {
     return {
       timeline,
       pageInfo: {
-        hasNextPage: false,
+        hasNextPage: timelinePage.hasNextPage,
         endCursor: null,
       },
       capabilities: buildPRTimelineCapabilities(),

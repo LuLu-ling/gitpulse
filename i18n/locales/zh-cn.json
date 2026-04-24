@@ -56,6 +56,8 @@
     "loadingTimelines": "加载时间线中...",
     "saving": "保存中...",
     "activity": "活动",
+    "loadMore": "加载更多",
+    "loadingMore": "加载中...",
     "noActivity": "暂无活动",
     "noCommentBody": "无评论内容",
     "labels": "标签",

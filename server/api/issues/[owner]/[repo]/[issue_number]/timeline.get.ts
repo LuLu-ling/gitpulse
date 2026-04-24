@@ -1,7 +1,7 @@
 import {
   buildIssueTimelineCapabilities,
   createUnsupportedWarnings,
-  fetchPaginatedArray,
+  fetchTimelinePage,
   normalizeIssueTimelineEvent,
   sortTimelineItems,
   throwTimelineFatalError,
@@ -15,21 +15,26 @@ export default defineEventHandler(async (event) => {
       issue_number: string;
     };
 
+    const query = getQuery(event);
+    const parsedPage = Number.parseInt(String(query.page ?? '1'), 10);
+    const page = Number.isFinite(parsedPage) && parsedPage > 0 ? parsedPage : 1;
+
     const octokit = await getGitHubClient(event);
     const issueNumber = parseInt(issue_number, 10);
 
-    const timelineResponse = await fetchPaginatedArray<Record<string, any>>(
+    const { items, hasNextPage } = await fetchTimelinePage<Record<string, any>>(
       octokit,
       'GET /repos/{owner}/{repo}/issues/{issue_number}/timeline',
       {
         owner,
         repo,
         issue_number: issueNumber,
-      }
+      },
+      page
     );
 
     const timeline = sortTimelineItems(
-      timelineResponse.map((rawEvent: Record<string, any>) =>
+      items.map((rawEvent: Record<string, any>) =>
         normalizeIssueTimelineEvent(rawEvent, { owner, repo })
       )
     );
@@ -38,7 +43,7 @@ export default defineEventHandler(async (event) => {
       currentParent: null,
       timeline,
       pageInfo: {
-        hasNextPage: false,
+        hasNextPage,
         endCursor: null,
       },
       capabilities: buildIssueTimelineCapabilities(),

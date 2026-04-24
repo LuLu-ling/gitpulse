@@ -49,6 +49,21 @@
       {{ t('issueDetail.noActivity') }}
     </div>
 
+    <div
+      v-if="hasNextPage && processedTimeline.length > 0"
+      class="mt-4 is-flex is-justify-content-center"
+    >
+      <button
+        class="button is-light is-small"
+        type="button"
+        :class="{ 'is-loading': loadingMore }"
+        :disabled="loadingMore"
+        @click="emit('load-more')"
+      >
+        {{ loadingMore ? t('issueDetail.loadingMore') : t('issueDetail.loadMore') }}
+      </button>
+    </div>
+
     <CommentComposer
       class="issue-timeline-events__composer mt-4"
       :repo-owner="repoOwner"
@@ -82,12 +97,15 @@ const props = defineProps<{
   repoOwner: string;
   repoName: string;
   issueNumber: number;
+  hasNextPage?: boolean;
+  loadingMore?: boolean;
 }>();
 
 const emit = defineEmits<{
   (e: 'switch-issue', owner: string, repo: string, issueNumber: number): void;
   (e: 'switch-pull-request', owner: string, repo: string, pullNumber: number): void;
   (e: 'comment-created', item: IssueTimelineItem): void;
+  (e: 'load-more'): void;
 }>();
 
 const { processedTimeline } = useIssueTimelineEvents(

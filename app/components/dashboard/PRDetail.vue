@@ -21,9 +21,12 @@
             :repo-owner="repoOwner"
             :repo-name="repoName"
             :pull-number="currentPullRequest?.number || 0"
+            :has-next-page="hasNextTimelinePage"
+            :loading-more="loadingMoreTimeline"
             @switch-issue="switchToIssue"
             @switch-pull-request="switchToPullRequest"
             @comment-created="addTimelineEvent"
+            @load-more="loadMoreTimeline"
           />
         </div>
       </div>
@@ -77,6 +80,9 @@ const detailError = ref('');
 const timeline = ref<PRTimelineItem[]>([]);
 const timelineRequestId = ref(0);
 const detailRequestId = ref(0);
+const currentTimelinePage = ref(1);
+const hasNextTimelinePage = ref(false);
+const loadingMoreTimeline = ref(false);
 
 // Computed properties
 const repoInfo = computed(() => {
@@ -132,6 +138,9 @@ const resetPullRequestScopedState = (pullRequest: any) => {
   currentPullRequest.value = pullRequest;
   detailError.value = '';
   timeline.value = [];
+  currentTimelinePage.value = 1;
+  hasNextTimelinePage.value = false;
+  loadingMoreTimeline.value = false;
 };
 
 const fetchTimeline = async () => {
@@ -143,29 +152,75 @@ const fetchTimeline = async () => {
   const pullRequestIdentity = getPullRequestIdentity();
   timelineRequestId.value = requestId;
   loadingTimeline.value = true;
+  currentTimelinePage.value = 1;
+  hasNextTimelinePage.value = false;
 
   try {
     const { owner, repo } = repoInfo.value;
     const pullNumber = currentPullRequest.value.number;
 
-    const data = await $fetch<{ timeline?: PRTimelineItem[] }>(
-      `/api/pulls/${owner}/${repo}/${pullNumber}/timeline`,
-      {
-        method: 'GET',
-      }
-    );
+    const data = await $fetch<{
+      timeline?: PRTimelineItem[];
+      pageInfo?: { hasNextPage?: boolean };
+    }>(`/api/pulls/${owner}/${repo}/${pullNumber}/timeline`, {
+      method: 'GET',
+      query: { page: 1 },
+    });
 
     if (requestId === timelineRequestId.value && pullRequestIdentity === getPullRequestIdentity()) {
       timeline.value = data?.timeline || [];
+      hasNextTimelinePage.value = Boolean(data?.pageInfo?.hasNextPage);
     }
   } catch (err: any) {
     console.error('Error fetching PR timeline:', err);
     if (requestId === timelineRequestId.value) {
       timeline.value = [];
+      hasNextTimelinePage.value = false;
     }
   } finally {
     if (requestId === timelineRequestId.value) {
       loadingTimeline.value = false;
+    }
+  }
+};
+
+const loadMoreTimeline = async () => {
+  if (
+    !repoInfo.value ||
+    !currentPullRequest.value?.number ||
+    !hasNextTimelinePage.value ||
+    loadingMoreTimeline.value
+  ) {
+    return;
+  }
+
+  const requestId = timelineRequestId.value;
+  const pullRequestIdentity = getPullRequestIdentity();
+  const nextPage = currentTimelinePage.value + 1;
+  loadingMoreTimeline.value = true;
+
+  try {
+    const { owner, repo } = repoInfo.value;
+    const pullNumber = currentPullRequest.value.number;
+
+    const data = await $fetch<{
+      timeline?: PRTimelineItem[];
+      pageInfo?: { hasNextPage?: boolean };
+    }>(`/api/pulls/${owner}/${repo}/${pullNumber}/timeline`, {
+      method: 'GET',
+      query: { page: nextPage },
+    });
+
+    if (requestId === timelineRequestId.value && pullRequestIdentity === getPullRequestIdentity()) {
+      timeline.value = [...timeline.value, ...(data?.timeline || [])];
+      hasNextTimelinePage.value = Boolean(data?.pageInfo?.hasNextPage);
+      currentTimelinePage.value = nextPage;
+    }
+  } catch (err: any) {
+    console.error('Error loading more PR timeline:', err);
+  } finally {
+    if (requestId === timelineRequestId.value) {
+      loadingMoreTimeline.value = false;
     }
   }
 };

@@ -171,6 +171,30 @@ export async function fetchPaginatedArray<T>(
   }
 }
 
+export async function fetchTimelinePage<T>(
+  octokit: GitHubClient,
+  route: string,
+  params: Record<string, unknown>,
+  page: number,
+  perPage = 100
+): Promise<{ items: T[]; hasNextPage: boolean }> {
+  const response = await octokit.request(route, {
+    ...params,
+    per_page: perPage,
+    page,
+  });
+
+  const items = Array.isArray(response.data) ? (response.data as T[]) : [];
+
+  const linkHeader =
+    (response.headers && (response.headers.link ?? (response.headers as any).Link)) ?? '';
+  const hasNextPageByLink =
+    typeof linkHeader === 'string' && linkHeader.includes('rel="next"');
+  const hasNextPage = hasNextPageByLink || items.length === perPage;
+
+  return { items, hasNextPage };
+}
+
 export function sortTimelineItems<T extends SortableTimelineItem>(timeline: T[]): T[] {
   return [...timeline].sort((left, right) => {
     const leftRecord = left as { createdAt?: string; commit?: { committedDate?: string } };
