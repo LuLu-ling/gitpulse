@@ -66,8 +66,30 @@ function constantTimeStringEqual(left: string, right: string): boolean {
   return timingSafeEqual(leftBuffer, rightBuffer);
 }
 
+const PERSONAL_REMEMBER_FINGERPRINT_DOMAIN = 'gitpulse:personal-remember:fp:v1|';
+const MIN_COOKIE_SECRET_BYTES = 32;
+
 function fingerprintForPassword(password: string, secret: string): string {
-  return createHmac('sha256', secret).update(password).digest('base64url');
+  return createHmac('sha256', secret)
+    .update(`${PERSONAL_REMEMBER_FINGERPRINT_DOMAIN}${password}`)
+    .digest('base64url');
+}
+
+export function assertPersonalCookieSecretStrength(): void {
+  const { personalCookieSecret } = getPersonalAuthConfig();
+  const byteLength = Buffer.byteLength(personalCookieSecret, 'utf8');
+
+  if (byteLength >= MIN_COOKIE_SECRET_BYTES) {
+    return;
+  }
+
+  const message = `[auth] AUTH_PERSONAL_COOKIE_SECRET must be at least ${MIN_COOKIE_SECRET_BYTES} bytes (got ${byteLength}).`;
+
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error(message);
+  }
+
+  console.warn(message);
 }
 
 function signRememberPayload(payload: RememberCookiePayload, secret: string): string {
