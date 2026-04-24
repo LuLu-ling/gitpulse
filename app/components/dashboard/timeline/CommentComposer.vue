@@ -1,7 +1,9 @@
 <template>
   <div
-    v-if="!isAnyModalOpen"
+    v-show="!isAnyModalOpen"
     :class="['comment-composer', { 'comment-composer--expanded': isExpanded }]"
+    :aria-hidden="isAnyModalOpen ? 'true' : undefined"
+    :inert="isAnyModalOpen || undefined"
   >
     <div v-if="errorMessage" class="notification is-danger is-light mb-3 py-2 px-3">
       <button class="delete is-small" type="button" @click="errorMessage = ''"></button>
