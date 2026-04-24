@@ -26,6 +26,7 @@ logs
 # Ide Files
 .trae/
 .agents/
+.claude/
 skills-lock.json
 
 .editorconfig
@@ -36,3 +37,4 @@ AGENTS.md
 opencode.jsonc
 
 /.sisyphus/
+/.omc/
