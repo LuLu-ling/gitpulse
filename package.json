@@ -19,24 +19,20 @@
     "@primer/css": "^22.1.1",
     "bulma": "^1.0.4",
     "dayjs": "^1.11.20",
-    "isomorphic-dompurify": "^3.9.0",
+    "isomorphic-dompurify": "^3.10.0",
     "lucide-vue-next": "^1.0.0",
     "nuxt": "^4.4.2",
     "nuxt-auth-utils": "^0.5.29",
     "simplebar-vue": "^2.4.2",
-    "vue": "^3.5.32",
-    "vue-router": "^5.0.4"
+    "vue": "^3.5.33",
+    "vue-router": "^5.0.6"
   },
   "devDependencies": {
-    "@ataraxy-labs/sem": "^0.3.22",
-    "@nuxtjs/i18n": "^10.2.4",
-    "oxfmt": "^0.45.0",
-    "oxlint": "^1.60.0",
+    "@nuxtjs/i18n": "^10.3.0",
+    "oxfmt": "^0.46.0",
+    "oxlint": "^1.61.0",
     "oxlint-tsgolint": "^0.21.1",
     "sass-embedded": "^1.99.0",
     "vue3-simple-icons": "^16.10.0"
-  },
-  "trustedDependencies": [
-    "@ataraxy-labs/sem"
-  ]
+  }
 }
