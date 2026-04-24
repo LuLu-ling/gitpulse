@@ -18,22 +18,15 @@ export default defineEventHandler(async (event) => {
     const octokit = await getGitHubClient(event);
     const issueNumber = parseInt(issue_number, 10);
 
-    const [issueResponse, timelineResponse] = await Promise.all([
-      octokit.request('GET /repos/{owner}/{repo}/issues/{issue_number}', {
+    const timelineResponse = await fetchPaginatedArray<Record<string, any>>(
+      octokit,
+      'GET /repos/{owner}/{repo}/issues/{issue_number}/timeline',
+      {
         owner,
         repo,
         issue_number: issueNumber,
-      }),
-      fetchPaginatedArray<Record<string, any>>(
-        octokit,
-        'GET /repos/{owner}/{repo}/issues/{issue_number}/timeline',
-        {
-          owner,
-          repo,
-          issue_number: issueNumber,
-        }
-      ),
-    ]);
+      }
+    );
 
     const timeline = sortTimelineItems(
       timelineResponse.map((rawEvent: Record<string, any>) =>
@@ -48,8 +41,6 @@ export default defineEventHandler(async (event) => {
         hasNextPage: false,
         endCursor: null,
       },
-      issueNumber: issueResponse.data.number,
-      issueTitle: issueResponse.data.title,
       capabilities: buildIssueTimelineCapabilities(),
       warnings: createUnsupportedWarnings('issue'),
       errors: [],

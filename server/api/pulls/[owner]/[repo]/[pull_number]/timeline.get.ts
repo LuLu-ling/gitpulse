@@ -65,12 +65,7 @@ export default defineEventHandler(async (event) => {
     const octokit = await getGitHubClient(event);
     const pullNumber = parseInt(pull_number, 10);
 
-    const [pullRequestResponse, rawTimeline, pullCommits] = await Promise.all([
-      octokit.request('GET /repos/{owner}/{repo}/issues/{pull_number}', {
-        owner,
-        repo,
-        pull_number: pullNumber,
-      }),
+    const [rawTimeline, pullCommits] = await Promise.all([
       fetchPaginatedArray<Record<string, any>>(
         octokit,
         'GET /repos/{owner}/{repo}/issues/{issue_number}/timeline',
@@ -106,8 +101,6 @@ export default defineEventHandler(async (event) => {
         hasNextPage: false,
         endCursor: null,
       },
-      pullRequestNumber: pullRequestResponse.data.number,
-      pullRequestTitle: pullRequestResponse.data.title,
       capabilities: buildPRTimelineCapabilities(),
       warnings: createUnsupportedWarnings('pull'),
       errors: [],
