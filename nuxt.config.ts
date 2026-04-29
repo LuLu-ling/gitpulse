@@ -12,7 +12,7 @@ function normalizeBoolean(value: string | undefined, defaultValue: boolean): boo
   return defaultValue;
 }
 
-const patEnabled = normalizeBoolean(process.env.NUXT_AUTH_PAT_ENABLED, true);
+const tokenEnabled = normalizeBoolean(process.env.NUXT_AUTH_PAT_ENABLED, true);
 const oauthRequested = normalizeBoolean(process.env.NUXT_AUTH_GITHUB_OAUTH_ENABLED, true);
 const oauthEnvReady = Boolean(
   process.env.NUXT_OAUTH_GITHUB_CLIENT_ID && process.env.NUXT_OAUTH_GITHUB_CLIENT_SECRET
@@ -20,9 +20,9 @@ const oauthEnvReady = Boolean(
 const effectiveOAuthEnabled = oauthRequested && oauthEnvReady;
 const personalModeEnabled = normalizeBoolean(process.env.NUXT_AUTH_PERSONAL_MODE_ENABLED, true);
 
-if (!personalModeEnabled && !patEnabled && !oauthRequested) {
+if (!personalModeEnabled && !tokenEnabled && !oauthRequested) {
   throw new Error(
-    'GitPulse auth configuration is invalid: both PAT token input and GitHub OAuth are disabled. Enable NUXT_AUTH_PAT_ENABLED or NUXT_AUTH_GITHUB_OAUTH_ENABLED before starting the app.'
+    'GitPulse auth configuration is invalid: both token input and GitHub OAuth are disabled. Enable NUXT_AUTH_PAT_ENABLED or NUXT_AUTH_GITHUB_OAUTH_ENABLED before starting the app.'
   );
 }
 
@@ -39,7 +39,7 @@ export default defineNuxtConfig({
   runtimeConfig: {
     gitPulseAuth: {
       personalModeEnabled: String(personalModeEnabled),
-      patEnabled: String(personalModeEnabled ? false : patEnabled),
+      tokenEnabled: String(personalModeEnabled ? false : tokenEnabled),
       githubOAuthEnabled: String(personalModeEnabled ? false : effectiveOAuthEnabled),
       githubOAuthRequested: String(personalModeEnabled ? false : oauthRequested),
       githubOAuthEnvReady: String(oauthEnvReady),

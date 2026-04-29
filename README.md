@@ -16,7 +16,7 @@
 
 GitPulse 现在支持两种登录方式，并通过环境变量控制是否启用：
 
-- `AUTH_PAT_ENABLED`：是否允许用户输入 Personal Access Token，默认 `true`
+- `AUTH_PAT_ENABLED`：是否允许用户输入 GitHub Token，默认 `true`
 - `AUTH_GITHUB_OAUTH_ENABLED`：是否启用 GitHub OAuth App 登录，默认 `false`
 
 规则说明：

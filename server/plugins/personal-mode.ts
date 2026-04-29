@@ -11,7 +11,7 @@ interface PersonalModeIdentity {
 const PERSONAL_MODE_STORAGE_BASE = 'personal-mode';
 const PERSONAL_MODE_IDENTITY_KEY = 'identity';
 const PERSONAL_MODE_STARTUP_FAILURE =
-  'GitPulse personal mode failed to start: NUXT_GIT_PULSE_AUTH_GITHUB_TOKEN (formerly AUTH_PERSONAL_PAT) could not be validated against GitHub. Confirm the token is current and allowed to access GitHub user identity.';
+  'GitPulse personal mode failed to start: NUXT_GIT_PULSE_AUTH_GITHUB_TOKEN (formerly AUTH_PERSONAL_TOKEN) could not be validated against GitHub. Confirm the token is current and allowed to access GitHub user identity.';
 
 function createPersonalModeStartupError(): Error {
   return createError({
@@ -41,7 +41,7 @@ export default defineNitroPlugin(async (_nitroApp) => {
 
   if (!personalPat) {
     console.error(
-      '[auth] Personal mode startup validation failed: NUXT_GIT_PULSE_AUTH_GITHUB_TOKEN (formerly AUTH_PERSONAL_PAT) is missing.'
+      '[auth] Personal mode startup validation failed: NUXT_GIT_PULSE_AUTH_GITHUB_TOKEN is missing.'
     );
     throw createPersonalModeStartupError();
   }
@@ -58,7 +58,7 @@ export default defineNitroPlugin(async (_nitroApp) => {
     cachePersonalModeIdentity(identity);
     await useStorage(PERSONAL_MODE_STORAGE_BASE).setItem(PERSONAL_MODE_IDENTITY_KEY, identity);
 
-    console.info(`[auth] Personal mode PAT validated for @${identity.login}.`);
+    console.info(`[auth] Personal mode token validated for @${identity.login}.`);
   } catch (error: any) {
     const statusSuffix =
       typeof error?.status === 'number' ? ` (GitHub status ${error.status})` : '';

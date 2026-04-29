@@ -23,7 +23,7 @@
       <form v-if="showPatSection" class="auth-gateway__pat" @submit.prevent="handlePatSubmit">
         <div class="field">
           <label class="label auth-gateway__label" for="github-pat-input">{{
-            t('auth.patLabel')
+            t('auth.tokenLabel')
           }}</label>
           <div class="control has-icons-left">
             <input
@@ -33,7 +33,7 @@
               type="password"
               autocomplete="off"
               spellcheck="false"
-              :placeholder="t('auth.patPlaceholder')"
+              :placeholder="t('auth.tokenPlaceholder')"
               :disabled="submitting"
             />
             <span class="icon is-left auth-gateway__input-icon">
@@ -41,15 +41,15 @@
             </span>
           </div>
           <p class="help has-text-grey-dark auth-gateway__help">
-            {{ t('auth.patHelp') }}
+            {{ t('auth.tokenHelp') }}
             <a href="https://github.com/settings/tokens" target="_blank" rel="noreferrer">
-              {{ t('auth.patHelpLink') }}
+              {{ t('auth.tokenHelpLink') }}
             </a>
           </p>
         </div>
 
-        <div v-if="patError" class="notification is-danger is-light auth-gateway__error">
-          {{ patError }}
+        <div v-if="tokenError" class="notification is-danger is-light auth-gateway__error">
+          {{ tokenError }}
         </div>
 
         <Button type="submit" class="is-fullwidth is-justify-content-center" :disabled="submitting">
@@ -77,13 +77,13 @@ const props = defineProps<{
 const { t } = useI18n();
 const { fetch: fetchUserSession } = useUserSession();
 const token = ref('');
-const patError = ref('');
+const tokenError = ref('');
 const submitting = ref(false);
 
 watch(
   () => props.providers,
   (_) => {
-    patError.value = '';
+    tokenError.value = '';
     token.value = '';
   },
   { deep: true }
@@ -107,12 +107,12 @@ const handlePatSubmit = async () => {
   const normalizedToken = token.value.trim();
 
   if (!normalizedToken) {
-    patError.value = t('auth.tokenRequired');
+    tokenError.value = t('auth.tokenRequired');
     return;
   }
 
   submitting.value = true;
-  patError.value = '';
+  tokenError.value = '';
 
   try {
     await $fetch('/auth/pat', {
@@ -127,10 +127,10 @@ const handlePatSubmit = async () => {
   } catch (error: any) {
     const statusMessage = error?.data?.statusMessage || error?.statusMessage;
 
-    patError.value =
-      statusMessage === 'Invalid GitHub personal access token'
+    tokenError.value =
+      statusMessage === 'Invalid GitHub token'
         ? t('auth.tokenInvalid')
-        : statusMessage || t('auth.patLoginFailed');
+        : statusMessage || t('auth.tokenLoginFailed');
   } finally {
     submitting.value = false;
   }

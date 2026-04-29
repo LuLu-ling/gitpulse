@@ -8,14 +8,14 @@ export default defineEventHandler(async (event) => {
   if (providerState.personalMode) {
     throw createError({
       statusCode: 403,
-      statusMessage: 'Personal access token authentication is not available in personal mode',
+      statusMessage: 'Token authentication is not available in personal mode',
     });
   }
 
   if (!providerState.patEnabled) {
     throw createError({
       statusCode: 403,
-      statusMessage: 'Personal access token authentication is disabled',
+      statusMessage: 'Token authentication is disabled',
     });
   }
 
@@ -25,7 +25,7 @@ export default defineEventHandler(async (event) => {
   if (!token) {
     throw createError({
       statusCode: 400,
-      statusMessage: 'A GitHub personal access token is required',
+      statusMessage: 'A GitHub token is required',
     });
   }
 
@@ -45,13 +45,11 @@ export default defineEventHandler(async (event) => {
     };
   } catch (error: any) {
     const isUnauthorized = error?.status === 401;
-    console.error(`[auth] PAT validation failed: ${isUnauthorized ? 'unauthorized' : 'error'}`);
+    console.error(`[auth] Token validation failed: ${isUnauthorized ? 'unauthorized' : 'error'}`);
 
     throw createError({
       statusCode: isUnauthorized ? 401 : 500,
-      statusMessage: isUnauthorized
-        ? 'Invalid GitHub personal access token'
-        : 'Failed to validate GitHub personal access token',
+      statusMessage: isUnauthorized ? 'Invalid GitHub token' : 'Failed to validate GitHub token',
     });
   }
 });

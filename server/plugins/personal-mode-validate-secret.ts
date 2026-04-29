@@ -7,12 +7,12 @@ export default defineNitroPlugin(() => {
   }
 
   if (
-    process.env.AUTH_PERSONAL_PAT ||
+    process.env.AUTH_PERSONAL_TOKEN ||
     process.env.AUTH_PERSONAL_PASSWORD ||
     process.env.AUTH_PERSONAL_COOKIE_SECRET
   ) {
     console.warn(
-      '[auth] BREAKING: AUTH_PERSONAL_PAT/PASSWORD/COOKIE_SECRET are no longer read. Rename to NUXT_GIT_PULSE_AUTH_GITHUB_TOKEN/PASSWORD/COOKIE_SECRET. See CHANGELOG.'
+      '[auth] BREAKING: AUTH_PERSONAL_TOKEN/PASSWORD/COOKIE_SECRET are no longer read. Rename to NUXT_GIT_PULSE_AUTH_GITHUB_TOKEN/PASSWORD/COOKIE_SECRET. See CHANGELOG.'
     );
   }
 
