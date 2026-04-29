@@ -1,6 +1,6 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
-const ENABLED_VALUES = new Set(['1', 'true', 'yes', 'on']);
-const DISABLED_VALUES = new Set(['0', 'false', 'no', 'off']);
+const ENABLED_VALUES = new Set(['1', 'true']);
+const DISABLED_VALUES = new Set(['0', 'false']);
 
 function normalizeBoolean(value: string | undefined, defaultValue: boolean): boolean {
   if (typeof value !== 'string') return defaultValue;
@@ -12,17 +12,17 @@ function normalizeBoolean(value: string | undefined, defaultValue: boolean): boo
   return defaultValue;
 }
 
-const patEnabled = normalizeBoolean(process.env.AUTH_PAT_ENABLED, true);
-const oauthRequested = normalizeBoolean(process.env.AUTH_GITHUB_OAUTH_ENABLED, false);
+const patEnabled = normalizeBoolean(process.env.NUXT_AUTH_PAT_ENABLED, true);
+const oauthRequested = normalizeBoolean(process.env.NUXT_AUTH_GITHUB_OAUTH_ENABLED, true);
 const oauthEnvReady = Boolean(
   process.env.NUXT_OAUTH_GITHUB_CLIENT_ID && process.env.NUXT_OAUTH_GITHUB_CLIENT_SECRET
 );
 const effectiveOAuthEnabled = oauthRequested && oauthEnvReady;
-const personalModeEnabled = normalizeBoolean(process.env.AUTH_PERSONAL_MODE_ENABLED, false);
+const personalModeEnabled = normalizeBoolean(process.env.NUXT_AUTH_PERSONAL_MODE_ENABLED, true);
 
 if (!personalModeEnabled && !patEnabled && !oauthRequested) {
   throw new Error(
-    'GitPulse auth configuration is invalid: both PAT token input and GitHub OAuth are disabled. Enable AUTH_PAT_ENABLED or AUTH_GITHUB_OAUTH_ENABLED before starting the app.'
+    'GitPulse auth configuration is invalid: both PAT token input and GitHub OAuth are disabled. Enable NUXT_AUTH_PAT_ENABLED or NUXT_AUTH_GITHUB_OAUTH_ENABLED before starting the app.'
   );
 }
 
@@ -43,7 +43,7 @@ export default defineNuxtConfig({
       githubOAuthEnabled: String(personalModeEnabled ? false : effectiveOAuthEnabled),
       githubOAuthRequested: String(personalModeEnabled ? false : oauthRequested),
       githubOAuthEnvReady: String(oauthEnvReady),
-      personalPat: '',
+      githubToken: '',
       personalPassword: '',
       personalCookieSecret: '',
     },
@@ -70,7 +70,7 @@ export default defineNuxtConfig({
         'dayjs/plugin/relativeTime.js', // CJS
         'dayjs/plugin/relativeTime', // CJS
         'isomorphic-dompurify',
-      ]
+      ],
     },
     css: {
       preprocessorOptions: {

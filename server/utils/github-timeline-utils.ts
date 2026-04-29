@@ -188,8 +188,7 @@ export async function fetchTimelinePage<T>(
 
   const linkHeader =
     (response.headers && (response.headers.link ?? (response.headers as any).Link)) ?? '';
-  const hasNextPageByLink =
-    typeof linkHeader === 'string' && linkHeader.includes('rel="next"');
+  const hasNextPageByLink = typeof linkHeader === 'string' && linkHeader.includes('rel="next"');
   const hasNextPage = hasNextPageByLink || items.length === perPage;
 
   return { items, hasNextPage };

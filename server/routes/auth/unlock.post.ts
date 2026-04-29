@@ -12,15 +12,15 @@ interface UnlockRequestBody {
   remember?: unknown;
 }
 
-function getPersonalPatFromRuntimeConfig(): string {
+function getGithubTokenFromRuntimeConfig(): string {
   const runtimeConfig = useRuntimeConfig() as {
     gitPulseAuth?: {
-      personalPat?: string;
+      githubToken?: string;
     };
   };
 
-  return typeof runtimeConfig.gitPulseAuth?.personalPat === 'string'
-    ? runtimeConfig.gitPulseAuth.personalPat.trim()
+  return typeof runtimeConfig.gitPulseAuth?.githubToken === 'string'
+    ? runtimeConfig.gitPulseAuth.githubToken.trim()
     : '';
 }
 
@@ -75,10 +75,10 @@ function getSessionUserResponse(user: {
 
 export default defineEventHandler(async (event) => {
   const body = normalizeUnlockBody(await readBody(event));
-  const personalPat = getPersonalPatFromRuntimeConfig();
+  const githubToken = getGithubTokenFromRuntimeConfig();
   const identity = getPersonalModeIdentity();
 
-  if (!personalPat || !identity) {
+  if (!githubToken || !identity) {
     throw createError({
       statusCode: 503,
       statusMessage: 'Personal mode unlock is unavailable',
@@ -89,7 +89,7 @@ export default defineEventHandler(async (event) => {
   const hasActiveSession = Boolean(session.secure?.access_token && session.user?.login);
 
   if (!hasActiveSession && verifyRememberDeviceCookie(event)) {
-    await establishGitHubSession(event, 'pat', personalPat, identity);
+    await establishGitHubSession(event, 'pat', githubToken, identity);
 
     return {
       ok: true,
@@ -111,7 +111,7 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  await establishGitHubSession(event, 'pat', personalPat, identity);
+  await establishGitHubSession(event, 'pat', githubToken, identity);
 
   if (body.remember) {
     createRememberDeviceCookie(event);

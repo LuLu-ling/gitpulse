@@ -5,10 +5,7 @@ const CSRF_HEADER_NAME = 'x-csrf-token';
 
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 
-const CSRF_EXEMPT_PATHS = [
-  '/api/auth/github',
-  '/api/auth/github/callback',
-];
+const CSRF_EXEMPT_PATHS = ['/api/auth/github', '/api/auth/github/callback'];
 
 function matchesExemptPath(pathname: string): boolean {
   for (const exempt of CSRF_EXEMPT_PATHS) {
