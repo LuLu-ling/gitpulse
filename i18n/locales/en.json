@@ -115,6 +115,15 @@
   },
   "markdown": {
     "copyCode": "Copy",
-    "copied": "Copied"
+    "copied": "Copied",
+    "mermaid": {
+      "openViewer": "Open diagram",
+      "title": "Diagram viewer",
+      "zoomIn": "Zoom in",
+      "zoomOut": "Zoom out",
+      "reset": "Reset view",
+      "close": "Close",
+      "hint": "Drag to pan · Scroll to zoom"
+    }
   }
 }

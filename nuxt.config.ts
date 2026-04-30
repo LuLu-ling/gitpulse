@@ -125,6 +125,7 @@ export default defineNuxtConfig({
         'html',
         'css',
         'scss',
+        'mermaid',
         'md',
         'diff',
       ],
