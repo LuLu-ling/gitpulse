@@ -199,9 +199,7 @@
     }}</span>
   </template>
 
-  <template v-else-if="item.eventType === 'merged'">
-    merged this PR
-  </template>
+  <template v-else-if="item.eventType === 'merged'"> merged this PR </template>
 
   <template v-else-if="item.eventType === 'moved_columns_in_project'">
     moved this from column

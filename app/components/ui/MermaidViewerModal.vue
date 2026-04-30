@@ -244,7 +244,10 @@ function onPointerMove(event: PointerEvent) {
   const drag = dragState.value;
   if (!drag || drag.pointerId !== event.pointerId) return;
 
-  schedulePan(drag.originX + event.clientX - drag.startX, drag.originY + event.clientY - drag.startY);
+  schedulePan(
+    drag.originX + event.clientX - drag.startX,
+    drag.originY + event.clientY - drag.startY
+  );
 }
 
 function stopDragging(event?: PointerEvent) {
@@ -397,7 +400,11 @@ onBeforeUnmount(() => {
 
         <p class="mermaid-viewer-modal__hint">{{ t('markdown.mermaid.hint') }}</p>
 
-        <button class="button is-small mermaid-viewer-modal__close" type="button" @click="requestClose">
+        <button
+          class="button is-small mermaid-viewer-modal__close"
+          type="button"
+          @click="requestClose"
+        >
           <X :size="16" aria-hidden="true" />
           <span>{{ t('markdown.mermaid.close') }}</span>
         </button>
@@ -449,8 +456,7 @@ onBeforeUnmount(() => {
   justify-content: center;
   background:
     linear-gradient(90deg, rgb(208 215 222 / 35%) 1px, transparent 1px),
-    linear-gradient(rgb(208 215 222 / 35%) 1px, transparent 1px),
-    #ffffff;
+    linear-gradient(rgb(208 215 222 / 35%) 1px, transparent 1px), #ffffff;
   background-size: 24px 24px;
   cursor: grab;
   touch-action: none;
@@ -530,7 +536,9 @@ onBeforeUnmount(() => {
   background-color: transparent;
   color: #57606a;
   border-radius: 999px;
-  transition: background-color 120ms ease, color 120ms ease;
+  transition:
+    background-color 120ms ease,
+    color 120ms ease;
 }
 
 .mermaid-viewer-modal__icon-button:hover:not(:disabled),
