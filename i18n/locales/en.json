@@ -112,5 +112,9 @@
     "emptyError": "Please enter a comment before submitting.",
     "unavailableError": "Comments are temporarily unavailable for this item.",
     "failed": "Failed to create comment"
+  },
+  "markdown": {
+    "copyCode": "Copy",
+    "copied": "Copied"
   }
 }

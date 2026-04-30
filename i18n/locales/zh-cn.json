@@ -112,5 +112,9 @@
     "emptyError": "请先输入评论内容再提交。",
     "unavailableError": "当前条目暂时无法发表评论。",
     "failed": "发表评论失败"
+  },
+  "markdown": {
+    "copyCode": "复制",
+    "copied": "已复制"
   }
 }

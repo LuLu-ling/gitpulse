@@ -58,6 +58,12 @@ export default defineNuxtConfig({
 
   vite: {
     optimizeDeps: {
+      // NOTE: mermaid is intentionally NOT in this list.
+      // dayjs and isomorphic-dompurify are pre-bundled here because they ship
+      // CJS-only code that Vite cannot tree-shake at dev time.
+      // mermaid ships ESM and is ~600 KB — we want Vite to code-split it into a
+      // separate lazy chunk so it never enters the main entry bundle.
+      // Adding it here would defeat that chunk-splitting goal.
       include: [
         '@vue/devtools-core',
         '@vue/devtools-kit',
@@ -99,6 +105,29 @@ export default defineNuxtConfig({
         h5: false,
         h6: false,
       },
+    },
+    highlight: {
+      theme: { default: 'min-light', dark: 'min-dark' },
+      langs: [
+        'ts',
+        'tsx',
+        'js',
+        'jsx',
+        'vue',
+        'json',
+        'bash',
+        'python',
+        'go',
+        'rust',
+        'java',
+        'sql',
+        'yaml',
+        'html',
+        'css',
+        'scss',
+        'md',
+        'diff',
+      ],
     },
   },
 
