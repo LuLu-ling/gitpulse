@@ -156,21 +156,6 @@ export function usePRTimelineEvents(timeline: MaybeRefOrGetter<PRTimelineItem[]>
   };
 }
 
-export function getReviewStateClass(state?: string): string {
-  switch (state) {
-    case 'APPROVED':
-      return 'is-success is-light';
-    case 'CHANGES_REQUESTED':
-      return 'is-warning is-light';
-    case 'COMMENTED':
-      return 'is-info is-light';
-    case 'PENDING':
-      return 'is-light';
-    default:
-      return 'is-light';
-  }
-}
-
 export function parseRepoFullName(repoFullName?: string): { owner: string; repo: string } | null {
   if (!repoFullName) return null;
 
