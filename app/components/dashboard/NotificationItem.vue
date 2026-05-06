@@ -36,7 +36,7 @@
 
       <div class="is-flex is-justify-content-space-between is-align-items-center">
         <div class="is-flex is-justify-content-flex-start is-align-items-center">
-          <component :is="typeIcon" class="mr-2" />
+          <component :is="typeIcon" class="mr-2" :style="typeColor" />
           <span class="has-text-weight-semibold is-size-6 dashboard-list-card__subject">
             {{ currentNotification.subject.title }}
           </span>
@@ -57,7 +57,6 @@
 
 <script setup lang="ts">
 import {
-  BugIcon,
   GitPullRequestIcon,
   CheckCircle,
   UserPlus,
@@ -75,6 +74,8 @@ import {
   Bell,
   Users2,
   CheckIcon,
+  CircleDotIcon,
+  MessagesSquareIcon,
 } from 'lucide-vue-next';
 import { ref, computed } from 'vue';
 
@@ -116,12 +117,24 @@ const markAsRead = async () => {
 };
 
 const typeIconMap: Record<string, any> = {
-  Issue: BugIcon,
+  Issue: CircleDotIcon,
   PullRequest: GitPullRequestIcon,
+  Discussion: MessagesSquareIcon,
+};
+
+const typeColorMap: Record<string, string> = {
+  Issue: '#1a7f37',
+  PullRequest: '#1a7f37',
+  Discussion: '#0969da',
 };
 
 const typeIcon = computed(() => {
   return typeIconMap[localNotification.value.subject.type];
+});
+
+const typeColor = computed(() => {
+  const color = typeColorMap[localNotification.value.subject.type];
+  return color ? { color } : {};
 });
 
 const reasonIconMap: Record<string, any> = {
