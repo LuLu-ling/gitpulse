@@ -98,6 +98,32 @@
     "pagination": {
       "previous": "上一页",
       "next": "下一页"
+    },
+    "widgets": {
+      "stats": {
+        "unread": "未读",
+        "read": "已读",
+        "total": "总计",
+        "open": "开启",
+        "merged": "已合并",
+        "closed": "关闭"
+      },
+      "filters": {
+        "title": "过滤器",
+        "empty": "当前视图无可用过滤器。",
+        "options": {
+          "open": "打开",
+          "closed": "关闭",
+          "merged": "已合并",
+          "unread": "未读",
+          "read": "已读"
+        }
+      },
+      "actions": {
+        "markAllRead": "全部标为已读",
+        "createIssue": "新建议题",
+        "createPr": "新建 PR"
+      }
     }
   },
   "commentComposer": {

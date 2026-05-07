@@ -98,6 +98,32 @@
     "pagination": {
       "previous": "Previous Page",
       "next": "Next Page"
+    },
+    "widgets": {
+      "stats": {
+        "unread": "Unread",
+        "read": "Read",
+        "total": "Total",
+        "open": "Open",
+        "merged": "Merged",
+        "closed": "Closed"
+      },
+      "filters": {
+        "title": "Filters",
+        "empty": "No filters available for this view.",
+        "options": {
+          "open": "Open",
+          "closed": "Closed",
+          "merged": "Merged",
+          "unread": "Unread",
+          "read": "Read"
+        }
+      },
+      "actions": {
+        "markAllRead": "Mark all read",
+        "createIssue": "Create issue",
+        "createPr": "Create PR"
+      }
     }
   },
   "commentComposer": {
