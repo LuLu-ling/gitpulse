@@ -1,45 +1,43 @@
 <template>
-  <div class="card dashboard-list-card dashboard-list-card--activity">
+  <div class="card dashboard-list-card dashboard-list-card--activity dashboard-list-card--detailed">
     <div class="card-content p-3">
-      <div class="media mb-2">
-        <div class="media-left ml-2 mt-2">
+      <div class="dashboard-list-card__main-row">
+        <div class="dashboard-list-card__icon ml-2 mt-1">
           <component :size="24" :is="stateIcon" :style="stateColor" />
         </div>
-        <div class="media-content dashboard-list-card__content">
-          <div class="is-flex is-justify-content-space-between is-align-items-center">
-            <p class="title is-6 mb-0 dashboard-list-card__title">{{ issue.title }}</p>
-            <span class="tag is-info is-light ml-2">#{{ issue.number }}</span>
+        <div class="dashboard-list-card__content">
+          <div class="dashboard-list-card__text-stack">
+            <p class="title is-6 mb-1 dashboard-list-card__title">{{ issue.title }}</p>
+
+            <p class="subtitle is-7 has-text-grey mb-2 dashboard-list-card__meta">
+              <span class="dashboard-list-card__repo">{{ getRepoName(issue.repository_url) }}</span>
+              <span class="tag is-small dashboard-list-card__number">#{{ issue.number }}</span>
+              <span class="dashboard-list-card__separator">&middot;</span>
+              <span>{{ formatDurationFromNow(issue.updated_at, localeCode) }}</span>
+            </p>
           </div>
 
           <!-- Type and Labels -->
-          <div class="is-flex dashboard-list-card__tags mt-2">
-            <span
-              v-if="issue.type?.name"
-              class="tag mr-2 has-text-weight-medium"
-              :style="typeStyle"
-            >
-              {{ issue.type.name }}
-            </span>
+          <div v-if="hasTags" class="dashboard-list-card__tags-container">
+            <div class="is-flex dashboard-list-card__tags">
+              <span v-if="issue.type?.name" class="tag has-text-weight-medium" :style="typeStyle">
+                {{ issue.type.name }}
+              </span>
 
-            <span
-              v-for="label in issue.labels"
-              :key="label.id"
-              class="tag mr-2 has-text-weight-medium"
-              :style="{
-                backgroundColor: `#${label.color}`,
-                color: `#${getTextColorFromBackground(label.color)}`,
-              }"
-            >
-              {{ label.name }}
-            </span>
+              <span
+                v-for="label in issue.labels"
+                :key="label.id"
+                class="tag has-text-weight-medium"
+                :style="{
+                  backgroundColor: `#${label.color}`,
+                  color: `#${getTextColorFromBackground(label.color)}`,
+                }"
+              >
+                {{ label.name }}
+              </span>
+            </div>
           </div>
         </div>
-      </div>
-      <div class="ml-2">
-        <span class="subtitle is-7">{{ getRepoName(issue.repository_url) }} · </span>
-        <span class="has-text-info-40 subtitle is-7">{{
-          formatDurationFromNow(issue.updated_at, localeCode)
-        }}</span>
       </div>
     </div>
   </div>
@@ -64,6 +62,10 @@ const props = defineProps<{
 
 const { locale } = useI18n();
 const localeCode = computed(() => locale.value);
+
+const hasTags = computed(() => {
+  return Boolean(props.issue.type?.name || props.issue.labels?.length);
+});
 
 const typeStyle = computed(() => {
   if (!props.issue.type?.name) return null;

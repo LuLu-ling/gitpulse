@@ -1,11 +1,11 @@
 <template>
   <div
-    class="card dashboard-list-card dashboard-list-card--activity notification-card"
+    class="card dashboard-list-card dashboard-list-card--activity dashboard-list-card--detailed notification-card"
     :class="{ 'is-unread': currentNotification.unread }"
   >
     <div class="card-content p-3">
-      <div class="media mb-2">
-        <div class="media-left">
+      <div class="dashboard-list-card__main-row notification-card__main-row">
+        <div class="dashboard-list-card__icon">
           <figure class="image is-32x32">
             <NuxtImg
               :src="currentNotification.repository.owner.avatar_url"
@@ -15,41 +15,41 @@
               loading="lazy"
               class="is-rounded"
             />
+            <span v-if="subjectTypeIcon" class="notification-type-badge" :style="subjectTypeColor">
+              <component :is="subjectTypeIcon" :size="13" />
+            </span>
           </figure>
         </div>
-        <div class="media-content dashboard-list-card__content">
-          <div class="is-flex is-flex-direction-row">
-            <div class="is-flex-grow-1">
-              <p class="title is-6 dashboard-list-card__title">
-                {{ currentNotification.repository.full_name }}
+        <div class="dashboard-list-card__content">
+          <div class="is-flex is-align-items-flex-start">
+            <div class="dashboard-list-card__text-stack">
+              <p class="title is-6 mb-1 dashboard-list-card__subject">
+                {{ currentNotification.subject.title }}
               </p>
-              <p class="subtitle is-7 has-text-grey">
+
+              <p class="subtitle is-7 has-text-grey mb-0 dashboard-list-card__meta">
+                {{ currentNotification.repository.full_name }} &middot;
                 {{ formatDurationFromNow(currentNotification.updated_at, localeCode) }}
               </p>
             </div>
-            <div class="ml-4">
-              <component :is="reasonIcon" :size="22" />
+            <div class="notification-card__actions ml-3">
+              <div class="notification-card__reason-slot">
+                <component :is="reasonIcon" :size="22" class="notification-card__reason-icon" />
+              </div>
+              <div class="notification-card__mark-read-slot">
+                <button
+                  v-if="currentNotification.unread"
+                  class="mark-read-btn"
+                  @click.stop="markAsRead"
+                  :disabled="markingAsRead"
+                >
+                  <CheckIcon v-if="!markingAsRead" :size="16" />
+                  <LoadingIcon v-else :spinning="true" />
+                </button>
+              </div>
             </div>
           </div>
         </div>
-      </div>
-
-      <div class="is-flex is-justify-content-space-between is-align-items-center">
-        <div class="is-flex is-justify-content-flex-start is-align-items-center">
-          <component :is="typeIcon" class="mr-2" :style="typeColor" />
-          <span class="has-text-weight-semibold is-size-6 dashboard-list-card__subject">
-            {{ currentNotification.subject.title }}
-          </span>
-        </div>
-        <button
-          v-if="currentNotification.unread"
-          class="mark-read-btn"
-          @click.stop="markAsRead"
-          :disabled="markingAsRead"
-        >
-          <CheckIcon v-if="!markingAsRead" :size="16" />
-          <LoadingIcon v-else :size="16" :spinning="true" />
-        </button>
       </div>
     </div>
   </div>
@@ -76,6 +76,7 @@ import {
   CheckIcon,
   CircleDotIcon,
   MessagesSquareIcon,
+  TagIcon,
 } from 'lucide-vue-next';
 import { ref, computed } from 'vue';
 
@@ -92,6 +93,29 @@ const markingAsRead = ref(false);
 const localNotification = ref({ ...props.notification });
 
 const currentNotification = computed(() => localNotification.value);
+
+const subjectTypeIconMap: Record<string, any> = {
+  Issue: CircleDotIcon,
+  PullRequest: GitPullRequestIcon,
+  Discussion: MessagesSquareIcon,
+  Release: TagIcon,
+};
+
+const subjectTypeColorMap: Record<string, string> = {
+  Issue: '#1a7f37',
+  PullRequest: '#8250df',
+  Discussion: '#0969da',
+  Release: '#bf8700',
+};
+
+const subjectTypeIcon = computed(() => {
+  return subjectTypeIconMap[localNotification.value.subject?.type];
+});
+
+const subjectTypeColor = computed(() => {
+  const color = subjectTypeColorMap[localNotification.value.subject?.type];
+  return color ? { color } : {};
+});
 
 const markAsRead = async () => {
   if (markingAsRead.value || !localNotification.value.unread) return;
@@ -115,27 +139,6 @@ const markAsRead = async () => {
     markingAsRead.value = false;
   }
 };
-
-const typeIconMap: Record<string, any> = {
-  Issue: CircleDotIcon,
-  PullRequest: GitPullRequestIcon,
-  Discussion: MessagesSquareIcon,
-};
-
-const typeColorMap: Record<string, string> = {
-  Issue: '#1a7f37',
-  PullRequest: '#1a7f37',
-  Discussion: '#0969da',
-};
-
-const typeIcon = computed(() => {
-  return typeIconMap[localNotification.value.subject.type];
-});
-
-const typeColor = computed(() => {
-  const color = typeColorMap[localNotification.value.subject.type];
-  return color ? { color } : {};
-});
 
 const reasonIconMap: Record<string, any> = {
   approval_requested: CheckCircle, // Deployment approval requested
@@ -165,8 +168,35 @@ const reasonIcon = computed(() => {
 @use 'bulma/sass/utilities/initial-variables' as iv;
 
 .card.is-unread {
-  border-left: 4px solid #3e8ed0;
   background-color: #f5f9ff;
+}
+
+.card.is-unread::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 4px;
+  background-color: #3e8ed0;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.notification-type-badge {
+  position: absolute;
+  right: -3px;
+  bottom: -3px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border: 2px solid iv.$white;
+  border-radius: 999px;
+  background-color: iv.$white;
+  box-shadow: 0 1px 4px hsla(221deg, 14%, 4%, 0.18);
+  line-height: 1;
 }
 
 .mark-read-btn {
@@ -179,6 +209,27 @@ const reasonIcon = computed(() => {
   height: 24px;
   border-radius: 4px;
   transition: all 0.3s ease;
+}
+
+.notification-card__actions {
+  display: grid;
+  grid-template-columns: 24px 24px;
+  gap: 0.35rem;
+  flex: 0 0 auto;
+}
+
+.notification-card__reason-slot,
+.notification-card__mark-read-slot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+}
+
+.notification-card__reason-icon {
+  color: iv.$grey;
+  flex: 0 0 auto;
 }
 
 .notification-card:hover .mark-read-btn {
