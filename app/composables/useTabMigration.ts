@@ -1,9 +1,10 @@
 import { BellIcon, BookMarkedIcon, CircleDotIcon, GitPullRequestIcon } from 'lucide-vue-next';
+import type { Component } from 'vue';
 import { computed, ref } from 'vue';
 
 import type { DashboardTab } from '~/composables/useDashboardTabs';
 
-export interface TabGroup {
+export interface MigratedTabGroup {
   id: string;
   name: string;
   collapsed?: boolean;
@@ -13,11 +14,11 @@ export interface TabItem {
   id: string;
   groupId: string;
   name: string;
-  icon: any;
+  icon: Component;
   badgeCount?: number;
 }
 
-const DEFAULT_GROUPS: TabGroup[] = [{ id: 'default', name: 'General', collapsed: false }];
+const DEFAULT_GROUPS: MigratedTabGroup[] = [{ id: 'default', name: 'General', collapsed: false }];
 
 const DEFAULT_TABS: TabItem[] = [
   { id: 'notifications', groupId: 'default', name: 'Notifications', icon: BellIcon },
@@ -30,7 +31,7 @@ const DASHBOARD_TABS: DashboardTab[] = ['notifications', 'issues', 'pulls', 'rep
 
 export interface UseTabMigrationOptions {
   initialTab?: DashboardTab;
-  groups?: TabGroup[];
+  groups?: MigratedTabGroup[];
   tabs?: TabItem[];
 }
 
@@ -38,7 +39,7 @@ const isDashboardTab = (value: string): value is DashboardTab => {
   return DASHBOARD_TABS.includes(value as DashboardTab);
 };
 
-const cloneGroups = (groups: TabGroup[]) => {
+const cloneGroups = (groups: MigratedTabGroup[]) => {
   return groups.map((group) => ({ ...group }));
 };
 
@@ -53,7 +54,7 @@ export function useTabMigration(options: UseTabMigrationOptions = {}) {
     tabs: inputTabs = DEFAULT_TABS,
   } = options;
 
-  const groups = ref<TabGroup[]>(cloneGroups(inputGroups));
+  const groups = ref<MigratedTabGroup[]>(cloneGroups(inputGroups));
   const tabs = ref<TabItem[]>(cloneTabs(inputTabs));
   const activeTabId = ref<string>(initialTab);
 

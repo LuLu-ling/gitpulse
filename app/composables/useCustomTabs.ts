@@ -33,6 +33,8 @@ const STORAGE_KEY = 'gitpulse:dashboard:custom-tabs';
 
 const DEFAULT_CUSTOM_TABS: CustomTab[] = [];
 
+let hasHydratedStoredTabs = false;
+
 const cloneQuery = (query: CustomTabQuery = {}) => {
   return {
     ...query,
@@ -145,15 +147,10 @@ const createTabId = () => {
 export function useCustomTabs(initialTabs: CustomTab[] = DEFAULT_CUSTOM_TABS) {
   const customTabs = useState<CustomTab[]>('gitpulse-custom-tabs', () => cloneTabs(initialTabs));
 
-  if (typeof window !== 'undefined' && customTabs.value.length === 0) {
-    customTabs.value = cloneTabs(initialTabs);
-  }
-
-  if (typeof window !== 'undefined' && customTabs.value.length > 0) {
+  if (import.meta.client && !hasHydratedStoredTabs) {
     const storedTabs = readStoredTabs();
-    if (storedTabs) {
-      customTabs.value = storedTabs;
-    }
+    customTabs.value = storedTabs ?? cloneTabs(initialTabs);
+    hasHydratedStoredTabs = true;
   }
 
   watch(

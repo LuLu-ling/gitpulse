@@ -1,5 +1,7 @@
 <template>
-  <div class="container is-max-widescreen dashboard-page">
+  <NuxtPage v-if="isDashboardChildRoute" />
+
+  <div v-else class="container is-max-widescreen dashboard-page">
     <DashboardLayout>
       <template #activity-bar>
         <ActivityBar
@@ -16,9 +18,10 @@
       <template #tab-sidebar>
         <TabSidebar
           :groups="groups"
-          :tabs="tabs"
+          :tabs="sidebarTabs"
           :active-tab-id="activeTabId"
           @tab-select="handleSidebarTabSelect"
+          @tab-move="handleSidebarTabMove"
           @group-toggle="handleSidebarGroupToggle"
           @new-group="handleNewGroup"
         />
@@ -148,7 +151,7 @@
 </template>
 
 <script setup lang="ts">
-import { RefreshCwIcon } from 'lucide-vue-next';
+import { RefreshCwIcon, SearchIcon } from 'lucide-vue-next';
 import { defineAsyncComponent, computed, onMounted, ref, watch } from 'vue';
 import type { LocationQueryRaw } from 'vue-router';
 
@@ -178,6 +181,10 @@ const router = useRouter();
 
 const dashboardTabs: DashboardTab[] = ['notifications', 'issues', 'pulls', 'repos'];
 const quickFiltersStorageKey = 'gitpulse:dashboard:quick-filters';
+
+const isDashboardChildRoute = computed(() => {
+  return !route.path.replace(/\/$/, '').endsWith('/dashboard');
+});
 
 type QuickFilterMap = Partial<Record<DashboardTab, Record<string, boolean>>>;
 
@@ -225,7 +232,7 @@ const {
   fetchCustomTab,
 } = useGithubData();
 
-const { getCustomTabById } = useCustomTabs();
+const { customTabs, getCustomTabById, updateCustomTab } = useCustomTabs();
 
 const {
   currentTab: currentBuiltinTab,
@@ -263,6 +270,17 @@ const selectedCustomTab = computed(() => {
   return getCustomTabById(tabId) ?? null;
 });
 
+const sidebarTabs = computed(() => {
+  const customSidebarTabs = customTabs.value.map((tab) => ({
+    id: tab.id,
+    groupId: tab.groupId,
+    name: tab.name,
+    icon: SearchIcon,
+  }));
+
+  return [...tabs.value, ...customSidebarTabs];
+});
+
 const currentTab = computed<DashboardTab>(() => {
   return selectedCustomTab.value ? 'issues' : currentBuiltinTab.value;
 });
@@ -280,6 +298,8 @@ const currentTabTitle = computed(() => {
   };
   return tabNames[currentTab.value] || currentTab.value;
 });
+
+const currentRouteTabId = computed(() => selectedCustomTab.value?.id ?? currentTab.value);
 
 const activityGroups = computed(() => {
   const iconByTab: Record<DashboardTab, string> = {
@@ -569,7 +589,7 @@ const handleAvatarClick = async () => {
 };
 
 const handleSettingsClick = async () => {
-  await handleLogout();
+  await router.push('/dashboard/settings/tabs');
 };
 
 const handleNewGroup = () => {
@@ -589,6 +609,28 @@ const handleSidebarTabSelect = async (tabId: string) => {
 
   const tab = selectTab(tabId);
   await switchTabSafely(tab);
+};
+
+const moveBuiltInSidebarTab = (tabId: string, groupId: string) => {
+  tabs.value = tabs.value.map((tab) => {
+    if (tab.id !== tabId) {
+      return tab;
+    }
+
+    return {
+      ...tab,
+      groupId,
+    };
+  });
+};
+
+const handleSidebarTabMove = (tabId: string, groupId: string) => {
+  if (getCustomTabById(tabId)) {
+    updateCustomTab(tabId, { groupId });
+    return;
+  }
+
+  moveBuiltInSidebarTab(tabId, groupId);
 };
 
 const handleActivityGroupSelect = async (groupId: string) => {
@@ -659,7 +701,7 @@ watch(
       path: '/dashboard',
       query: buildDashboardQuery({
         ...route.query,
-        tab: currentTab.value,
+        tab: currentRouteTabId.value,
         page: resolvedPage,
       }),
     });

@@ -62,27 +62,28 @@ import {
   GitPullRequestIcon,
   BookMarkedIcon,
 } from 'lucide-vue-next';
+import type { Component } from 'vue';
 import { computed, reactive, watch } from 'vue';
 import { VueDraggable, type DraggableEvent } from 'vue-draggable-plus';
 
-export interface TabGroup {
+interface TabSidebarGroup {
   id: string;
   name: string;
   collapsed?: boolean;
 }
 
-export interface TabItem {
+interface TabSidebarItem {
   id: string;
   groupId: string;
   name: string;
-  icon: any;
+  icon: Component;
   badgeCount?: number;
 }
 
 const props = withDefaults(
   defineProps<{
-    groups?: TabGroup[];
-    tabs?: TabItem[];
+    groups?: TabSidebarGroup[];
+    tabs?: TabSidebarItem[];
     activeTabId: string;
   }>(),
   {
@@ -96,8 +97,9 @@ const props = withDefaults(
   }
 );
 
-defineEmits<{
+const emit = defineEmits<{
   (e: 'tab-select', tabId: string): void;
+  (e: 'tab-move', tabId: string, groupId: string): void;
   (e: 'group-toggle', groupId: string): void;
   (e: 'new-group'): void;
 }>();
@@ -108,10 +110,10 @@ const tabDragGroup = {
   put: true,
 };
 
-const groupedTabs = reactive<Record<string, TabItem[]>>({});
+const groupedTabs = reactive<Record<string, TabSidebarItem[]>>({});
 
 const syncGroupedTabs = () => {
-  const nextGroupedTabs = props.groups.reduce<Record<string, TabItem[]>>((acc, group) => {
+  const nextGroupedTabs = props.groups.reduce<Record<string, TabSidebarItem[]>>((acc, group) => {
     acc[group.id] = props.tabs.filter((tab) => tab.groupId === group.id);
     return acc;
   }, {});
@@ -135,9 +137,10 @@ watch(() => [groupsSignature.value, tabsSignature.value], syncGroupedTabs, {
   deep: true,
 });
 
-const handleTabAdd = (groupId: string, event: DraggableEvent<TabItem>) => {
+const handleTabAdd = (groupId: string, event: DraggableEvent<TabSidebarItem>) => {
   if (event.data) {
     event.data.groupId = groupId;
+    emit('tab-move', event.data.id, groupId);
   }
 };
 </script>

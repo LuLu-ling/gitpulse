@@ -157,7 +157,10 @@
               <td class="is-vcentered">{{ tab.name }}</td>
               <td>
                 <div class="select is-small is-fullwidth">
-                  <select v-model="tab.groupId">
+                  <select
+                    :value="tab.groupId"
+                    @change="handleMoveTab(tab.id, getSelectedGroupId($event))"
+                  >
                     <option v-for="g in groups" :key="g.id" :value="g.id">
                       {{ g.name }}
                     </option>
@@ -180,14 +183,20 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 
-import { useCustomTabs, type CustomTabState } from '~/composables/useCustomTabs';
+import { useCustomTabs, type CustomTab, type CustomTabState } from '~/composables/useCustomTabs';
 import { useTabGroups } from '~/composables/useTabGroups';
 import { useTabMigration } from '~/composables/useTabMigration';
 
 // Setup composables
 const { groups, createGroup, deleteGroup } = useTabGroups();
 const { tabs } = useTabMigration();
-const { createCustomTab } = useCustomTabs();
+const { customTabs, createCustomTab, updateCustomTab } = useCustomTabs();
+
+interface SettingsTab {
+  id: string;
+  groupId: string;
+  name: string;
+}
 
 const newGroupName = ref('');
 
@@ -202,6 +211,44 @@ const newTab = ref({
 });
 
 const labelsInput = ref('');
+
+const settingsTabs = computed<SettingsTab[]>(() => {
+  return [...tabs.value, ...customTabs.value];
+});
+
+const isCustomTab = (tabId: string) => {
+  return customTabs.value.some((tab) => tab.id === tabId);
+};
+
+const moveBuiltInTab = (tabId: string, groupId: string) => {
+  tabs.value = tabs.value.map((tab) => {
+    if (tab.id !== tabId) {
+      return tab;
+    }
+
+    return {
+      ...tab,
+      groupId,
+    };
+  });
+};
+
+const getSelectedGroupId = (event: Event) => {
+  return event.target instanceof HTMLSelectElement ? event.target.value : '';
+};
+
+const handleMoveTab = (tabId: string, groupId: string) => {
+  if (!groupId) {
+    return;
+  }
+
+  if (isCustomTab(tabId)) {
+    updateCustomTab(tabId, { groupId });
+    return;
+  }
+
+  moveBuiltInTab(tabId, groupId);
+};
 
 const handleCreateCustomTab = () => {
   const name = newTab.value.name.trim();
@@ -245,18 +292,28 @@ const handleCreateGroup = () => {
 };
 
 const handleDeleteGroup = (groupId: string) => {
-  // Move all tabs to default group before deleting
-  const groupTabs = tabs.value.filter((tab) => tab.groupId === groupId);
-  groupTabs.forEach((tab) => {
-    tab.groupId = 'default';
+  tabs.value = tabs.value.map((tab) => {
+    if (tab.groupId !== groupId) {
+      return tab;
+    }
+
+    return {
+      ...tab,
+      groupId: 'default',
+    };
   });
 
-  // Delete the group
+  customTabs.value
+    .filter((tab: CustomTab) => tab.groupId === groupId)
+    .forEach((tab: CustomTab) => {
+      updateCustomTab(tab.id, { groupId: 'default' });
+    });
+
   deleteGroup(groupId);
 };
 
 const getTabsForGroup = (groupId: string) => {
-  return tabs.value.filter((tab) => tab.groupId === groupId);
+  return settingsTabs.value.filter((tab) => tab.groupId === groupId);
 };
 </script>
 
