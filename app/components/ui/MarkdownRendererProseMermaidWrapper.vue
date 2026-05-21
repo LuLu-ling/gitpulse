@@ -149,7 +149,6 @@ onBeforeUnmount(clearResetTimer);
 }
 
 .markdown-code-block__copy-text {
-  overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
