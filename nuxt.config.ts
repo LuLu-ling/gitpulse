@@ -67,15 +67,16 @@ export default defineNuxtConfig({
       include: [
         '@vue/devtools-core',
         '@vue/devtools-kit',
-        'simplebar-vue',
-        'lucide-vue-next',
-        'vue3-simple-icons',
-        'dayjs/locale/zh-cn', // CJS
         'dayjs', // CJS
+        'dayjs/locale/zh-cn', // CJS
         'dayjs/plugin/duration.js', // CJS
-        'dayjs/plugin/relativeTime.js', // CJS
         'dayjs/plugin/relativeTime', // CJS
+        'dayjs/plugin/relativeTime.js', // CJS
         'isomorphic-dompurify',
+        'lucide-vue-next',
+        'simplebar-vue',
+        'vue-draggable-plus',
+        'vue3-simple-icons',
       ],
     },
     css: {
