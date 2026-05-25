@@ -1,0 +1,432 @@
+import { computed, ref, shallowRef, watch } from 'vue';
+
+export type PRReviewEvent = 'APPROVE' | 'COMMENT' | 'REQUEST_CHANGES';
+
+export interface PRReviewFile {
+  filename: string;
+  status: string;
+  additions: number;
+  deletions: number;
+  changes: number;
+  patch?: string;
+  sha?: string;
+  blob_url?: string;
+  raw_url?: string;
+  contents_url?: string;
+  previous_filename?: string;
+}
+
+export interface PRReviewPagination {
+  page: number;
+  perPage: number;
+  hasPrev: boolean;
+  hasNext: boolean;
+  totalCount: number | null;
+  totalPages: number | null;
+}
+
+export interface PRReviewDiffRow {
+  key: string;
+  type: 'hunk' | 'context' | 'add' | 'delete';
+  content: string;
+  oldLineNumber: number | null;
+  newLineNumber: number | null;
+  position: number | null;
+  isCommentable: boolean;
+}
+
+export interface PRReviewDraftComment {
+  id: string;
+  path: string;
+  line: number;
+  position: number;
+  body: string;
+}
+
+export interface PRReviewDiffSection {
+  file: PRReviewFile;
+  rows: PRReviewDiffRow[];
+}
+
+interface PullFilesResponse {
+  items?: PRReviewFile[];
+  pagination?: PRReviewPagination;
+}
+
+interface UsePRReviewOptions {
+  owner: () => string;
+  repo: () => string;
+  pullNumber: () => number;
+  commitId: () => string;
+  messages: {
+    loadFailed: string;
+    submitFailed: string;
+  };
+  onSubmitted?: () => void;
+}
+
+const defaultPagination = (): PRReviewPagination => ({
+  page: 1,
+  perPage: 100,
+  hasPrev: false,
+  hasNext: false,
+  totalCount: null,
+  totalPages: null,
+});
+
+const hunkHeaderPattern = /^@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@/;
+
+export function parsePRReviewPatch(patch?: string): PRReviewDiffRow[] {
+  if (!patch) {
+    return [];
+  }
+
+  const rows: PRReviewDiffRow[] = [];
+  let oldLine = 0;
+  let newLine = 0;
+  let position = 0;
+
+  for (const rawLine of patch.split('\n')) {
+    const hunkMatch = rawLine.match(hunkHeaderPattern);
+
+    if (hunkMatch) {
+      if (rows.length > 0) {
+        position += 1;
+      }
+
+      oldLine = Number.parseInt(hunkMatch[1] ?? '0', 10);
+      newLine = Number.parseInt(hunkMatch[2] ?? '0', 10);
+      rows.push({
+        key: `hunk-${rows.length}-${rawLine}`,
+        type: 'hunk',
+        content: rawLine,
+        oldLineNumber: null,
+        newLineNumber: null,
+        position: rows.length > 0 ? position : null,
+        isCommentable: false,
+      });
+      continue;
+    }
+
+    position += 1;
+
+    if (rawLine.startsWith('+')) {
+      rows.push({
+        key: `new-${newLine}-${position}`,
+        type: 'add',
+        content: rawLine.slice(1),
+        oldLineNumber: null,
+        newLineNumber: newLine,
+        position,
+        isCommentable: true,
+      });
+      newLine += 1;
+      continue;
+    }
+
+    if (rawLine.startsWith('-')) {
+      rows.push({
+        key: `old-${oldLine}-${position}`,
+        type: 'delete',
+        content: rawLine.slice(1),
+        oldLineNumber: oldLine,
+        newLineNumber: null,
+        position,
+        isCommentable: false,
+      });
+      oldLine += 1;
+      continue;
+    }
+
+    rows.push({
+      key: `context-${newLine}-${position}`,
+      type: 'context',
+      content: rawLine.startsWith(' ') ? rawLine.slice(1) : rawLine,
+      oldLineNumber: oldLine,
+      newLineNumber: newLine,
+      position,
+      isCommentable: true,
+    });
+    oldLine += 1;
+    newLine += 1;
+  }
+
+  return rows;
+}
+
+export function usePRReview(options: UsePRReviewOptions) {
+  const files = ref<PRReviewFile[]>([]);
+  const activeFilename = shallowRef('');
+  const pagination = ref(defaultPagination());
+  const loading = shallowRef(false);
+  const loadingMore = shallowRef(false);
+  const submitting = shallowRef(false);
+  const errorMessage = shallowRef('');
+  const submitError = shallowRef('');
+  const draftBody = shallowRef('');
+  const selectedEvent = shallowRef<PRReviewEvent>('COMMENT');
+  const draftComments = ref<PRReviewDraftComment[]>([]);
+  const activeDraftTarget = ref<{ path: string; line: number } | null>(null);
+  const requestId = shallowRef(0);
+
+  const identity = computed(() => ({
+    owner: options.owner(),
+    repo: options.repo(),
+    pullNumber: options.pullNumber(),
+    commitId: options.commitId(),
+  }));
+
+  const selectedFile = computed(
+    () =>
+      files.value.find((file) => file.filename === activeFilename.value) ?? files.value[0] ?? null
+  );
+
+  const selectedDiffRows = computed(() => parsePRReviewPatch(selectedFile.value?.patch));
+
+  const allDiffSections = computed<PRReviewDiffSection[]>(() =>
+    [...files.value]
+      .sort((first, second) => first.filename.localeCompare(second.filename))
+      .map((file) => ({
+        file,
+        rows: parsePRReviewPatch(file.patch),
+      }))
+  );
+
+  const pendingCommentCount = computed(() => draftComments.value.length);
+
+  const canLoad = computed(() =>
+    Boolean(identity.value.owner && identity.value.repo && identity.value.pullNumber)
+  );
+
+  const canSubmit = computed(() => {
+    if (!identity.value.commitId || submitting.value) {
+      return false;
+    }
+
+    if (selectedEvent.value === 'REQUEST_CHANGES') {
+      return Boolean(draftBody.value.trim());
+    }
+
+    if (selectedEvent.value === 'COMMENT') {
+      return Boolean(draftBody.value.trim());
+    }
+
+    return true;
+  });
+
+  const resetDrafts = () => {
+    draftBody.value = '';
+    selectedEvent.value = 'COMMENT';
+    draftComments.value = [];
+    activeDraftTarget.value = null;
+    submitError.value = '';
+  };
+
+  const resetFiles = () => {
+    files.value = [];
+    activeFilename.value = '';
+    pagination.value = defaultPagination();
+    errorMessage.value = '';
+  };
+
+  const loadFiles = async (page = 1) => {
+    if (!canLoad.value) {
+      resetFiles();
+      return;
+    }
+
+    const currentRequestId = requestId.value + 1;
+    requestId.value = currentRequestId;
+    const isFirstPage = page === 1;
+
+    if (isFirstPage) {
+      loading.value = true;
+      errorMessage.value = '';
+    } else {
+      loadingMore.value = true;
+    }
+
+    try {
+      const { owner, repo, pullNumber } = identity.value;
+      const response = await $fetch<PullFilesResponse>(
+        `/api/pulls/${owner}/${repo}/${pullNumber}/files`,
+        {
+          method: 'GET',
+          query: { page, per_page: 100 },
+        }
+      );
+
+      if (currentRequestId !== requestId.value) {
+        return;
+      }
+
+      const nextFiles = response.items ?? [];
+      files.value = isFirstPage ? nextFiles : [...files.value, ...nextFiles];
+      pagination.value = response.pagination ?? defaultPagination();
+
+      if (!activeFilename.value && files.value[0]) {
+        activeFilename.value = files.value[0].filename;
+      }
+    } catch (error: any) {
+      if (currentRequestId === requestId.value) {
+        errorMessage.value =
+          error?.data?.statusMessage || error?.message || options.messages.loadFailed;
+        if (isFirstPage) {
+          files.value = [];
+        }
+      }
+    } finally {
+      if (currentRequestId === requestId.value) {
+        loading.value = false;
+        loadingMore.value = false;
+      }
+    }
+  };
+
+  const retryLoad = () => loadFiles(1);
+
+  const loadMoreFiles = () => {
+    if (!pagination.value.hasNext || loadingMore.value) {
+      return;
+    }
+
+    loadFiles(pagination.value.page + 1);
+  };
+
+  const selectFile = (filename: string) => {
+    if (activeFilename.value === filename) {
+      return;
+    }
+
+    activeFilename.value = filename;
+    activeDraftTarget.value = null;
+  };
+
+  const syncVisibleFile = (filename: string) => {
+    if (activeFilename.value === filename) {
+      return;
+    }
+
+    activeFilename.value = filename;
+  };
+
+  const openDraftEditor = (path: string, line: number) => {
+    activeDraftTarget.value = { path, line };
+  };
+
+  const closeDraftEditor = () => {
+    activeDraftTarget.value = null;
+  };
+
+  const saveDraftComment = (path: string, line: number, position: number, body: string) => {
+    const trimmedBody = body.trim();
+
+    if (!trimmedBody || position < 1) {
+      return;
+    }
+
+    const existingIndex = draftComments.value.findIndex(
+      (comment) => comment.path === path && comment.line === line
+    );
+
+    const nextDraft = {
+      id: `${path}:${line}`,
+      path,
+      line,
+      position,
+      body: trimmedBody,
+    };
+
+    if (existingIndex >= 0) {
+      draftComments.value.splice(existingIndex, 1, nextDraft);
+    } else {
+      draftComments.value.push(nextDraft);
+    }
+
+    activeDraftTarget.value = null;
+  };
+
+  const removeDraftComment = (id: string) => {
+    draftComments.value = draftComments.value.filter((comment) => comment.id !== id);
+  };
+
+  const submitReview = async () => {
+    submitError.value = '';
+
+    if (!canSubmit.value) {
+      return;
+    }
+
+    submitting.value = true;
+
+    try {
+      const { owner, repo, pullNumber, commitId } = identity.value;
+      await $fetch(`/api/repos/${owner}/${repo}/pulls/${pullNumber}/reviews`, {
+        method: 'POST',
+        body: {
+          commitId,
+          event: selectedEvent.value,
+          body: draftBody.value.trim(),
+          comments: draftComments.value.map((comment) => ({
+            path: comment.path,
+            position: comment.position,
+            body: comment.body,
+          })),
+        },
+      });
+
+      resetDrafts();
+      options.onSubmitted?.();
+    } catch (error: any) {
+      submitError.value =
+        error?.data?.statusMessage || error?.message || options.messages.submitFailed;
+    } finally {
+      submitting.value = false;
+    }
+  };
+
+  watch(
+    () => [
+      identity.value.owner,
+      identity.value.repo,
+      identity.value.pullNumber,
+      identity.value.commitId,
+    ],
+    () => {
+      requestId.value += 1;
+      resetFiles();
+      resetDrafts();
+      loadFiles(1);
+    },
+    { immediate: true }
+  );
+
+  return {
+    files,
+    activeFilename,
+    pagination,
+    loading,
+    loadingMore,
+    submitting,
+    errorMessage,
+    submitError,
+    draftBody,
+    selectedEvent,
+    draftComments,
+    activeDraftTarget,
+    selectedFile,
+    selectedDiffRows,
+    allDiffSections,
+    pendingCommentCount,
+    canSubmit,
+    loadMoreFiles,
+    retryLoad,
+    selectFile,
+    syncVisibleFile,
+    openDraftEditor,
+    closeDraftEditor,
+    saveDraftComment,
+    removeDraftComment,
+    submitReview,
+  };
+}
