@@ -40,6 +40,7 @@ const emit = defineEmits<{
 const { t } = useI18n();
 const { shouldShowHomeButton } = useNavigationHistory();
 const isIssueHeaderNonSticky = shallowRef(false);
+const isPullRequestReviewActive = shallowRef(false);
 
 const activeDetailPane = computed<ActiveDetailPane | null>(() => {
   if (props.isIssueVisible) {
@@ -90,6 +91,7 @@ const handleSwitchPullRequest = (owner: string, repo: string, pullNumber: number
 
 watch(activeDetailKey, () => {
   isIssueHeaderNonSticky.value = false;
+  isPullRequestReviewActive.value = false;
 });
 </script>
 
@@ -104,6 +106,7 @@ watch(activeDetailKey, () => {
       :home-label="t('issueDetail.home')"
       :show-home-button="shouldShowHomeButton"
       :non-sticky-header="isHeaderNonSticky"
+      :hide-header="isPullRequestReviewActive"
       content-class="detail-host-content p-0 is-clipped"
       @back="emit('back')"
       @home="emit('home')"
@@ -152,6 +155,7 @@ watch(activeDetailKey, () => {
             <PrDetail
               v-else-if="activeDetailPane?.type === 'pull-request' && pullRequest"
               :pull-request="pullRequest"
+              @update:review-active="isPullRequestReviewActive = $event"
               @switch-issue="handleSwitchIssue"
               @switch-pull-request="handleSwitchPullRequest"
             />

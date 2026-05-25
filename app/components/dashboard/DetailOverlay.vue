@@ -2,7 +2,7 @@
   <div class="detail-overlay is-flex is-align-items-center is-justify-content-center">
     <div class="detail-container is-flex is-flex-direction-column">
       <div class="card is-flex is-flex-direction-column is-radiusless">
-        <div :class="['card-header', { 'is-not-sticky': nonStickyHeader }]">
+        <div v-if="!hideHeader" :class="['card-header', { 'is-not-sticky': nonStickyHeader }]">
           <div
             class="card-header-title is-flex is-justify-content-space-between is-align-items-center"
           >
@@ -60,6 +60,7 @@ defineProps<{
   showHomeButton: boolean;
   nonStickyHeader?: boolean;
   contentClass?: string;
+  hideHeader?: boolean;
 }>();
 
 defineEmits<{

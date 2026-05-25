@@ -1,6 +1,21 @@
 <template>
-  <div class="pr-detail-layout mr-6">
-    <div class="columns">
+  <div
+    :class="[
+      'pr-detail-layout',
+      { 'pr-detail-layout--review': isReviewWindowOpen, 'mr-6': !isReviewWindowOpen },
+    ]"
+  >
+    <PRReviewWorkspace
+      v-if="isReviewWindowOpen"
+      :owner="repoOwner"
+      :repo="repoName"
+      :pull-number="currentPullRequest?.number || 0"
+      :commit-id="reviewCommitId"
+      :title="currentPullRequest?.title"
+      @close="isReviewWindowOpen = false"
+    />
+
+    <div v-else class="columns">
       <div class="column is-three-quarters">
         <div v-if="detailError" class="notification is-danger is-light mb-4 py-2 px-3">
           <p class="is-size-7">{{ detailError }}</p>
@@ -47,6 +62,15 @@
             :additions="currentPullRequest?.additions"
             :deletions="currentPullRequest?.deletions"
           />
+
+          <button
+            class="button is-link is-fullwidth mt-4"
+            type="button"
+            :disabled="!canOpenReviewWindow"
+            @click="isReviewWindowOpen = true"
+          >
+            {{ t('prReview.openReview') }}
+          </button>
         </div>
       </div>
     </div>
@@ -54,12 +78,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue';
+import { shallowRef, ref, computed, watch } from 'vue';
 
 import PRActions from '~/components/dashboard/pr/PRActions.vue';
 // Import subcomponents
 import PRHeader from '~/components/dashboard/pr/PRHeader.vue';
 import PRLabels from '~/components/dashboard/pr/PRLabels.vue';
+import PRReviewWorkspace from '~/components/dashboard/pr/PRReviewWorkspace.vue';
 import PRTimelineEvents from '~/components/dashboard/pr/PRTimelineEvents.vue';
 import type { PRTimelineItem } from '~/composables/usePRTimelineEvents';
 import parseGitHubRepoPath from '~/utils/parseGitHubRepoPath';
@@ -71,6 +96,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: 'switch-issue', owner: string, repo: string, issueNumber: number): void;
   (e: 'switch-pull-request', owner: string, repo: string, pullNumber: number): void;
+  (e: 'update:review-active', isActive: boolean): void;
 }>();
 
 // State variables
@@ -83,6 +109,8 @@ const detailRequestId = ref(0);
 const currentTimelinePage = ref(1);
 const hasNextTimelinePage = ref(false);
 const loadingMoreTimeline = ref(false);
+const isReviewWindowOpen = shallowRef(false);
+const { t } = useI18n();
 
 // Computed properties
 const repoInfo = computed(() => {
@@ -99,6 +127,14 @@ const repoInfo = computed(() => {
 const repoOwner = computed(() => repoInfo.value?.owner || '');
 
 const repoName = computed(() => repoInfo.value?.repo || '');
+
+const reviewCommitId = computed(() => currentPullRequest.value?.head?.sha || '');
+
+const canOpenReviewWindow = computed(() =>
+  Boolean(
+    repoOwner.value && repoName.value && currentPullRequest.value?.number && reviewCommitId.value
+  )
+);
 
 // Methods
 const switchToIssue = (owner: string, repo: string, issueNumber: number) => {
@@ -141,6 +177,7 @@ const resetPullRequestScopedState = (pullRequest: any) => {
   currentTimelinePage.value = 1;
   hasNextTimelinePage.value = false;
   loadingMoreTimeline.value = false;
+  isReviewWindowOpen.value = false;
 };
 
 const fetchTimeline = async () => {
@@ -279,6 +316,14 @@ watch(
   { immediate: true }
 );
 
+watch(
+  isReviewWindowOpen,
+  (isOpen) => {
+    emit('update:review-active', isOpen);
+  },
+  { immediate: true }
+);
+
 useHead({
   htmlAttrs: {
     'data-color-mode': 'light',
@@ -295,6 +340,13 @@ useHead({
 
 .pr-detail-layout {
   min-height: 100%;
+}
+
+.pr-detail-layout--review {
+  position: absolute;
+  inset: 0;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .pr-detail__timeline {
