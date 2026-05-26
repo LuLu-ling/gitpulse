@@ -140,6 +140,12 @@ const displayGroups = computed<DisplayTabSidebarGroup[]>(() => {
       }
 
       visited.add(group.id);
+
+      // Skip system groups (Built-in Views) — they're shown in the ActivityBar
+      if (group.source === 'system') {
+        continue;
+      }
+
       if (!ancestorCollapsed) {
         rows.push({ ...group, depth });
       }
@@ -151,6 +157,10 @@ const displayGroups = computed<DisplayTabSidebarGroup[]>(() => {
 
   for (const group of props.groups) {
     if (!visited.has(group.id)) {
+      // Skip any system groups that might not have been visited
+      if (group.source === 'system') {
+        continue;
+      }
       rows.push({ ...group, depth: 0 });
     }
   }
@@ -199,17 +209,15 @@ const displayGroups = computed<DisplayTabSidebarGroup[]>(() => {
   align-items: center;
   justify-content: space-between;
   cursor: pointer;
-  padding: 0 0.75rem;
+  padding: 0.35rem 0.75rem;
   margin-bottom: 0.35em;
-  border-radius: 4px;
+  border-radius: 6px;
   transition:
     background-color 0.2s ease,
-    color 0.2s ease,
-    transform 0.2s ease;
+    color 0.2s ease;
 
   &:hover {
-    background-color: var(--bulma-background-hover, rgba(0, 0, 0, 0.05));
-    transform: translateX(0.125rem);
+    background-color: var(--bulma-background-hover, rgba(0, 0, 0, 0.06));
   }
 
   .menu-label {
@@ -309,19 +317,29 @@ const displayGroups = computed<DisplayTabSidebarGroup[]>(() => {
     border-radius: 6px;
     padding: 0.38em 0.75em;
     margin-bottom: 0.15em;
+    position: relative;
     transition:
       background-color 0.2s ease,
-      color 0.2s ease,
-      transform 0.2s ease,
-      box-shadow 0.2s ease;
+      color 0.2s ease;
 
     &:hover {
-      transform: translateX(0.2rem);
+      background-color: var(--bulma-background-hover, rgba(0, 0, 0, 0.04));
     }
 
     &.is-active {
-      transform: translateX(0.2rem);
-      box-shadow: inset 0 0 0 1px var(--bulma-primary, #485fc7);
+      background-color: var(--bulma-primary-light, rgba(72, 95, 199, 0.08));
+      color: var(--bulma-primary, #485fc7);
+
+      &::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 20%;
+        height: 60%;
+        width: 3px;
+        border-radius: 0 3px 3px 0;
+        background-color: var(--bulma-primary, #485fc7);
+      }
     }
   }
 }
