@@ -128,6 +128,7 @@ const buildCustomTabUrl = (
 };
 
 export function useGithubData() {
+  const apiFetch = useRequestFetch();
   const loading = ref(false);
   const error = ref<string | null>(null);
   const activeRequestId = ref(0);
@@ -181,7 +182,7 @@ export function useGithubData() {
     error.value = null;
 
     try {
-      const data = await $fetch<PaginatedDashboardResponse<DashboardNotification>>(
+      const data = await apiFetch<PaginatedDashboardResponse<DashboardNotification>>(
         buildPaginationUrl('/api/notifications', page)
       );
       if (requestId !== activeRequestId.value) return;
@@ -214,7 +215,7 @@ export function useGithubData() {
     error.value = null;
 
     try {
-      const data = await $fetch<PaginatedDashboardResponse<DashboardEntity>>(
+      const data = await apiFetch<PaginatedDashboardResponse<DashboardEntity>>(
         buildPaginationUrl('/api/issues', page)
       );
       if (requestId !== activeRequestId.value) return;
@@ -247,7 +248,7 @@ export function useGithubData() {
     error.value = null;
 
     try {
-      const data = await $fetch<PaginatedDashboardResponse<DashboardEntity>>(
+      const data = await apiFetch<PaginatedDashboardResponse<DashboardEntity>>(
         buildPaginationUrl('/api/pulls', page)
       );
       if (requestId !== activeRequestId.value) return;
@@ -280,7 +281,7 @@ export function useGithubData() {
     error.value = null;
 
     try {
-      const data = await $fetch<PaginatedDashboardResponse<DashboardRepo>>(
+      const data = await apiFetch<PaginatedDashboardResponse<DashboardRepo>>(
         buildPaginationUrl('/api/repos', page)
       );
       if (requestId !== activeRequestId.value) return;
@@ -322,7 +323,7 @@ export function useGithubData() {
 
     try {
       const path = source === 'github-search' ? '/api/search/issues' : '/api/search/issues';
-      const data = await $fetch<PaginatedDashboardResponse<DashboardEntity>>(
+      const data = await apiFetch<PaginatedDashboardResponse<DashboardEntity>>(
         buildCustomTabUrl(path, page, query)
       );
       if (requestId !== activeRequestId.value) return;

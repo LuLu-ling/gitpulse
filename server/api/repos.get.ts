@@ -23,6 +23,10 @@ export default defineEventHandler(async (event) => {
       }),
     };
   } catch (error) {
+    if (error && typeof error === 'object' && 'statusCode' in error) {
+      throw error;
+    }
+
     console.error('Error fetching GitHub repositories:', error);
 
     throw createError({

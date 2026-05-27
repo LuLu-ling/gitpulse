@@ -27,6 +27,7 @@ interface DetailTarget {
 }
 
 export function useDashboardDetails(currentRouteTab: Ref<string>) {
+  const apiFetch = useRequestFetch();
   const { getNotificationDetails, openExternalNotification } = useUrlHelper();
   const { goBack, goToHome, hasHistory, navigateToIssue, navigateToPullRequest } =
     useNavigationHistory();
@@ -176,7 +177,7 @@ export function useDashboardDetails(currentRouteTab: Ref<string>) {
     await nextTick();
 
     try {
-      const issue = await $fetch<DashboardEntity>(`/api/issues/${owner}/${repo}/${issueNumber}`);
+      const issue = await apiFetch<DashboardEntity>(`/api/issues/${owner}/${repo}/${issueNumber}`);
       if (requestId === issueRequestId.value) {
         currentIssue.value = issue;
       }
@@ -207,7 +208,7 @@ export function useDashboardDetails(currentRouteTab: Ref<string>) {
     await nextTick();
 
     try {
-      const pullRequest = await $fetch(`/api/pulls/${owner}/${repo}/${pullNumber}`);
+      const pullRequest = await apiFetch(`/api/pulls/${owner}/${repo}/${pullNumber}`);
       if (requestId === prRequestId.value) {
         currentPR.value = {
           repository_url: repositoryUrl,

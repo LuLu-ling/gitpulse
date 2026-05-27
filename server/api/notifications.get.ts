@@ -21,6 +21,10 @@ export default defineEventHandler(async (event) => {
       }),
     };
   } catch (error) {
+    if (error && typeof error === 'object' && 'statusCode' in error) {
+      throw error;
+    }
+
     console.error('Error fetching GitHub notifications:', error);
     throw createError({
       statusCode: 500,
