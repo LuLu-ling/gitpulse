@@ -203,7 +203,10 @@ const reviewOptions: Array<ToggleOption<CustomTabReview>> = [
   { labelKey: 'dashboard.tabsSettings.options.changesRequested', value: 'changes_requested' },
 ];
 
-const filterIconMap: Record<string, { icon: typeof CircleDotIcon; activeColor: string } | undefined> = {
+const filterIconMap: Record<
+  string,
+  { icon: typeof CircleDotIcon; activeColor: string } | undefined
+> = {
   // type
   issues: { icon: CircleDotIcon, activeColor: '#1a7f37' },
   pulls: { icon: GitPullRequestIcon, activeColor: '#8250df' },
@@ -1810,7 +1813,12 @@ watch(
                   {{ t('dashboard.pagination.previous') }}
                 </button>
                 <span class="preview-page-info">
-                  {{ t('dashboard.tabsSettings.previewPage', { page: previewPage, total: previewTotalPages }) }}
+                  {{
+                    t('dashboard.tabsSettings.previewPage', {
+                      page: previewPage,
+                      total: previewTotalPages,
+                    })
+                  }}
                 </span>
                 <button
                   class="preview-page-btn"

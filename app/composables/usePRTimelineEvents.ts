@@ -142,10 +142,26 @@ export function buildPRTimelineItemKey(item: PRTimelineItem, index: number): str
 }
 
 export function normalizePRTimelineItems(timeline: PRTimelineItem[]): ProcessedPRTimelineItem[] {
-  return timeline.map((item, index) => ({
-    ...item,
-    renderKey: buildPRTimelineItemKey(item, index),
-  }));
+  return timeline
+    .filter((item, index, array) => {
+      // Skip "closed" events that immediately follow a "merged" event —
+      // merge always implies close, so the redundant close is noise.
+      if (item.eventType === 'closed' && index > 0) {
+        const prev = array[index - 1];
+        if (
+          prev?.eventType === 'merged' &&
+          prev.actor?.login === item.actor?.login &&
+          prev.createdAt === item.createdAt
+        ) {
+          return false;
+        }
+      }
+      return true;
+    })
+    .map((item, index) => ({
+      ...item,
+      renderKey: buildPRTimelineItemKey(item, index),
+    }));
 }
 
 export function usePRTimelineEvents(timeline: MaybeRefOrGetter<PRTimelineItem[]>) {

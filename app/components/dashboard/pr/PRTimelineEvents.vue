@@ -33,6 +33,13 @@
           :pull-number="pullNumber"
         />
 
+        <PRTimelineMergeCard
+          v-else-if="item.kind === 'event' && item.eventType === 'merged'"
+          :item="item"
+          :repo-owner="repoOwner"
+          :repo-name="repoName"
+        />
+
         <div v-else class="mx-2">
           <TimelineEventActorRow :actor="item.actor">
             <PRTimelineEventBody
@@ -78,6 +85,7 @@
 import PRTimelineCommentCard from '~/components/dashboard/pr/PRTimelineCommentCard.vue';
 import PRTimelineCommitCard from '~/components/dashboard/pr/PRTimelineCommitCard.vue';
 import PRTimelineEventBody from '~/components/dashboard/pr/PRTimelineEventBody.vue';
+import PRTimelineMergeCard from '~/components/dashboard/pr/PRTimelineMergeCard.vue';
 import PRTimelineReviewCard from '~/components/dashboard/pr/PRTimelineReviewCard.vue';
 import CommentComposer from '~/components/dashboard/timeline/CommentComposer.vue';
 import TimelineEventActorRow from '~/components/dashboard/timeline/TimelineEventActorRow.vue';
