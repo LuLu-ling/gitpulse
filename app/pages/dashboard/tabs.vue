@@ -110,7 +110,8 @@ interface SearchPreviewResult {
 
 const maxGroupDepth = 1;
 const previewDebounceMs = 900;
-const previewPerPage = 5;
+const previewPerPage = 15;
+const previewPage = ref(1);
 const DEFAULT_TAB_GROUP_NAME = 'General';
 const { t } = useI18n();
 const localePath = useLocalePath();
@@ -442,7 +443,7 @@ const searchQueryString = computed(() => {
 const previewSearchParams = computed(() => {
   const query = buildCurrentQuery();
   const searchParams = new URLSearchParams({
-    page: '1',
+    page: String(previewPage.value),
     per_page: String(previewPerPage),
   });
 
@@ -453,6 +454,12 @@ const previewSearchParams = computed(() => {
 
 const appPreviewUrl = computed(() => {
   return `/api/search/issues?${previewSearchParams.value.toString()}`;
+});
+
+const previewTotalPages = computed(() => {
+  const total = previewResult.value?.total_count ?? 0;
+  const pages = Math.ceil(total / previewPerPage);
+  return Math.max(1, pages);
 });
 
 const githubPreviewUrl = computed(() => {
@@ -831,6 +838,10 @@ watch(
   },
   { immediate: true }
 );
+
+watch(searchQueryString, () => {
+  previewPage.value = 1;
+});
 
 watch(
   appPreviewUrl,
@@ -1671,6 +1682,15 @@ watch(
               <p class="panel-caption mb-1">{{ t('dashboard.tabsSettings.previewLabel') }}</p>
               <strong>{{ humanPreview }}</strong>
             </div>
+            <button
+              class="button is-small preview-create-btn"
+              type="button"
+              :disabled="!newTab.name.trim() || !selectedGroupExists"
+              @click="handleCreateCustomTab"
+            >
+              <PlusIcon :size="14" />
+              <span>{{ t('dashboard.tabsSettings.createViewButton') }}</span>
+            </button>
           </div>
 
           <div class="tokenized-query-box">
@@ -1688,6 +1708,25 @@ watch(
           <div class="preview-results">
             <div class="pr-header">
               <span class="pr-label">{{ t('dashboard.tabsSettings.previewResultsLabel') }}</span>
+              <div class="preview-pagination">
+                <button
+                  class="preview-page-btn"
+                  :disabled="previewPage <= 1"
+                  @click="previewPage = Math.max(1, previewPage - 1)"
+                >
+                  {{ t('dashboard.pagination.previous') }}
+                </button>
+                <span class="preview-page-info">
+                  {{ t('dashboard.tabsSettings.previewPage', { page: previewPage, total: previewTotalPages }) }}
+                </span>
+                <button
+                  class="preview-page-btn"
+                  :disabled="previewPage >= previewTotalPages"
+                  @click="previewPage = Math.min(previewTotalPages, previewPage + 1)"
+                >
+                  {{ t('dashboard.pagination.next') }}
+                </button>
+              </div>
             </div>
             <SearchResultPreview
               :items="previewResult?.items ?? null"
@@ -1707,20 +1746,6 @@ watch(
             />
           </div>
         </section>
-
-        <footer class="editor-footer">
-          <div class="editor-footer-actions">
-            <button
-              class="button is-primary"
-              type="button"
-              :disabled="!newTab.name.trim() || !selectedGroupExists"
-              @click="handleCreateCustomTab"
-            >
-              <PlusIcon :size="16" />
-              <span>{{ t('dashboard.tabsSettings.createViewButton') }}</span>
-            </button>
-          </div>
-        </footer>
       </section>
     </div>
   </div>
@@ -1741,8 +1766,6 @@ watch(
 .builtin-row,
 .tree-group-row,
 .tree-tab-row,
-.editor-footer,
-.editor-footer-actions,
 .preview-header,
 .preview-status-row,
 .label-heading {
@@ -1827,7 +1850,6 @@ watch(
 
 .panel-heading-row,
 .section-label-row,
-.editor-footer,
 .preview-header,
 .preview-status-row {
   justify-content: space-between;
@@ -2521,6 +2543,9 @@ watch(
 }
 
 .pr-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   margin-bottom: 0.45rem;
 }
 
@@ -2530,6 +2555,49 @@ watch(
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--bulma-text-light, #6b7280);
+}
+
+/* ── Preview pagination ── */
+.preview-pagination {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.preview-page-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.3rem 0.65rem;
+  border: 1px solid var(--bulma-border, #dbdbdb);
+  border-radius: 5px;
+  background: var(--bulma-scheme-main, #ffffff);
+  color: var(--bulma-text, #4a4a4a);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
+
+  &:hover:not(:disabled) {
+    background: var(--bulma-link-soft, rgba(79, 70, 229, 0.06));
+    border-color: #4f46e5;
+    color: #4f46e5;
+  }
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+}
+
+.preview-page-info {
+  font-size: 0.75rem;
+  font-weight: 650;
+  color: var(--bulma-text, #4a4a4a);
+  min-width: 5rem;
+  text-align: center;
 }
 
 /* ── Compact type/state row ── */
@@ -2604,15 +2672,21 @@ watch(
   background: rgba(236, 253, 245, 0.5);
 }
 
-.editor-footer {
-  padding-top: 0.6rem;
-  margin-top: 0.5rem;
-  border-top: 1px solid var(--bulma-border-light, rgba(10, 10, 10, 0.08));
-}
+.preview-create-btn {
+  background: #4f46e5;
+  border-color: transparent;
+  color: #ffffff;
+  font-weight: 600;
+  white-space: nowrap;
 
-.editor-footer-actions {
-  flex: 0 0 auto;
-  gap: 0.5rem;
+  &:hover:not(:disabled) {
+    background: #4338ca;
+    color: #ffffff;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+  }
 }
 
 .query-preview {
@@ -2652,8 +2726,6 @@ watch(
 
 @media (max-width: 820px) {
   .settings-header,
-  .editor-footer,
-  .editor-footer-actions,
   .preview-header,
   .preview-status-row {
     align-items: stretch;
