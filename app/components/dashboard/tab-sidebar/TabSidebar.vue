@@ -14,66 +14,89 @@
       </button>
     </div>
 
-    <template v-for="group in displayGroups" :key="group.id">
-      <div
-        class="menu-label-wrapper"
-        :class="{ 'is-nested': group.depth > 0, 'is-system': group.source === 'system' }"
-        :style="{ paddingLeft: `${0.75 + group.depth * 0.75}rem` }"
-        @click="group.source !== 'system' && $emit('group-toggle', group.id)"
-      >
-        <p class="menu-label">
-          <span>{{ group.name }}</span>
+    <div class="sidebar-tree" role="tree" :aria-label="t('dashboard.sidebar.views')">
+      <template v-for="group in displayGroups" :key="group.id">
+        <button
+          class="menu-label-wrapper"
+          :class="{
+            'is-nested': group.depth > 0,
+            'is-system': group.source === 'system',
+            'is-collapsed': group.collapsed,
+          }"
+          :style="getDepthStyle(group.depth)"
+          type="button"
+          role="treeitem"
+          :aria-expanded="group.source === 'system' ? undefined : !group.collapsed"
+          @click="group.source !== 'system' && emit('group-toggle', group.id)"
+        >
+          <span class="group-heading-main">
+            <span class="icon is-small group-chevron" aria-hidden="true">
+              <ChevronRightIcon v-if="group.collapsed" :size="14" />
+              <ChevronDownIcon v-else :size="14" />
+            </span>
+            <span class="icon is-small group-folder" aria-hidden="true">
+              <FolderIcon v-if="group.collapsed" :size="15" />
+              <FolderOpenIcon v-else :size="15" />
+            </span>
+            <span class="menu-label-text">{{ group.name }}</span>
+          </span>
           <span v-if="getGroupTabCount(group.id) > 0" class="group-count">
             {{ getGroupTabCount(group.id) }}
           </span>
-        </p>
-        <span
-          v-if="group.source !== 'system'"
-          class="icon is-small collapse-icon"
-          :class="{ 'is-collapsed': group.collapsed }"
+        </button>
+        <div
+          class="group-list-wrap"
+          :class="{
+            'is-collapsed': group.collapsed,
+            'is-system': group.source === 'system',
+            'is-nested': group.depth > 0,
+          }"
+          :style="getDepthStyle(group.depth)"
         >
-          <ChevronDownIcon :size="14" />
-        </span>
-      </div>
-      <div
-        class="group-list-wrap"
-        :class="{ 'is-collapsed': group.collapsed, 'is-system': group.source === 'system' }"
-      >
-        <ul class="menu-list">
-          <li v-for="tab in getTabsForGroup(group.id)" :key="tab.id">
-            <a
-              :class="{ 'is-active': activeTabId === tab.id }"
-              @click="$emit('tab-select', tab.id)"
-            >
-              <div class="tab-item-content">
-                <span class="icon is-small mr-2">
-                  <component :is="tab.icon" :size="16" />
-                </span>
-                <span class="tab-name">{{ tab.name }}</span>
-                <span
-                  v-if="(tab.badgeCount ?? 0) > 0"
-                  class="tag is-danger is-rounded is-small badge-count"
-                >
-                  {{ tab.badgeCount }}
-                </span>
-              </div>
-            </a>
-          </li>
-        </ul>
-        <p
-          v-if="group.source !== 'system' && !group.collapsed && getGroupTabCount(group.id) === 0"
-          class="empty-group-note"
-        >
-          {{ t('dashboard.sidebar.emptyGroup') }}
-        </p>
-      </div>
-    </template>
+          <ul class="menu-list" role="group">
+            <li v-for="tab in getTabsForGroup(group.id)" :key="tab.id">
+              <a
+                :class="{ 'is-active': activeTabId === tab.id }"
+                role="treeitem"
+                :aria-current="activeTabId === tab.id ? 'page' : undefined"
+                @click="emit('tab-select', tab.id)"
+              >
+                <div class="tab-item-content">
+                  <span class="icon is-small mr-2">
+                    <component :is="tab.icon" :size="16" />
+                  </span>
+                  <span class="tab-name">{{ tab.name }}</span>
+                  <span
+                    v-if="(tab.badgeCount ?? 0) > 0"
+                    class="tag is-danger is-rounded is-small badge-count"
+                  >
+                    {{ tab.badgeCount }}
+                  </span>
+                </div>
+              </a>
+            </li>
+          </ul>
+          <p
+            v-if="group.source !== 'system' && !group.collapsed && getGroupTabCount(group.id) === 0"
+            class="empty-group-note"
+          >
+            {{ t('dashboard.sidebar.emptyGroup') }}
+          </p>
+        </div>
+      </template>
+    </div>
   </aside>
 </template>
 
 <script setup lang="ts">
-import { ChevronDownIcon, SlidersHorizontalIcon } from 'lucide-vue-next';
-import type { Component } from 'vue';
+import {
+  ChevronDownIcon,
+  ChevronRightIcon,
+  FolderIcon,
+  FolderOpenIcon,
+  SlidersHorizontalIcon,
+} from 'lucide-vue-next';
+import type { Component, CSSProperties } from 'vue';
 import { computed } from 'vue';
 
 import { DEFAULT_CUSTOM_TAB_GROUP_ID } from '~/composables/useTabGroups';
@@ -127,6 +150,9 @@ const emit = defineEmits<{
 
 const getTabsForGroup = (groupId: string) => props.tabs.filter((tab) => tab.groupId === groupId);
 const getGroupTabCount = (groupId: string) => getTabsForGroup(groupId).length;
+const getDepthStyle = (depth: number): CSSProperties & Record<'--depth-offset', string> => ({
+  '--depth-offset': `${depth * 0.9}rem`,
+});
 
 const displayGroups = computed<DisplayTabSidebarGroup[]>(() => {
   const rows: DisplayTabSidebarGroup[] = [];
@@ -204,49 +230,59 @@ const displayGroups = computed<DisplayTabSidebarGroup[]>(() => {
   font-weight: 650;
 }
 
+.sidebar-tree {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding-inline: 0.35rem;
+  overflow: hidden auto;
+}
+
 .menu-label-wrapper {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  width: 100%;
   cursor: pointer;
-  padding: 0.35rem 0.75rem;
-  margin-bottom: 0.35em;
-  border-radius: 6px;
+  gap: 0.5rem;
+  padding: 0.42rem 0.55rem 0.42rem calc(0.45rem + var(--depth-offset, 0rem));
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--bulma-text-light, #64748b);
+  font: inherit;
+  text-align: left;
   transition:
     background-color 0.2s ease,
-    color 0.2s ease;
+    box-shadow 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease;
 
   &:hover {
-    background-color: var(--bulma-background-hover, rgba(0, 0, 0, 0.06));
+    background-color: var(--bulma-background-hover, rgba(15, 23, 42, 0.055));
+    color: var(--bulma-text, #1f2937);
+    box-shadow: inset 0 0 0 1px rgba(100, 116, 139, 0.08);
   }
 
-  .menu-label {
-    display: flex;
-    min-width: 0;
-    align-items: center;
-    gap: 0.4rem;
-    margin-bottom: 0;
-    margin-top: 0;
-    user-select: none;
+  &:focus-visible {
+    outline: 2px solid var(--bulma-primary, #485fc7);
+    outline-offset: 2px;
   }
 
-  .group-count {
-    display: inline-flex;
-    min-width: 1.45rem;
-    height: 1.15rem;
-    align-items: center;
-    justify-content: center;
-    border-radius: 999px;
-    background: var(--bulma-background-hover, rgba(0, 0, 0, 0.08));
-    color: var(--bulma-text, #334155);
-    font-size: 0.72rem;
-    font-weight: 700;
-  }
+  &.is-nested {
+    position: relative;
 
-  &.is-nested .menu-label::before {
-    content: '->';
-    margin-right: 0.35rem;
-    color: var(--bulma-text-light, #888);
+    &::before {
+      content: '';
+      position: absolute;
+      left: calc(-0.35rem + var(--depth-offset, 0rem));
+      top: 50%;
+      width: 0.55rem;
+      height: 1px;
+      background: rgba(72, 95, 199, 0.2);
+    }
   }
 
   &.is-system {
@@ -263,25 +299,73 @@ const displayGroups = computed<DisplayTabSidebarGroup[]>(() => {
   }
 }
 
-.collapse-icon {
-  color: var(--bulma-text-light, #888);
-  transition:
-    transform 0.25s ease,
-    color 0.2s ease;
+.group-heading-main {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.79rem;
+  font-weight: 720;
+  letter-spacing: 0.015em;
+  user-select: none;
+}
 
-  &.is-collapsed {
-    transform: rotate(-90deg);
-  }
+.group-chevron,
+.group-folder {
+  flex: 0 0 auto;
+}
+
+.group-chevron {
+  color: var(--bulma-text-light, #888);
+}
+
+.group-folder {
+  color: var(--bulma-primary, #485fc7);
+  opacity: 0.86;
+}
+
+.menu-label-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.group-count {
+  display: inline-flex;
+  min-width: 1.45rem;
+  height: 1.15rem;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: rgba(72, 95, 199, 0.1);
+  color: var(--bulma-primary, #485fc7);
+  font-size: 0.7rem;
+  font-weight: 760;
 }
 
 .group-list-wrap {
+  position: relative;
   display: grid;
   grid-template-rows: 1fr;
   opacity: 1;
+  padding-left: calc(2.2rem + var(--depth-offset, 0rem));
   transition:
     grid-template-rows 0.25s ease,
     opacity 0.2s ease,
     margin 0.25s ease;
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: calc(0.95rem + var(--depth-offset, 0rem));
+    top: -0.1rem;
+    bottom: 0.45rem;
+    width: 1px;
+    border-radius: 999px;
+    background: rgba(72, 95, 199, 0.16);
+  }
 
   &.is-collapsed {
     grid-template-rows: 0fr;
@@ -292,6 +376,7 @@ const displayGroups = computed<DisplayTabSidebarGroup[]>(() => {
 
   .menu-list {
     min-height: 0;
+    margin: 0.05rem 0 0.35rem;
     overflow: hidden;
   }
 
@@ -303,7 +388,7 @@ const displayGroups = computed<DisplayTabSidebarGroup[]>(() => {
 }
 
 .empty-group-note {
-  padding: 0.45rem 0.75rem 0.65rem;
+  padding: 0.45rem 0.75rem 0.65rem 0.2rem;
   margin: 0;
   color: var(--bulma-text-light, #94a3b8);
   font-size: 0.78rem;
@@ -314,29 +399,39 @@ const displayGroups = computed<DisplayTabSidebarGroup[]>(() => {
 
   li a {
     display: block;
-    border-radius: 6px;
-    padding: 0.38em 0.75em;
-    margin-bottom: 0.15em;
+    border-radius: 8px;
+    padding: 0.42rem 0.65rem;
+    margin-bottom: 0.12rem;
     position: relative;
     transition:
       background-color 0.2s ease,
-      color 0.2s ease;
+      box-shadow 0.2s ease,
+      color 0.2s ease,
+      transform 0.2s ease;
 
     &:hover {
-      background-color: var(--bulma-background-hover, rgba(0, 0, 0, 0.04));
+      background-color: var(--bulma-background-hover, rgba(15, 23, 42, 0.045));
+      transform: translateX(1px);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--bulma-primary, #485fc7);
+      outline-offset: 2px;
     }
 
     &.is-active {
       background-color: var(--bulma-primary-light, rgba(72, 95, 199, 0.08));
       color: var(--bulma-primary, #485fc7);
+      box-shadow: inset 0 0 0 1px rgba(72, 95, 199, 0.12);
+      font-weight: 650;
 
       &::before {
         content: '';
         position: absolute;
         left: 0;
-        top: 20%;
-        height: 60%;
-        width: 3px;
+        top: 18%;
+        height: 64%;
+        width: 3.5px;
         border-radius: 0 3px 3px 0;
         background-color: var(--bulma-primary, #485fc7);
       }
@@ -348,6 +443,7 @@ const displayGroups = computed<DisplayTabSidebarGroup[]>(() => {
   display: flex;
   align-items: center;
   width: 100%;
+  min-width: 0;
 
   .tab-name {
     flex: 1;
@@ -365,9 +461,23 @@ const displayGroups = computed<DisplayTabSidebarGroup[]>(() => {
 }
 
 @media (prefers-color-scheme: dark) {
-  .menu-label-wrapper .group-count {
+  .menu-label-wrapper:hover,
+  .menu-list li a:hover {
+    background-color: rgba(148, 163, 184, 0.09);
+  }
+
+  .menu-label-wrapper.is-nested::before,
+  .group-list-wrap::before {
+    background: rgba(139, 92, 246, 0.22);
+  }
+
+  .group-count {
     background: rgba(148, 163, 184, 0.18);
     color: #e2e8f0;
+  }
+
+  .group-folder {
+    color: #a78bfa;
   }
 }
 </style>
