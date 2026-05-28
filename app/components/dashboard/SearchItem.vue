@@ -44,16 +44,11 @@
 </template>
 
 <script setup lang="ts">
-import {
-  CircleDotIcon,
-  CircleMinusIcon,
-  GitMergeIcon,
-  GitPullRequestClosedIcon,
-  GitPullRequestIcon,
-} from 'lucide-vue-next';
 import { computed } from 'vue';
 
 import { formatDurationFromNow, getRepoName } from '#imports';
+import type { NotificationSubjectState } from '#shared/types/notifications';
+import getDashboardSubjectStateVisual from '~/utils/getDashboardSubjectStateVisual';
 import getTextColorFromBackground from '~/utils/getTextColorFromBackground';
 
 const props = defineProps<{
@@ -95,25 +90,23 @@ const getTypeColor = (typeName: string) => {
 
 const displayState = computed(() => {
   if (props.issue.merged_at) return 'merged';
-  return props.issue.state || 'closed';
+  return (props.issue.state || 'closed') as NotificationSubjectState;
+});
+
+const stateVisual = computed(() => {
+  return getDashboardSubjectStateVisual({
+    isPullRequest: Boolean(props.issue.pull_request),
+    state: displayState.value,
+    subjectType: props.issue.pull_request ? 'PullRequest' : 'Issue',
+  });
 });
 
 const stateIcon = computed(() => {
-  return props.issue.pull_request
-    ? displayState.value === 'open'
-      ? GitPullRequestIcon
-      : displayState.value === 'merged'
-        ? GitMergeIcon
-        : GitPullRequestClosedIcon
-    : props.issue.state === 'open'
-      ? CircleDotIcon
-      : CircleMinusIcon;
+  return stateVisual.value.icon;
 });
 
 const stateColor = computed(() => {
-  return {
-    color: props.issue.state === 'open' ? '#1a7f37' : '#000000',
-  };
+  return stateVisual.value.color ? { color: stateVisual.value.color } : {};
 });
 </script>
 

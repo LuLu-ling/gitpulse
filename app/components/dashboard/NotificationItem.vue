@@ -15,8 +15,20 @@
               loading="lazy"
               class="is-rounded"
             />
-            <span v-if="subjectTypeIcon" class="notification-type-badge" :style="subjectTypeColor">
-              <component :is="subjectTypeIcon" :size="13" />
+            <span
+              v-if="subjectVisual.icon"
+              class="notification-type-badge"
+              :class="{
+                'notification-type-badge--pending': isSubjectStatePending,
+                'notification-type-badge--error': isSubjectStateError,
+              }"
+              :style="subjectVisualStyle"
+              :title="subjectStateTitle"
+              :aria-label="subjectStateTitle"
+            >
+              <Transition name="notification-state-icon" mode="out-in">
+                <component :is="subjectVisual.icon" :key="subjectVisual.label" :size="13" />
+              </Transition>
             </span>
           </figure>
         </div>
@@ -57,7 +69,6 @@
 
 <script setup lang="ts">
 import {
-  GitPullRequestIcon,
   CheckCircle,
   UserPlus,
   PenLine,
@@ -74,55 +85,70 @@ import {
   Bell,
   Users2,
   CheckIcon,
-  CircleDotIcon,
-  MessagesSquareIcon,
-  TagIcon,
 } from 'lucide-vue-next';
 import { ref, computed } from 'vue';
 
 import { formatDurationFromNow } from '#imports';
+import type { DashboardNotification } from '#shared/types/notifications';
 import LoadingIcon from '~/components/ui/LoadingIcon.vue';
+import getDashboardSubjectStateVisual from '~/utils/getDashboardSubjectStateVisual';
 
 const props = defineProps<{
-  notification: any;
+  notification: DashboardNotification;
 }>();
 
 const { locale } = useI18n();
 const localeCode = computed(() => locale.value);
 const markingAsRead = ref(false);
-const localNotification = ref({ ...props.notification });
+const isLocallyRead = ref(false);
 
-const currentNotification = computed(() => localNotification.value);
+const currentNotification = computed(() => ({
+  ...props.notification,
+  unread: isLocallyRead.value ? false : props.notification.unread,
+}));
 
-const subjectTypeIconMap: Record<string, any> = {
-  Issue: CircleDotIcon,
-  PullRequest: GitPullRequestIcon,
-  Discussion: MessagesSquareIcon,
-  Release: TagIcon,
-};
-
-const subjectTypeColorMap: Record<string, string> = {
-  Issue: '#1a7f37',
-  PullRequest: '#8250df',
-  Discussion: '#0969da',
-  Release: '#bf8700',
-};
-
-const subjectTypeIcon = computed(() => {
-  return subjectTypeIconMap[localNotification.value.subject?.type];
+const isSubjectStatePending = computed(() => {
+  return currentNotification.value.subject?.stateStatus === 'pending';
 });
 
-const subjectTypeColor = computed(() => {
-  const color = subjectTypeColorMap[localNotification.value.subject?.type];
-  return color ? { color } : {};
+const isSubjectStateError = computed(() => {
+  return currentNotification.value.subject?.stateStatus === 'error';
+});
+
+const isPullRequestSubject = computed(() => {
+  return currentNotification.value.subject?.type === 'PullRequest';
+});
+
+const subjectVisual = computed(() => {
+  return getDashboardSubjectStateVisual({
+    isPullRequest: isPullRequestSubject.value,
+    state: currentNotification.value.subject?.state,
+    subjectType: currentNotification.value.subject?.type,
+  });
+});
+
+const subjectVisualStyle = computed(() => {
+  return subjectVisual.value.color ? { color: subjectVisual.value.color } : {};
+});
+
+const subjectStateTitle = computed(() => {
+  if (isSubjectStatePending.value) {
+    return `${subjectVisual.value.label}: status loading`;
+  }
+
+  if (isSubjectStateError.value) {
+    return `${subjectVisual.value.label}: status unavailable`;
+  }
+
+  return subjectVisual.value.label;
 });
 
 const markAsRead = async () => {
-  if (markingAsRead.value || !localNotification.value.unread) return;
+  if (markingAsRead.value || !currentNotification.value.unread) return;
 
   markingAsRead.value = true;
 
-  const threadId = localNotification.value.id;
+  const threadId = currentNotification.value.id;
 
   try {
     const { error } = await useFetch(`/api/notifications/${threadId}`, {
@@ -134,7 +160,7 @@ const markAsRead = async () => {
       return;
     }
 
-    localNotification.value.unread = false;
+    isLocallyRead.value = true;
   } finally {
     markingAsRead.value = false;
   }
@@ -159,7 +185,7 @@ const reasonIconMap: Record<string, any> = {
 };
 
 const reasonIcon = computed(() => {
-  return reasonIconMap[localNotification.value.reason];
+  return reasonIconMap[currentNotification.value.reason ?? ''];
 });
 </script>
 
@@ -197,6 +223,30 @@ const reasonIcon = computed(() => {
   background-color: iv.$white;
   box-shadow: 0 1px 4px hsla(221deg, 14%, 4%, 0.18);
   line-height: 1;
+  transition:
+    color 0.25s ease,
+    opacity 0.3s ease,
+    border-color 0.3s ease;
+}
+
+.notification-type-badge--pending {
+  animation: notification-state-pulse 2s ease-in-out infinite;
+  opacity: 0.45;
+}
+
+.notification-type-badge--error {
+  border-color: iv.$grey-lighter;
+  opacity: 0.45;
+}
+
+.notification-state-icon-enter-active,
+.notification-state-icon-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.notification-state-icon-enter-from,
+.notification-state-icon-leave-to {
+  opacity: 0;
 }
 
 .mark-read-btn {
@@ -249,5 +299,16 @@ const reasonIcon = computed(() => {
 
 .is-spinning {
   animation: spin 1.4s linear infinite;
+}
+
+@keyframes notification-state-pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+
+  50% {
+    opacity: 0.65;
+  }
 }
 </style>
