@@ -398,7 +398,11 @@ onBeforeUnmount(() => {
             </p>
           </div>
           <div class="tags mb-0">
-            <span class="tag is-light">{{ section.file.status }}</span>
+            <span
+              class="tag"
+              :class="`pr-review-diff-viewer__status-tag--${section.file.status}`"
+              >{{ section.file.status }}</span
+            >
             <span class="tag is-success is-light">+{{ section.file.additions }}</span>
             <span class="tag is-danger is-light">-{{ section.file.deletions }}</span>
           </div>
@@ -423,7 +427,6 @@ onBeforeUnmount(() => {
                 <span class="pr-review-diff-viewer__line-number">{{
                   row.oldLineNumber ?? ''
                 }}</span>
-                <span class="pr-review-diff-viewer__comment-gutter"></span>
                 <code class="pr-review-diff-viewer__code">
                   <span
                     v-for="token in tokenizeCode(getSideContent(row, 'old'), section.file.filename)"
@@ -438,10 +441,8 @@ onBeforeUnmount(() => {
               <span class="pr-review-diff-viewer__split-divider" aria-hidden="true"></span>
 
               <div :class="getRowSideClass(row, 'new')">
-                <span class="pr-review-diff-viewer__line-number">{{
-                  row.newLineNumber ?? ''
-                }}</span>
-                <span class="pr-review-diff-viewer__comment-gutter">
+                <span class="pr-review-diff-viewer__line-number">
+                  <span class="pr-review-diff-viewer__line-num">{{ row.newLineNumber ?? '' }}</span>
                   <button
                     class="pr-review-diff-viewer__comment-button"
                     type="button"
@@ -573,7 +574,7 @@ onBeforeUnmount(() => {
     Liberation Mono,
     Menlo,
     monospace;
-  font-size: 0.75rem;
+  font-size: 12px;
   line-height: 1.45;
 }
 
@@ -611,7 +612,7 @@ onBeforeUnmount(() => {
 .pr-review-diff-viewer__pane {
   min-width: 0;
   display: grid;
-  grid-template-columns: 3.5rem 1.7rem minmax(0, 1fr);
+  grid-template-columns: 3.5rem minmax(0, 1fr);
 }
 
 .pr-review-diff-viewer__pane--new {
@@ -635,37 +636,65 @@ onBeforeUnmount(() => {
   color: transparent;
 }
 
-.pr-review-diff-viewer__line-number {
-  padding: 0.2rem 0.45rem;
-  border-right: 1px solid rgba(208, 215, 222, 0.75);
-  color: #57606a;
-  text-align: right;
-  user-select: none;
+.pr-review-diff-viewer__status-tag--added {
+  background: #dafbe1;
+  color: #1a7f37;
 }
 
-.pr-review-diff-viewer__comment-gutter {
+.pr-review-diff-viewer__status-tag--modified {
+  background: #ddf4ff;
+  color: #0969da;
+}
+
+.pr-review-diff-viewer__status-tag--removed {
+  background: #ffebe9;
+  color: #cf222e;
+}
+
+.pr-review-diff-viewer__status-tag--renamed {
+  background: #f6f8fa;
+  color: #656d76;
+}
+
+.pr-review-diff-viewer__line-number {
+  padding: 0.2rem 0.3rem;
+  border-right: 1px solid rgba(208, 215, 222, 0.75);
+  color: #57606a;
+  text-align: center;
+  user-select: none;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-right: 1px solid rgba(208, 215, 222, 0.45);
+  gap: 0;
+}
+
+.pr-review-diff-viewer__line-num {
+  display: inline-block;
+  min-width: 2.2rem;
+  text-align: center;
 }
 
 .pr-review-diff-viewer__comment-button {
-  width: 1.15rem;
-  height: 1.15rem;
+  width: 0;
+  padding: 0;
   border: 0;
-  border-radius: 50%;
   background: transparent;
   color: transparent;
   cursor: pointer;
+  font-size: 0;
+  line-height: 1;
+  transition: none;
+  overflow: hidden;
 }
 
 .pr-review-diff-viewer__pane--commentable:hover
   .pr-review-diff-viewer__comment-button:not(:disabled),
 .pr-review-diff-viewer__pane--commentable:focus-within
   .pr-review-diff-viewer__comment-button:not(:disabled) {
-  background: #0969da;
-  color: #ffffff;
+  width: 1rem;
+  font-size: 11px;
+  color: #0969da;
+  font-weight: 700;
 }
 
 .pr-review-diff-viewer__comment-button:disabled {
