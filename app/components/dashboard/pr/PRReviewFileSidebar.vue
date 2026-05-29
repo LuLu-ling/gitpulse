@@ -57,6 +57,26 @@ const sortedFiles = computed(() =>
   [...props.files].sort((first, second) => first.filename.localeCompare(second.filename))
 );
 
+/** Files in the same depth-first tree-traversal order as the tree view.
+ *  Directories come before files within each level, then alphabetical.
+ *  This keeps list-view and tree-view top-to-bottom order consistent. */
+const treeOrderedFiles = computed(() => {
+  const result: PRReviewFile[] = [];
+
+  const visit = (nodes: FileTreeNode[]) => {
+    for (const node of nodes) {
+      if (node.type === 'file' && node.file) {
+        result.push(node.file);
+      } else {
+        visit(node.children);
+      }
+    }
+  };
+
+  visit(treeNodes.value);
+  return result;
+});
+
 const treeNodes = computed(() => {
   const root: FileTreeNode[] = [];
   const directories = new Map<string, FileTreeNode>();
@@ -223,7 +243,7 @@ const statusLabel = (status: string) => status.slice(0, 1).toUpperCase();
 
       <div v-if="files.length && viewMode === 'list'" class="pr-review-file-sidebar__list">
         <button
-          v-for="file in sortedFiles"
+          v-for="file in treeOrderedFiles"
           :key="file.filename"
           type="button"
           :class="[
