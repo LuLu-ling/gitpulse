@@ -21,6 +21,11 @@ interface GitHubIssueReferencePayload {
   html_url?: string;
 }
 
+interface CachedGitHubAutolinkResolution {
+  promise: Promise<GitHubAutolinkResolution>;
+  expiresAt: number;
+}
+
 const AUTOLINKABLE_TEXT_PARENT_TAGS = new Set([
   'p',
   'li',
@@ -43,7 +48,11 @@ const SKIPPED_TAGS = new Set(['a', 'code', 'pre']);
 const REFERENCE_PATTERN =
   /(^|[^\w/])(?:(?<qualified>[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+#(?<qualifiedNumber>\d+))|(?<gh>GH-(?<ghNumber>\d+))|(?<short>#(?<shortNumber>\d+)))/g;
 
-const referenceCache = new Map<string, Promise<GitHubAutolinkResolution>>();
+const REFERENCE_CACHE_MAX_ENTRIES = 500;
+const REFERENCE_CACHE_SUCCESS_TTL_MS = 30 * 60 * 1000;
+const REFERENCE_CACHE_FAILURE_TTL_MS = 5 * 60 * 1000;
+
+const referenceCache = new Map<string, CachedGitHubAutolinkResolution>();
 
 function isTextNode(node: MDCNode): node is MDCText {
   return node.type === 'text';
@@ -116,12 +125,35 @@ function parseReferenceTarget(
   };
 }
 
+function pruneExpiredReferenceCache(now = Date.now()) {
+  for (const [cacheKey, cachedResolution] of referenceCache) {
+    if (cachedResolution.expiresAt <= now) {
+      referenceCache.delete(cacheKey);
+    }
+  }
+}
+
+function enforceReferenceCacheLimit() {
+  while (referenceCache.size > REFERENCE_CACHE_MAX_ENTRIES) {
+    const oldestCacheKey = referenceCache.keys().next().value;
+    if (!oldestCacheKey) {
+      return;
+    }
+
+    referenceCache.delete(oldestCacheKey);
+  }
+}
+
 async function resolveReference(target: GitHubAutolinkTarget): Promise<GitHubAutolinkResolution> {
   const cacheKey = `${target.owner}/${target.repo}#${target.number}`;
+  pruneExpiredReferenceCache();
+
   const cachedResolution = referenceCache.get(cacheKey);
 
   if (cachedResolution) {
-    return cachedResolution;
+    referenceCache.delete(cacheKey);
+    referenceCache.set(cacheKey, cachedResolution);
+    return cachedResolution.promise;
   }
 
   let resolvePending!: (value: GitHubAutolinkResolution) => void;
@@ -129,7 +161,25 @@ async function resolveReference(target: GitHubAutolinkTarget): Promise<GitHubAut
     resolvePending = resolve;
   });
 
-  referenceCache.set(cacheKey, resolutionPromise);
+  referenceCache.set(cacheKey, {
+    promise: resolutionPromise,
+    expiresAt: Date.now() + REFERENCE_CACHE_SUCCESS_TTL_MS,
+  });
+  enforceReferenceCacheLimit();
+
+  const settleResolution = (resolution: GitHubAutolinkResolution, ttlMs: number) => {
+    const cachedEntry = referenceCache.get(cacheKey);
+
+    if (cachedEntry?.promise === resolutionPromise) {
+      referenceCache.set(cacheKey, {
+        promise: Promise.resolve(resolution),
+        expiresAt: Date.now() + ttlMs,
+      });
+      enforceReferenceCacheLimit();
+    }
+
+    resolvePending(resolution);
+  };
 
   void (async () => {
     try {
@@ -141,16 +191,19 @@ async function resolveReference(target: GitHubAutolinkTarget): Promise<GitHubAut
       );
 
       if (!issue?.html_url) {
-        resolvePending({ exists: false });
+        settleResolution({ exists: false }, REFERENCE_CACHE_FAILURE_TTL_MS);
         return;
       }
 
-      resolvePending({
-        exists: true,
-        href: issue.html_url,
-      });
+      settleResolution(
+        {
+          exists: true,
+          href: issue.html_url,
+        },
+        REFERENCE_CACHE_SUCCESS_TTL_MS
+      );
     } catch {
-      resolvePending({ exists: false });
+      settleResolution({ exists: false }, REFERENCE_CACHE_FAILURE_TTL_MS);
     }
   })();
 
