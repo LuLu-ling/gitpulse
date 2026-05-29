@@ -6,7 +6,7 @@
         <div v-if="lockError" class="sidebar-alert sidebar-alert--error mb-3">
           <AlertCircleIcon :size="14" />
           <span>{{ lockError }}</span>
-          <button class="sidebar-alert__dismiss" @click="lockError = ''">
+          <button class="sidebar-alert__dismiss" @click="clearLockError">
             <XIcon :size="12" />
           </button>
         </div>
@@ -115,6 +115,27 @@ const { openModal, closeModal } = useModalState();
 const showLockReasonModal = ref(false);
 const loadingLock = ref(false);
 const lockError = ref<string>('');
+let lockErrorTimer: ReturnType<typeof setTimeout> | null = null;
+
+const clearLockErrorTimer = () => {
+  if (lockErrorTimer) {
+    clearTimeout(lockErrorTimer);
+    lockErrorTimer = null;
+  }
+};
+
+const clearLockError = () => {
+  clearLockErrorTimer();
+  lockError.value = '';
+};
+
+const scheduleLockErrorClear = () => {
+  clearLockErrorTimer();
+  lockErrorTimer = setTimeout(() => {
+    lockError.value = '';
+    lockErrorTimer = null;
+  }, 5000);
+};
 
 const openLockModal = () => {
   showLockReasonModal.value = true;
@@ -127,6 +148,7 @@ const closeLockModal = () => {
 };
 
 onUnmounted(() => {
+  clearLockErrorTimer();
   if (showLockReasonModal.value) {
     closeModal();
   }
@@ -136,7 +158,7 @@ const confirmLockIssue = async (lockReason: string) => {
   if (!props.canLockIssue || !props.repoInfo || !props.issueNumber) return;
 
   loadingLock.value = true;
-  lockError.value = '';
+  clearLockError();
 
   try {
     const { owner, repo } = props.repoInfo;
@@ -171,9 +193,7 @@ const confirmLockIssue = async (lockReason: string) => {
   } catch (err: any) {
     console.error('Error locking issue:', err);
     lockError.value = err.message || t('issueDetail.failedToLockIssue');
-    setTimeout(() => {
-      lockError.value = '';
-    }, 5000);
+    scheduleLockErrorClear();
   } finally {
     loadingLock.value = false;
   }
@@ -183,7 +203,7 @@ const unlockIssue = async () => {
   if (!props.canLockIssue || !props.repoInfo || !props.issueNumber) return;
 
   loadingLock.value = true;
-  lockError.value = '';
+  clearLockError();
 
   try {
     const { owner, repo } = props.repoInfo;
@@ -213,9 +233,7 @@ const unlockIssue = async () => {
   } catch (err: any) {
     console.error('Error unlocking issue:', err);
     lockError.value = err.message || t('issueDetail.failedToUnlockIssue');
-    setTimeout(() => {
-      lockError.value = '';
-    }, 5000);
+    scheduleLockErrorClear();
   } finally {
     loadingLock.value = false;
   }

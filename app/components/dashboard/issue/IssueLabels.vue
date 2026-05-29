@@ -58,7 +58,7 @@
               <div v-if="labelError" class="label-editor-error">
                 <AlertCircleIcon :size="14" />
                 <span>{{ labelError }}</span>
-                <button class="label-editor-error-dismiss" @click="labelError = ''">
+                <button class="label-editor-error-dismiss" @click="clearLabelError">
                   <XIcon :size="12" />
                 </button>
               </div>
@@ -156,6 +156,27 @@ const savingLabels = ref(false);
 const repoLabels = ref<any[]>([]);
 const selectedLabels = ref<string[]>([]);
 const labelError = ref<string>('');
+let labelErrorTimer: ReturnType<typeof setTimeout> | null = null;
+
+const clearLabelErrorTimer = () => {
+  if (labelErrorTimer) {
+    clearTimeout(labelErrorTimer);
+    labelErrorTimer = null;
+  }
+};
+
+const clearLabelError = () => {
+  clearLabelErrorTimer();
+  labelError.value = '';
+};
+
+const scheduleLabelErrorClear = () => {
+  clearLabelErrorTimer();
+  labelErrorTimer = setTimeout(() => {
+    labelError.value = '';
+    labelErrorTimer = null;
+  }, 5000);
+};
 
 // Watch for changes in props.labels to update selected labels
 watch(
@@ -181,6 +202,7 @@ const toggleLabelEditor = async () => {
 };
 
 onUnmounted(() => {
+  clearLabelErrorTimer();
   if (isLabelEditorVisible.value) {
     closeModal();
   }
@@ -223,7 +245,7 @@ const saveLabels = async () => {
   if (!props.repoInfo) return;
 
   savingLabels.value = true;
-  labelError.value = '';
+  clearLabelError();
 
   try {
     const { owner, repo } = props.repoInfo;
@@ -245,9 +267,7 @@ const saveLabels = async () => {
   } catch (err: any) {
     console.error('Error saving labels:', err);
     labelError.value = err.message || t('issueDetail.failedToUpdateLabels');
-    setTimeout(() => {
-      labelError.value = '';
-    }, 5000);
+    scheduleLabelErrorClear();
   } finally {
     savingLabels.value = false;
   }
