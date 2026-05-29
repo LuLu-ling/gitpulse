@@ -35,7 +35,7 @@ import {
   XCircleIcon,
   XIcon,
 } from 'lucide-vue-next';
-import { computed, nextTick, reactive, ref, shallowRef, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, reactive, ref, shallowRef, watch } from 'vue';
 import { VueDraggable, type DraggableEvent } from 'vue-draggable-plus';
 
 import {
@@ -1070,6 +1070,13 @@ watch(
   },
   { immediate: true }
 );
+
+onBeforeUnmount(() => {
+  if (previewTimer) {
+    clearTimeout(previewTimer);
+    previewTimer = null;
+  }
+});
 
 watch(
   autoSubtitle,
