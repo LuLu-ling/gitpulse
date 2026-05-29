@@ -1,7 +1,7 @@
 <template>
   <NuxtPage v-if="isDashboardChildRoute" />
 
-  <div v-else class="container is-max-widescreen dashboard-page">
+  <div v-else class="dashboard-page">
     <DashboardLayout>
       <template #activity-bar>
         <ActivityBar
@@ -764,12 +764,17 @@ watch(
 .dashboard-page {
   display: flex;
   width: 100%;
-  min-height: 100%;
+  height: calc(100vh - var(--bulma-navbar-height, 3.25rem));
+  min-height: calc(100vh - var(--bulma-navbar-height, 3.25rem));
+  overflow: hidden;
+  background: #f8fafc;
 }
 
 .dashboard-main-card {
   display: flex;
   width: 100%;
+  max-width: 54rem;
+  height: 100%;
   min-height: 0;
   flex-direction: column;
   flex: 1;
@@ -828,7 +833,7 @@ watch(
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   width: 100%;
-  height: calc(100vh - 12rem);
+  height: 100%;
   min-height: 0;
   flex: 1;
   gap: 0.85rem;
@@ -848,5 +853,9 @@ watch(
   min-height: 0;
   padding: 0;
   background: white;
+}
+
+:global(html.dark-mode) .dashboard-page {
+  background: #1a1a2e;
 }
 </style>

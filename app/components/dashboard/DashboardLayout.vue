@@ -44,43 +44,62 @@ $tab-sidebar-width: 240px;
 $widgets-panel-width: 280px;
 
 .dashboard-layout {
-  width: 100%;
-  min-height: 100%;
   display: flex;
+  width: 100%;
+  min-height: inherit;
 }
 
 .dashboard-layout-columns {
+  display: flex;
   width: 100%;
+  min-height: inherit;
   margin: 0;
-  justify-content: center; // Centered layout for large screens
+  align-items: stretch;
+  justify-content: flex-start;
 }
 
 // Left Activity Bar
 .column-activity-bar {
-  flex: none;
-  width: $activity-bar-width;
-  padding: 0.75rem 0; // Adjust padding to fit the narrow width
   display: flex;
-  flex-direction: column;
-  align-items: center;
+  flex: none;
+  align-items: stretch;
+  width: $activity-bar-width;
+  padding: 0;
+  background: #f1f5f9;
 }
 
 // Left-Center Tab Sidebar
 .column-tab-sidebar {
   flex: none;
   width: var(--dashboard-tab-sidebar-width, #{$tab-sidebar-width});
+  padding: 1.25rem 0.95rem;
+  background: #f1f5f9;
+  border-right: 1px solid var(--bulma-border-light, rgba(15, 23, 42, 0.08));
 }
 
 // Center Main List
 .column-main-content {
+  display: flex;
   flex: 1 1 auto;
+  justify-content: center;
   min-width: 0;
+  padding: 1.25rem 2rem;
 }
 
 // Right Widgets Panel
 .column-widgets-panel {
   flex: none;
   width: var(--dashboard-widgets-panel-width, #{$widgets-panel-width});
+  padding: 1.25rem 2rem 1.25rem 0;
+}
+
+:global(html.dark-mode) .column-activity-bar,
+:global(html.dark-mode) .column-tab-sidebar {
+  background: #16213e;
+}
+
+:global(html.dark-mode) .column-tab-sidebar {
+  border-right-color: rgba(255, 255, 255, 0.08);
 }
 
 // Responsive behavior
@@ -103,16 +122,17 @@ $widgets-panel-width: 280px;
   }
 
   .column-activity-bar {
-    flex-direction: row;
-    padding: 0.75rem;
+    padding: 0;
   }
 
   .column-tab-sidebar {
     order: 1;
+    padding: 0.75rem;
   }
 
   .column-main-content {
     order: 2;
+    padding: 0.75rem;
   }
 
   .column-widgets-panel {

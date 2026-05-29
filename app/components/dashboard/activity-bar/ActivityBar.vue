@@ -104,12 +104,10 @@ function getGroupIcon(icon?: string) {
   width: 100%;
   height: 100%;
   padding: 0.75rem 0;
-  background: rgba(0, 0, 0, 0.02);
-  box-shadow: inset -1px 0 0 rgba(0, 0, 0, 0.07);
+  background: transparent;
 
   @media (prefers-color-scheme: dark) {
-    background: rgba(255, 255, 255, 0.025);
-    box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.06);
+    background: transparent;
   }
 
   &__avatar {
