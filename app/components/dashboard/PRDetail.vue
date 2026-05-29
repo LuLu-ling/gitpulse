@@ -48,7 +48,13 @@
 
       <div class="column is-one-quarter ml-6">
         <div class="sticky-container">
-          <PRLabels :labels="currentPullRequest?.labels || []" />
+          <PRLabels
+            :labels="currentPullRequest?.labels || []"
+            :can-edit-labels="canEditLabels"
+            :repo-info="repoInfo"
+            :pr-number="currentPullRequest?.number || null"
+            @update:labels="updateLabels"
+          />
 
           <PRActions
             :requested-reviewers="currentPullRequest?.requested_reviewers || []"
@@ -112,6 +118,16 @@ const loadingMoreTimeline = ref(false);
 const isReviewWindowOpen = shallowRef(false);
 const { t } = useI18n();
 
+const repoPermissions = ref({
+  admin: false,
+  maintain: false,
+  push: false,
+  triage: false,
+  pull: false,
+  canEditLabels: false,
+  canLockIssue: false,
+});
+
 // Computed properties
 const repoInfo = computed(() => {
   const pullRequest = currentPullRequest.value;
@@ -123,6 +139,8 @@ const repoInfo = computed(() => {
     null
   );
 });
+
+const canEditLabels = computed(() => repoPermissions.value.canEditLabels);
 
 const repoOwner = computed(() => repoInfo.value?.owner || '');
 
@@ -147,6 +165,12 @@ const switchToPullRequest = (owner: string, repo: string, pullNumber: number) =>
 
 const addTimelineEvent = (event: PRTimelineItem) => {
   timeline.value.push(event);
+};
+
+const updateLabels = (labels: any[]) => {
+  if (currentPullRequest.value) {
+    currentPullRequest.value.labels = labels;
+  }
 };
 
 const getPullRequestIdentity = () => {
@@ -174,6 +198,15 @@ const resetPullRequestScopedState = (pullRequest: any) => {
   currentPullRequest.value = pullRequest;
   detailError.value = '';
   timeline.value = [];
+  repoPermissions.value = {
+    admin: false,
+    maintain: false,
+    push: false,
+    triage: false,
+    pull: false,
+    canEditLabels: false,
+    canLockIssue: false,
+  };
   currentTimelinePage.value = 1;
   hasNextTimelinePage.value = false;
   loadingMoreTimeline.value = false;
@@ -262,6 +295,40 @@ const loadMoreTimeline = async () => {
   }
 };
 
+const fetchRepoPermissions = async () => {
+  if (!repoInfo.value || !currentPullRequest.value?.number) return;
+
+  try {
+    const { owner, repo } = repoInfo.value;
+    const permissionData = await $fetch(`/api/repos/${owner}/${repo}/permissions`, {
+      method: 'GET',
+    });
+
+    if (permissionData) {
+      repoPermissions.value = {
+        admin: Boolean(permissionData.admin),
+        maintain: Boolean(permissionData.maintain),
+        push: Boolean(permissionData.push),
+        triage: Boolean(permissionData.triage),
+        pull: Boolean(permissionData.pull),
+        canEditLabels: Boolean(permissionData.canEditLabels),
+        canLockIssue: Boolean(permissionData.canLockIssue),
+      };
+    }
+  } catch (err) {
+    console.error('Error fetching repository permissions:', err);
+    repoPermissions.value = {
+      admin: false,
+      maintain: false,
+      push: false,
+      triage: false,
+      pull: false,
+      canEditLabels: false,
+      canLockIssue: false,
+    };
+  }
+};
+
 const fetchPullRequestDetails = async () => {
   if (!repoInfo.value || !currentPullRequest.value?.number) {
     return;
@@ -306,6 +373,7 @@ watch(
     resetPullRequestScopedState(newPullRequest);
     if (newPullRequest) {
       fetchTimeline();
+      fetchRepoPermissions();
       if (hasHydratedPullRequestDetails(newPullRequest as Record<string, unknown>)) {
         return;
       }
