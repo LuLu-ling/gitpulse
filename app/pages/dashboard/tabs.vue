@@ -280,12 +280,27 @@ const editingSubtitleTabId = shallowRef<string | null>(null);
 const editingSubtitleDraft = shallowRef('');
 const confirmingTabId = shallowRef<string | null>(null);
 const confirmingGroupId = shallowRef<string | null>(null);
+const selectedTabId = shallowRef<string | null>(null);
 const advancedFiltersOpen = ref(false);
 const previewLoading = ref(false);
 const previewError = ref<string | null>(null);
 const previewResult = ref<SearchPreviewResult | null>(null);
 let previewTimer: ReturnType<typeof setTimeout> | null = null;
 let previewRequestId = 0;
+
+const isEditing = computed(() => selectedTabId.value !== null);
+const editorTitle = computed(() =>
+  isEditing.value
+    ? t('dashboard.tabsSettings.editorTitleEdit')
+    : t('dashboard.tabsSettings.editorTitle')
+);
+const editorCaption = computed(() => {
+  const source = activeSourceLabel.value;
+  const group = selectedGroupName.value;
+  return isEditing.value
+    ? t('dashboard.tabsSettings.editorCaptionEdit', { source, group })
+    : t('dashboard.tabsSettings.editorCaption', { source, group });
+});
 
 const settingsTabs = computed<SettingsTab[]>(() => {
   return [...tabs.value, ...customTabs.value];
@@ -862,9 +877,102 @@ const handleDeleteGroup = (groupId: string) => {
   }
 };
 
-const handleCreateCustomTab = () => {
+const resetNewTabForm = () => {
+  newTab.name = '';
+  newTab.subtitle = autoSubtitle.value;
+  subtitleManuallyEdited.value = false;
+  newTab.groupId = getFallbackGroupId();
+  newTab.source = 'github-search';
+  newTab.query.text = '';
+  newTab.query.type = 'issues';
+  newTab.query.repo = '';
+  newTab.query.org = '';
+  newTab.query.user = '';
+  newTab.query.author = '';
+  newTab.query.assignee = '';
+  newTab.query.mentions = '';
+  newTab.query.commenter = '';
+  newTab.query.involves = '';
+  newTab.query.milestone = '';
+  newTab.query.state = 'open';
+  newTab.query.scopes = ['title', 'body'];
+  newTab.query.labels = [];
+  newTab.query.visibility = 'any';
+  newTab.query.archived = 'exclude';
+  newTab.query.draft = 'any';
+  newTab.query.review = 'any';
+  newTab.query.base = '';
+  newTab.query.head = '';
+  newTab.query.sort = 'updated';
+  newTab.query.order = 'desc';
+  newTab.query.perPage = 20;
+  labelDraft.value = '';
+  advancedFiltersOpen.value = false;
+  previewResult.value = null;
+};
+
+const getFallbackGroupId = () => {
+  const rows = customGroupRows.value;
+  return rows[0]?.id ?? DEFAULT_CUSTOM_TAB_GROUP_ID;
+};
+
+const selectTabForEdit = (tab: SettingsTab) => {
+  if (!isCustomTab(tab.id)) return;
+
+  selectedTabId.value = tab.id;
+  newTab.name = tab.name;
+  newTab.subtitle = tab.subtitle?.trim() || getTabSubtitle(tab);
+  subtitleManuallyEdited.value = Boolean(tab.subtitle?.trim());
+  newTab.groupId = tab.groupId;
+  newTab.source = tab.source ?? 'github-search';
+
+  const q = tab.query ?? {};
+  newTab.query.text = q.text ?? '';
+  newTab.query.type = q.type ?? 'issues';
+  newTab.query.repo = q.repo ?? '';
+  newTab.query.org = q.org ?? '';
+  newTab.query.user = q.user ?? '';
+  newTab.query.author = q.author ?? '';
+  newTab.query.assignee = q.assignee ?? '';
+  newTab.query.mentions = q.mentions ?? '';
+  newTab.query.commenter = q.commenter ?? '';
+  newTab.query.involves = q.involves ?? '';
+  newTab.query.milestone = q.milestone ?? '';
+  newTab.query.state = q.state ?? 'open';
+  newTab.query.scopes = q.scopes ?? ['title', 'body'];
+  newTab.query.labels = q.labels ?? [];
+  newTab.query.visibility = q.visibility ?? 'any';
+  newTab.query.archived = q.archived ?? 'exclude';
+  newTab.query.draft = q.draft ?? 'any';
+  newTab.query.review = q.review ?? 'any';
+  newTab.query.base = q.base ?? '';
+  newTab.query.head = q.head ?? '';
+  newTab.query.sort = q.sort ?? 'updated';
+  newTab.query.order = q.order ?? 'desc';
+  newTab.query.perPage = q.perPage ?? 20;
+  labelDraft.value = '';
+  advancedFiltersOpen.value = false;
+  previewResult.value = null;
+};
+
+const deselectTab = () => {
+  selectedTabId.value = null;
+  resetNewTabForm();
+};
+
+const handleSaveTab = () => {
   const name = newTab.name.trim();
-  if (!name || !selectedGroupExists.value) {
+  if (!name || !selectedGroupExists.value) return;
+
+  if (isEditing.value && selectedTabId.value) {
+    updateCustomTab(selectedTabId.value, {
+      name,
+      subtitle: newTab.subtitle.trim() || autoSubtitle.value,
+      groupId: newTab.groupId,
+      source: newTab.source,
+      query: buildCurrentQuery(),
+    });
+    deselectTab();
     return;
   }
 
@@ -876,23 +984,11 @@ const handleCreateCustomTab = () => {
     query: buildCurrentQuery(),
   });
 
-  newTab.name = '';
-  newTab.subtitle = autoSubtitle.value;
-  subtitleManuallyEdited.value = false;
-  newTab.query.text = '';
-  newTab.query.repo = '';
-  newTab.query.org = '';
-  newTab.query.user = '';
-  newTab.query.author = '';
-  newTab.query.assignee = '';
-  newTab.query.mentions = '';
-  newTab.query.commenter = '';
-  newTab.query.involves = '';
-  newTab.query.milestone = '';
-  newTab.query.base = '';
-  newTab.query.head = '';
-  newTab.query.labels = [];
-  labelDraft.value = '';
+  resetNewTabForm();
+};
+
+const handleCreateCustomTab = () => {
+  handleSaveTab();
 };
 
 const loadPreview = async () => {
@@ -933,6 +1029,12 @@ watch(
   { immediate: true }
 );
 
+watch(customTabs, (tabs) => {
+  if (selectedTabId.value && !tabs.some((tab) => tab.id === selectedTabId.value)) {
+    deselectTab();
+  }
+});
+
 watch(searchQueryString, () => {
   previewPage.value = 1;
 });
@@ -969,7 +1071,7 @@ void nextTick(() => {
 </script>
 
 <template>
-  <div class="tabs-settings-page">
+  <div class="tabs-settings-page" @keydown.escape="deselectTab">
     <nav class="tabs-nav-back" aria-label="Page navigation">
       <NuxtLink :to="localePath('/dashboard')" class="button is-ghost is-small nav-back-link">
         <ArrowLeftIcon :size="16" />
@@ -1246,11 +1348,22 @@ void nextTick(() => {
                     item-key="id"
                     @change="() => handleTabsChanged(group.id)"
                   >
-                    <div v-for="tab in groupTabLists[group.id]" :key="tab.id" class="tree-tab-row">
+                    <div
+                      v-for="tab in groupTabLists[group.id]"
+                      :key="tab.id"
+                      class="tree-tab-row"
+                      :class="{ 'is-selected': selectedTabId === tab.id }"
+                      role="button"
+                      :tabindex="confirmingTabId === tab.id ? -1 : 0"
+                      :aria-label="t('dashboard.tabsSettings.selectViewToEdit', { view: tab.name })"
+                      @click="selectTabForEdit(tab)"
+                      @keydown.enter="selectTabForEdit(tab)"
+                    >
                       <button
                         class="button is-ghost is-small drag-handle"
                         type="button"
                         :aria-label="t('dashboard.tabsSettings.dragHandleTab')"
+                        @click.stop
                       >
                         <GripVerticalIcon :size="14" />
                       </button>
@@ -1268,18 +1381,19 @@ void nextTick(() => {
                           @keyup.enter="saveSubtitleEdit(tab)"
                           @keyup.esc="cancelSubtitleEdit"
                           @blur="saveSubtitleEdit(tab)"
+                          @click.stop
                         />
                         <button
                           v-else
                           class="tab-subtitle-button"
                           type="button"
                           :title="getQueryPreview(tab)"
-                          @click="startSubtitleEdit(tab)"
+                          @click.stop="startSubtitleEdit(tab)"
                         >
                           {{ getTabSubtitle(tab) }}
                         </button>
                       </div>
-                      <div class="tree-tab-actions">
+                      <div class="tree-tab-actions" @click.stop>
                         <div
                           v-if="confirmingTabId === tab.id"
                           class="tab-delete-confirm"
@@ -1331,7 +1445,17 @@ void nextTick(() => {
       <section class="box editor-panel">
         <div class="panel-heading-row mb-4">
           <div>
-            <h2 class="title is-6 mb-1">{{ t('dashboard.tabsSettings.editorTitle') }}</h2>
+            <h2 class="title is-6 mb-1">{{ editorTitle }}</h2>
+            <p v-if="isEditing" class="help">
+              {{ editorCaption }}
+              <button
+                class="button is-ghost is-small editor-deselect-btn"
+                type="button"
+                @click="deselectTab"
+              >
+                {{ t('dashboard.tabsSettings.newViewButton') }}
+              </button>
+            </p>
           </div>
         </div>
 
@@ -1871,10 +1995,14 @@ void nextTick(() => {
               class="button is-small preview-create-btn"
               type="button"
               :disabled="!newTab.name.trim() || !selectedGroupExists"
-              @click="handleCreateCustomTab"
+              @click="handleSaveTab"
             >
-              <PlusIcon :size="14" />
-              <span>{{ t('dashboard.tabsSettings.createViewButton') }}</span>
+              <PlusIcon v-if="!isEditing" :size="14" />
+              <span>{{
+                isEditing
+                  ? t('dashboard.tabsSettings.saveViewButton')
+                  : t('dashboard.tabsSettings.createViewButton')
+              }}</span>
             </button>
           </div>
 
@@ -2239,6 +2367,12 @@ void nextTick(() => {
 .builtin-row:hover {
   border-color: rgba(79, 70, 229, 0.18);
   background: rgba(79, 70, 229, 0.045);
+}
+
+.tree-tab-row.is-selected {
+  border-color: #4f46e5;
+  background: rgba(79, 70, 229, 0.08);
+  box-shadow: inset 3px 0 0 #4f46e5;
 }
 
 .tree-group-row:hover,
@@ -3052,5 +3186,17 @@ void nextTick(() => {
     background: rgba(129, 140, 248, 0.15);
     color: #a5b4fc;
   }
+}
+
+.editor-deselect-btn {
+  margin-left: 0.5rem;
+  padding: 0.15rem 0.5rem;
+  font-size: 0.8rem;
+  height: auto;
+  color: #4f46e5;
+}
+
+.editor-deselect-btn:hover {
+  background: rgba(79, 70, 229, 0.08);
 }
 </style>
