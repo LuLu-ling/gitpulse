@@ -464,12 +464,11 @@ const buildCurrentQuery = (): CustomTabQuery => {
 const searchQueryParts = computed(() => {
   return buildIssueSearchParts(buildCurrentQuery(), {
     createdAfter: getOneYearAgoSearchDate(),
-    fallbackInvolves: '@me',
   });
 });
 
 const searchQueryString = computed(() => {
-  return searchQueryParts.value.length > 0 ? searchQueryParts.value.join(' ') : 'involves:@me';
+  return searchQueryParts.value.length > 0 ? searchQueryParts.value.join(' ') : '';
 });
 
 const previewSearchParams = computed(() => {
@@ -592,7 +591,6 @@ const getQueryPreview = (tab: SettingsTab) => {
 
   const parts = buildIssueSearchParts(tab.query, {
     createdAfter: getOneYearAgoSearchDate(),
-    fallbackInvolves: '@me',
   });
 
   return parts.length > 0 ? parts.join(' ') : t('dashboard.tabsSettings.defaultQueryPreview');
