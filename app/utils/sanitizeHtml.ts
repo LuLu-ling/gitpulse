@@ -1,13 +1,25 @@
-import DOMPurify from 'isomorphic-dompurify';
+import xss from 'xss';
 
 export function sanitizeHtml(dirty: string | null | undefined): string {
   if (!dirty) {
     return '';
   }
 
-  return DOMPurify.sanitize(dirty, {
-    ALLOWED_TAGS: ['a', 'b', 'code', 'em', 'i', 's', 'strong', 'sub', 'sup', 'u'],
-    ALLOWED_ATTR: ['href', 'title'],
+  return xss(dirty, {
+    whiteList: {
+      a: ['href', 'title'],
+      b: [],
+      code: [],
+      em: [],
+      i: [],
+      s: [],
+      strong: [],
+      sub: [],
+      sup: [],
+      u: [],
+    },
+    stripIgnoreTag: true,
+    stripIgnoreTagBody: ['script', 'style'],
   });
 }
 
