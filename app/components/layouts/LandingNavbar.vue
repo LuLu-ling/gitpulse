@@ -20,6 +20,6 @@ import ColorModeToggle from '~/components/ui/ColorModeToggle.vue';
 .navbar-controls {
   display: flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.75rem;
 }
 </style>

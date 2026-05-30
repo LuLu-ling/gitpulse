@@ -3,10 +3,8 @@
     <div class="detail-container is-flex is-flex-direction-column">
       <div class="card is-flex is-flex-direction-column is-radiusless">
         <div v-if="!hideHeader" :class="['card-header', { 'is-not-sticky': nonStickyHeader }]">
-          <div
-            class="card-header-title is-flex is-justify-content-space-between is-align-items-center"
-          >
-            <div class="buttons">
+          <div class="card-header-title detail-toolbar">
+            <div class="buttons detail-toolbar__nav">
               <button class="button is-light is-small" @click="$emit('back')">
                 <ArrowLeftIcon :size="18" class="mr-1" />
                 {{ backLabel }}
@@ -16,7 +14,10 @@
                 {{ homeLabel }}
               </button>
             </div>
-            <LanguageSwitcher />
+            <div class="detail-toolbar__actions">
+              <LanguageSwitcher />
+              <ColorModeToggle />
+            </div>
           </div>
         </div>
 
@@ -47,6 +48,7 @@
 import { ArrowLeftIcon, HomeIcon, Loader2Icon } from 'lucide-vue-next';
 
 import LanguageSwitcher from '~/components/LanguageSwitcher.vue';
+import ColorModeToggle from '~/components/ui/ColorModeToggle.vue';
 
 defineProps<{
   loading: boolean;
@@ -99,6 +101,47 @@ defineEmits<{
 .card-header.is-not-sticky {
   position: static;
   z-index: auto;
+}
+
+.detail-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 3rem;
+  padding: 0.4rem 0.75rem;
+  gap: 0.75rem;
+}
+
+.detail-toolbar__nav {
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0;
+}
+
+.detail-toolbar__nav .button {
+  display: inline-flex;
+  align-items: center;
+  margin-bottom: 0;
+}
+
+.detail-toolbar__actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+.detail-toolbar__actions :deep(.dropdown),
+.detail-toolbar__actions :deep(.dropdown-trigger) {
+  display: inline-flex;
+  align-items: center;
+}
+
+.detail-toolbar__actions :deep(.dropdown-trigger .button) {
+  display: inline-flex;
+  align-items: center;
+  height: 2.25rem;
 }
 
 .card-content {

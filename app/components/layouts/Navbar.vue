@@ -48,6 +48,6 @@ const logoSrc = computed(() => (colorMode.value === 'dark' ? '/icon-dark.png' : 
 .navbar-controls {
   display: flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.75rem;
 }
 </style>
