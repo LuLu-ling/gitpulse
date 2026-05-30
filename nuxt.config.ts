@@ -57,12 +57,6 @@ export default defineNuxtConfig({
 
   vite: {
     optimizeDeps: {
-      // NOTE: mermaid is intentionally NOT in this list.
-      // dayjs is pre-bundled here because it ships CJS-only code that
-      // Vite cannot tree-shake at dev time.
-      // mermaid ships ESM and is ~600 KB — we want Vite to code-split it into a
-      // separate lazy chunk so it never enters the main entry bundle.
-      // Adding it here would defeat that chunk-splitting goal.
       include: [
         '@vue/devtools-core',
         '@vue/devtools-kit',
@@ -72,9 +66,11 @@ export default defineNuxtConfig({
         'dayjs/plugin/relativeTime', // CJS
         'dayjs/plugin/relativeTime.js', // CJS
         'lucide-vue-next',
+        'mermaid',
         'simplebar-vue',
         'vue-draggable-plus',
         'vue3-simple-icons',
+        'xss', // CJS
       ],
     },
     css: {
