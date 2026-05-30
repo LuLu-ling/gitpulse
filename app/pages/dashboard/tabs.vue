@@ -3138,108 +3138,90 @@ void nextTick(() => {
   }
 }
 
-:global(html.dark) {
-  .builtin-section,
-  .custom-section,
-  .search-fields-panel,
-  .group-creator-strip,
-  .pr-field-band,
-  .source-selector {
-    background: var(--gitpulse-surface-muted);
-  }
+html.dark .builtin-section,
+html.dark .custom-section,
+html.dark .search-fields-panel,
+html.dark .group-creator-strip,
+html.dark .pr-field-band,
+html.dark .source-selector {
+  background: var(--gitpulse-surface-muted);
+}
 
-  .preview-panel {
-    background: var(--gitpulse-surface);
-  }
+html.dark .preview-panel {
+  background: var(--gitpulse-surface);
+}
 
-  .tokenized-query-box {
-    background: color-mix(in srgb, var(--gitpulse-surface-muted) 82%, transparent);
-  }
+html.dark .tokenized-query-box {
+  background: color-mix(in srgb, var(--gitpulse-surface-muted) 82%, transparent);
+}
 
-  .tqb-header {
-    background: var(--gitpulse-accent-soft);
-  }
+html.dark .tqb-header {
+  background: var(--gitpulse-accent-soft);
+}
 
-  .advanced-section {
-    background: color-mix(in srgb, var(--gitpulse-surface-muted) 58%, transparent);
+html.dark .advanced-section {
+  background: color-mix(in srgb, var(--gitpulse-surface-muted) 58%, transparent);
+}
 
-    &.is-open {
-      background: color-mix(in srgb, var(--gitpulse-surface-muted) 76%, transparent);
-    }
-  }
+html.dark .advanced-section.is-open {
+  background: color-mix(in srgb, var(--gitpulse-surface-muted) 76%, transparent);
+}
 
-  .advanced-pr-band {
-    background: var(--gitpulse-success-soft);
-  }
+html.dark .advanced-pr-band {
+  background: var(--gitpulse-success-soft);
+}
 
-  .builtin-row,
-  .tree-group,
-  .inline-child-creator,
-  .tree-tab-row,
-  .label-combobox,
-  .label-suggestions,
-  .chip-button,
-  .group-choice,
-  .segmented-button,
-  .source-option {
-    background: var(--gitpulse-surface);
-  }
+html.dark .builtin-row,
+html.dark .tree-group,
+html.dark .inline-child-creator,
+html.dark .tree-tab-row,
+html.dark .label-combobox,
+html.dark .label-suggestions,
+html.dark .chip-button,
+html.dark .group-choice,
+html.dark .segmented-button,
+html.dark .source-option {
+  background: var(--gitpulse-surface);
+}
 
-  .tree-tab-main small,
-  .panel-caption,
-  .query-preview,
-  .chip-label,
-  .group-creator-copy,
-  .tab-subtitle-button {
-    color: var(--gitpulse-text-subtle);
-  }
+html.dark .chip-button.is-active,
+html.dark .group-choice.is-active,
+html.dark .segmented-button.is-active,
+html.dark .source-option.is-active {
+  background: var(--gitpulse-accent-soft);
+  border-color: color-mix(in srgb, var(--gitpulse-accent) 30%, transparent);
+  color: var(--gitpulse-accent);
+}
 
-  .group-insight-card span {
-    color: var(--gitpulse-text-muted);
-  }
+html.dark .source-option.is-active small {
+  color: var(--gitpulse-text-muted);
+}
 
-  .empty-drop-zone,
-  .empty-state {
-    color: var(--gitpulse-text-subtle);
-  }
+html.dark .tree-tab-main small,
+html.dark .panel-caption,
+html.dark .query-preview,
+html.dark .chip-label,
+html.dark .group-creator-copy,
+html.dark .tab-subtitle-button {
+  color: var(--gitpulse-text-subtle);
+}
 
-  .advanced-toggle__icon {
-    color: var(--gitpulse-text-muted);
-  }
+html.dark .group-insight-card span {
+  color: var(--gitpulse-text-muted);
+}
 
-  .group-view-badge {
-    background: var(--gitpulse-accent-soft);
-    color: var(--gitpulse-accent);
-  }
+html.dark .empty-drop-zone,
+html.dark .empty-state {
+  color: var(--gitpulse-text-subtle);
+}
 
-  .segmented-button.is-active {
-    background: var(--gitpulse-accent-soft);
-    border-color: color-mix(in srgb, var(--gitpulse-accent) 30%, transparent);
-    color: var(--gitpulse-accent);
-    box-shadow: none;
-  }
+html.dark .advanced-toggle__icon {
+  color: var(--gitpulse-text-muted);
+}
 
-  .source-option.is-active {
-    background: var(--gitpulse-accent-soft);
-    border-color: color-mix(in srgb, var(--gitpulse-accent) 30%, transparent);
-    color: var(--gitpulse-accent);
-  }
-
-  .source-option.is-active small {
-    color: var(--gitpulse-text-muted);
-  }
-
-  .group-choice.is-active {
-    background: var(--gitpulse-accent-soft);
-    border-color: color-mix(in srgb, var(--gitpulse-accent) 30%, transparent);
-    color: var(--gitpulse-accent);
-  }
-
-  .chip-button.is-active {
-    background: var(--gitpulse-accent-soft);
-    border-color: color-mix(in srgb, var(--gitpulse-accent) 30%, transparent);
-    color: var(--gitpulse-accent);
-  }
+html.dark .group-view-badge {
+  background: var(--gitpulse-accent-soft);
+  color: var(--gitpulse-accent);
 }
 
 .editor-deselect-btn {
