@@ -105,6 +105,7 @@ const permissionRequestId = ref(0);
 const currentTimelinePage = ref(1);
 const hasNextTimelinePage = ref(false);
 const loadingMoreTimeline = ref(false);
+const apiFetch = useGitPulseApiFetch();
 
 // Sidebar scroll auto-hide
 const sidebarRef = ref<HTMLElement | null>(null);
@@ -209,7 +210,7 @@ const fetchTimeline = async () => {
     const { owner, repo } = repoInfo.value;
     const issueNumber = currentIssue.value.number;
 
-    const data = await $fetch<{
+    const data = await apiFetch<{
       timeline?: IssueTimelineItem[];
       pageInfo?: { hasNextPage?: boolean };
     }>(`/api/issues/${owner}/${repo}/${issueNumber}/timeline`, {
@@ -253,7 +254,7 @@ const loadMoreTimeline = async () => {
     const { owner, repo } = repoInfo.value;
     const issueNumber = currentIssue.value.number;
 
-    const data = await $fetch<{
+    const data = await apiFetch<{
       timeline?: IssueTimelineItem[];
       pageInfo?: { hasNextPage?: boolean };
     }>(`/api/issues/${owner}/${repo}/${issueNumber}/timeline`, {
@@ -287,7 +288,7 @@ const fetchRepoPermissions = async () => {
   permissionRequestId.value = requestId;
   loadingPermission.value = true;
   try {
-    const permissionData = await $fetch(`/api/repos/${owner}/${repo}/permissions`, {
+    const permissionData = await apiFetch(`/api/repos/${owner}/${repo}/permissions`, {
       method: 'GET',
     });
 

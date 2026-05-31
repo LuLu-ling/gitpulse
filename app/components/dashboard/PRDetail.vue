@@ -123,6 +123,7 @@ const hasNextTimelinePage = ref(false);
 const loadingMoreTimeline = ref(false);
 const isReviewWindowOpen = shallowRef(false);
 const { t } = useI18n();
+const apiFetch = useGitPulseApiFetch();
 
 // Sidebar scroll auto-hide
 const sidebarRef = ref<HTMLElement | null>(null);
@@ -258,7 +259,7 @@ const fetchTimeline = async () => {
     const { owner, repo } = repoInfo.value;
     const pullNumber = currentPullRequest.value.number;
 
-    const data = await $fetch<{
+    const data = await apiFetch<{
       timeline?: PRTimelineItem[];
       pageInfo?: { hasNextPage?: boolean };
     }>(`/api/pulls/${owner}/${repo}/${pullNumber}/timeline`, {
@@ -302,7 +303,7 @@ const loadMoreTimeline = async () => {
     const { owner, repo } = repoInfo.value;
     const pullNumber = currentPullRequest.value.number;
 
-    const data = await $fetch<{
+    const data = await apiFetch<{
       timeline?: PRTimelineItem[];
       pageInfo?: { hasNextPage?: boolean };
     }>(`/api/pulls/${owner}/${repo}/${pullNumber}/timeline`, {
@@ -329,7 +330,7 @@ const fetchRepoPermissions = async () => {
 
   try {
     const { owner, repo } = repoInfo.value;
-    const permissionData = await $fetch(`/api/repos/${owner}/${repo}/permissions`, {
+    const permissionData = await apiFetch(`/api/repos/${owner}/${repo}/permissions`, {
       method: 'GET',
     });
 
@@ -373,7 +374,7 @@ const fetchPullRequestDetails = async () => {
     const { owner, repo } = repoInfo.value;
     const pullNumber = currentPullRequest.value.number;
 
-    const data = await $fetch<Record<string, unknown>>(
+    const data = await apiFetch<Record<string, unknown>>(
       `/api/pulls/${owner}/${repo}/${pullNumber}`,
       {
         method: 'GET',

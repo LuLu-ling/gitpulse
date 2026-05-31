@@ -36,3 +36,33 @@ export async function getGitHubClient(event: H3Event): Promise<Octokit> {
 
   return createGitHubClient(accessToken);
 }
+
+export function throwGitHubRouteError(error: unknown, fallbackStatusMessage: string): never {
+  if (error && typeof error === 'object') {
+    const statusCode =
+      'statusCode' in error && typeof error.statusCode === 'number'
+        ? error.statusCode
+        : 'status' in error && typeof error.status === 'number'
+          ? error.status
+          : null;
+
+    if (statusCode) {
+      const statusMessage =
+        'statusMessage' in error && typeof error.statusMessage === 'string'
+          ? error.statusMessage
+          : 'message' in error && typeof error.message === 'string'
+            ? error.message
+            : fallbackStatusMessage;
+
+      throw createError({
+        statusCode,
+        statusMessage,
+      });
+    }
+  }
+
+  throw createError({
+    statusCode: 500,
+    statusMessage: fallbackStatusMessage,
+  });
+}
