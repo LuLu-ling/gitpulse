@@ -9,6 +9,7 @@ const props = defineProps<{
 }>();
 
 const { t } = useI18n();
+const colorMode = useColorMode();
 
 const MAX_SOURCE_BYTES = 16384;
 
@@ -17,6 +18,7 @@ type State = { kind: 'loading' } | { kind: 'success'; svg: string } | { kind: 'f
 const state = shallowRef<State>({ kind: 'loading' });
 const isViewerOpen = shallowRef(false);
 const openerElement = shallowRef<HTMLElement | null>(null);
+let renderSequence = 0;
 
 // useId() is Vue 3.5+ — generates a stable, unique id per component instance.
 const instanceId = useId();
@@ -32,17 +34,26 @@ async function render(code: string) {
   }
 
   state.value = { kind: 'loading' };
+  const currentRender = ++renderSequence;
 
   try {
     const mermaid = (await import('mermaid')).default;
-    mermaid.initialize({ startOnLoad: false, securityLevel: 'strict' });
+    mermaid.initialize({
+      startOnLoad: false,
+      securityLevel: 'strict',
+      theme: colorMode.value === 'dark' ? 'dark' : 'default',
+    });
 
     // Strict parse — throws on invalid syntax.
     await mermaid.parse(code);
 
     const { svg } = await mermaid.render(renderId, code);
+    if (currentRender !== renderSequence) return;
+
     state.value = { kind: 'success', svg };
   } catch {
+    if (currentRender !== renderSequence) return;
+
     // Silent fallback — never log Error to console per plan AC2.
     state.value = { kind: 'fallback' };
   }
@@ -61,7 +72,10 @@ async function closeViewer() {
 }
 
 onMounted(() => render(props.code));
-watch(() => props.code, render);
+watch(
+  () => [props.code, colorMode.value],
+  ([code]) => render(code)
+);
 </script>
 
 <template>

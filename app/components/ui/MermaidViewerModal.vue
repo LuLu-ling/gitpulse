@@ -8,6 +8,7 @@ import {
   shallowRef,
   useId,
   useTemplateRef,
+  watch,
 } from 'vue';
 
 const props = defineProps<{
@@ -20,6 +21,7 @@ const emit = defineEmits<{
 
 const { t } = useI18n();
 const { openModal, closeModal } = useModalState();
+const colorMode = useColorMode();
 
 const MIN_ZOOM = 0.02;
 const MAX_ZOOM = 4;
@@ -212,17 +214,26 @@ async function renderDiagram() {
 
   renderState.value = { kind: 'loading' };
   renderCount.value += 1;
+  const currentRenderCount = renderCount.value;
 
   try {
     const mermaid = (await import('mermaid')).default;
-    mermaid.initialize({ startOnLoad: false, securityLevel: 'strict' });
+    mermaid.initialize({
+      startOnLoad: false,
+      securityLevel: 'strict',
+      theme: colorMode.value === 'dark' ? 'dark' : 'default',
+    });
     await mermaid.parse(props.code);
 
     const renderId = `mermaid-viewer-${instanceId}-${renderCount.value}`;
     const { svg } = await mermaid.render(renderId, props.code);
+    if (currentRenderCount !== renderCount.value) return;
+
     renderState.value = { kind: 'success', svg };
     await resetViewportAfterRender();
   } catch {
+    if (currentRenderCount !== renderCount.value) return;
+
     renderState.value = { kind: 'fallback' };
   }
 }
@@ -298,6 +309,13 @@ onMounted(async () => {
   closeButton.value?.focus();
   await renderDiagram();
 });
+
+watch(
+  () => colorMode.value,
+  () => {
+    void renderDiagram();
+  }
+);
 
 onBeforeUnmount(() => {
   document.removeEventListener('keydown', onKeydown);
