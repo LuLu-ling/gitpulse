@@ -1,4 +1,3 @@
-<!--suppress CssUnusedSymbol, CssUnusedSymbol -->sUnusedSymbol -->sUnusedSymbol -->
 <script setup lang="ts">
 import { GitPullRequestIcon, MessageSquareIcon } from 'lucide-vue-next';
 import { computed, shallowRef } from 'vue';
@@ -161,7 +160,6 @@ const totalDeletions = computed(() =>
   </section>
 </template>
 
-<!--suppress CssUnusedSymbol, CssUnusedSymbol -->sUnusedSymbol -->sUnusedSymbol -->
 <style scoped lang="scss">
 .pr-review-workspace {
   height: 100%;

@@ -1,5 +1,3 @@
-<!--suppress CssUnusedSymbol, CssUnusedSymbol -->sUnusedSymbol -->sUnusedSymbol -->sUnusedSymbol
--->sUnusedSymbol -->sUnusedSymbol -->sUnusedSymbol -->sUnusedSymbol -->sUnusedSymbol -->
 <template>
   <div
     class="card dashboard-list-card dashboard-list-card--activity dashboard-list-card--detailed notification-card"
@@ -188,8 +186,6 @@ const reasonIcon = computed(() => {
 </script>
 
 <style scoped lang="scss" src="~/assets/scss/card.scss" />
-<!--suppress CssUnusedSymbol, CssUnusedSymbol -->sUnusedSymbol -->sUnusedSymbol -->sUnusedSymbol
--->sUnusedSymbol -->sUnusedSymbol -->sUnusedSymbol -->sUnusedSymbol -->sUnusedSymbol -->
 <style scoped lang="scss">
 .card.is-unread {
   background-color: var(--gitpulse-unread-bg);
@@ -235,6 +231,36 @@ const reasonIcon = computed(() => {
 .notification-type-badge--error {
   border-color: var(--gitpulse-border-strong);
   opacity: 0.45;
+}
+
+.notification-type-badge--open {
+  color: var(--gitpulse-success);
+}
+
+.notification-type-badge--closed {
+  color: var(--gitpulse-text-muted);
+}
+
+.notification-type-badge--merged {
+  color: var(--gitpulse-info);
+}
+
+.notification-type-badge--discussion {
+  color: var(--gitpulse-info);
+}
+
+.notification-type-badge--release {
+  color: var(--gitpulse-warning);
+}
+
+.notification-state-icon-enter-active,
+.notification-state-icon-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.notification-state-icon-enter-from,
+.notification-state-icon-leave-to {
+  opacity: 0;
 }
 
 .mark-read-btn {
@@ -283,6 +309,10 @@ const reasonIcon = computed(() => {
 .mark-read-btn:disabled {
   opacity: 0.8;
   cursor: not-allowed;
+}
+
+.is-spinning {
+  animation: spin 1.4s linear infinite;
 }
 
 @keyframes notification-state-pulse {

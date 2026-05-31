@@ -1,5 +1,3 @@
-<!--suppress CssUnusedSymbol, CssUnusedSymbol -->sUnusedSymbol -->sUnusedSymbol -->sUnusedSymbol
--->sUnusedSymbol -->sUnusedSymbol -->sUnusedSymbol -->sUnusedSymbol -->
 <script setup lang="ts">
 import { Loader2Icon } from 'lucide-vue-next';
 import { computed, shallowRef, watch } from 'vue';
@@ -165,9 +163,10 @@ watch(activeDetailKey, () => {
   </Transition>
 </template>
 
-<!--suppress CssUnusedSymbol, CssUnusedSymbol -->sUnusedSymbol -->sUnusedSymbol -->sUnusedSymbol
--->sUnusedSymbol -->sUnusedSymbol -->sUnusedSymbol -->sUnusedSymbol -->
 <style scoped lang="scss">
+:deep(.detail-host-content) {
+}
+
 .detail-pane-stage {
   position: relative;
   height: 100%;
@@ -204,6 +203,33 @@ watch(activeDetailKey, () => {
 
 .detail-feedback-box {
   max-width: 420px;
+}
+
+.detail-overlay-fade-enter-active,
+.detail-overlay-fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.detail-overlay-fade-enter-from,
+.detail-overlay-fade-leave-to {
+  opacity: 0;
+}
+
+.detail-pane-slide-enter-active,
+.detail-pane-slide-leave-active {
+  transition:
+    transform 0.45s ease,
+    opacity 0.45s ease;
+}
+
+.detail-pane-slide-enter-from {
+  transform: translateX(100%);
+  opacity: 0;
+}
+
+.detail-pane-slide-leave-to {
+  transform: translateX(-100%);
+  opacity: 0;
 }
 
 .spin-animation {

@@ -598,9 +598,18 @@ const { t, localePath, githubPreviewUrl, deselectTab } = props.model;
   cursor: grabbing;
 }
 
+:deep(.sortable-ghost) {
+  opacity: 0.4;
+  background: var(--gitpulse-accent-soft);
+}
+
 :deep(.sortable-chosen) {
   opacity: 0.85;
   box-shadow: var(--gitpulse-shadow-card-hover);
+}
+
+:deep(.sortable-drag) {
+  opacity: 0.9;
 }
 
 .chip-button,
@@ -627,6 +636,11 @@ const { t, localePath, githubPreviewUrl, deselectTab } = props.model;
   border-radius: 999px;
   font-size: 0.76rem;
   font-weight: 650;
+}
+
+.chip-button.is-compact {
+  min-height: 1.6rem;
+  padding: 0.18rem 0.45rem;
 }
 
 .group-choice {
