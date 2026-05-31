@@ -689,6 +689,11 @@ onBeforeUnmount(() => {
   font-weight: 600;
 }
 
+.pr-review-diff-viewer__hunk code,
+.pr-review-diff-viewer__code {
+  font-family: inherit;
+}
+
 .pr-review-diff-viewer__split-divider {
   background: var(--gitpulse-border);
 }
