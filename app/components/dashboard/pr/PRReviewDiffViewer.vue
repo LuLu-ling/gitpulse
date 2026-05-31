@@ -818,7 +818,6 @@ onBeforeUnmount(() => {
 
 .pr-review-diff-viewer__token--comment {
   color: var(--gitpulse-text-muted);
-  font-style: italic;
 }
 
 .pr-review-diff-viewer__token--operator {
