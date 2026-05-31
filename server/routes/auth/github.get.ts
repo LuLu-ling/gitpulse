@@ -1,12 +1,17 @@
 import { resolveAuthProviderState } from '../../utils/auth-providers';
-import { establishGitHubSession } from '../../utils/auth-session-utils';
+import {
+  PERSISTENT_AUTH_SESSION_MAX_AGE_SECONDS,
+  establishGitHubSession,
+} from '../../utils/auth-session-utils';
 
 const githubOAuthHandler = defineOAuthGitHubEventHandler({
   config: {
     scope: ['notifications', 'read:user', 'read:org', 'project', 'repo'],
   },
   async onSuccess(event, { user, tokens }) {
-    await establishGitHubSession(event, 'github', tokens.access_token, user);
+    await establishGitHubSession(event, 'github', tokens.access_token, user, {
+      maxAge: PERSISTENT_AUTH_SESSION_MAX_AGE_SECONDS,
+    });
     return sendRedirect(event, '/dashboard');
   },
   onError(event, _error) {

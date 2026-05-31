@@ -1,5 +1,8 @@
 import { resolveAuthProviderState } from '../../utils/auth-providers';
-import { establishGitHubSession } from '../../utils/auth-session-utils';
+import {
+  PERSISTENT_AUTH_SESSION_MAX_AGE_SECONDS,
+  establishGitHubSession,
+} from '../../utils/auth-session-utils';
 import { assertCsrfToken } from '../../utils/csrf-utils';
 import { createGitHubClient } from '../../utils/github-auth-utils';
 
@@ -36,7 +39,9 @@ export default defineEventHandler(async (event) => {
     const octokit = createGitHubClient(token);
     const { data: user } = await octokit.request('GET /user');
 
-    await establishGitHubSession(event, 'pat', token, user);
+    await establishGitHubSession(event, 'pat', token, user, {
+      maxAge: PERSISTENT_AUTH_SESSION_MAX_AGE_SECONDS,
+    });
 
     return {
       ok: true,
