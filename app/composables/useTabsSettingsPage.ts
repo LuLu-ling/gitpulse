@@ -685,19 +685,18 @@ export const useTabsSettingsPage = () => {
         ? group.parentId
         : (customGroupRows.value.find((candidate) => !affectedGroupIds.has(candidate.id))?.id ??
           '');
+    const affectedTabs = customTabs.value.filter((tab: CustomTab) =>
+      affectedGroupIds.has(tab.groupId)
+    );
 
     if (fallbackGroupId) {
-      customTabs.value
-        .filter((tab: CustomTab) => affectedGroupIds.has(tab.groupId))
-        .forEach((tab: CustomTab) => {
-          updateCustomTab(tab.id, { groupId: fallbackGroupId });
-        });
+      affectedTabs.forEach((tab: CustomTab) => {
+        updateCustomTab(tab.id, { groupId: fallbackGroupId });
+      });
     } else {
-      customTabs.value
-        .filter((tab: CustomTab) => affectedGroupIds.has(tab.groupId))
-        .forEach((tab: CustomTab) => {
-          deleteCustomTab(tab.id);
-        });
+      affectedTabs.forEach((tab: CustomTab) => {
+        deleteCustomTab(tab.id);
+      });
     }
 
     for (const childGroupId of affectedGroupIds) {
