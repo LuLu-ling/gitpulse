@@ -34,7 +34,6 @@
       </p>
     </div>
 
-    <!-- Label editor panel -->
     <Teleport to="body">
       <Transition name="label-modal">
         <div
@@ -178,7 +177,6 @@ const scheduleLabelErrorClear = () => {
   }, 5000);
 };
 
-// Watch for changes in props.labels to update selected labels
 watch(
   () => props.labels,
   (newLabels) => {
@@ -223,7 +221,6 @@ const fetchRepoLabels = async () => {
 
     repoLabels.value = data || [];
 
-    // Set default selected labels based on current issue labels
     selectedLabels.value = props.labels.map((label: any) => label.name);
   } catch (err) {
     console.error('Error fetching repository labels:', err);
@@ -256,7 +253,6 @@ const saveLabels = async () => {
       },
     });
 
-    // Update current issue's labels
     if (data) {
       emit('update:labels', data);
     }
@@ -278,7 +274,6 @@ const saveLabels = async () => {
 @use 'sass:color';
 @use '~/assets/scss/_variables' as *;
 
-// Sidebar card wrapper
 .sidebar-card {
   background: var(--gitpulse-surface-muted);
   border: 1px solid var(--gitpulse-border);
@@ -346,7 +341,6 @@ const saveLabels = async () => {
   margin: 0;
 }
 
-// Label tags
 .label-tags {
   display: flex;
   flex-wrap: wrap;
@@ -364,7 +358,6 @@ const saveLabels = async () => {
   line-height: 1.4;
 }
 
-// Overlay
 .label-editor-overlay {
   position: fixed;
   inset: 0;
@@ -376,7 +369,6 @@ const saveLabels = async () => {
   backdrop-filter: blur(6px);
 }
 
-// Panel
 .label-editor-panel {
   width: 100%;
   max-width: 400px;
@@ -389,7 +381,6 @@ const saveLabels = async () => {
   overflow: hidden;
 }
 
-// Header — no border
 .label-editor-header {
   display: flex;
   align-items: center;
@@ -430,7 +421,6 @@ const saveLabels = async () => {
   }
 }
 
-// Content
 .label-editor-content {
   flex: 1;
   overflow-y: auto;
@@ -438,7 +428,6 @@ const saveLabels = async () => {
   min-height: 0;
 }
 
-// Error
 .label-editor-error {
   display: flex;
   align-items: center;
@@ -470,7 +459,6 @@ const saveLabels = async () => {
   }
 }
 
-// Loading
 .label-editor-loading {
   display: flex;
   align-items: center;
@@ -481,7 +469,6 @@ const saveLabels = async () => {
   font-size: 13px;
 }
 
-// Label list
 .label-editor-list {
   display: flex;
   flex-direction: column;
@@ -489,7 +476,6 @@ const saveLabels = async () => {
   padding: 4px 0;
 }
 
-// Row
 .label-row {
   display: flex;
   align-items: flex-start;
@@ -510,7 +496,6 @@ const saveLabels = async () => {
   }
 }
 
-// Checkbox
 .label-row-check {
   position: relative;
   flex-shrink: 0;
@@ -558,7 +543,6 @@ const saveLabels = async () => {
   }
 }
 
-// Dot
 .label-row-dot {
   width: 8px;
   height: 8px;
@@ -567,7 +551,6 @@ const saveLabels = async () => {
   margin-top: 5px;
 }
 
-// Text container
 .label-row-text {
   display: flex;
   flex-direction: column;
@@ -576,7 +559,6 @@ const saveLabels = async () => {
   flex: 1;
 }
 
-// Name
 .label-row-name {
   font-size: 13px;
   font-weight: 500;
@@ -584,7 +566,6 @@ const saveLabels = async () => {
   line-height: 1.4;
 }
 
-// Description — wraps naturally, muted color
 .label-row-desc {
   font-size: 12px;
   color: var(--gitpulse-text-muted);
@@ -592,7 +573,6 @@ const saveLabels = async () => {
   word-break: break-word;
 }
 
-// Empty
 .label-editor-empty {
   padding: 28px 0;
   text-align: center;
@@ -600,7 +580,6 @@ const saveLabels = async () => {
   font-size: 13px;
 }
 
-// Footer — no border
 .label-editor-footer {
   display: flex;
   align-items: center;
@@ -609,7 +588,6 @@ const saveLabels = async () => {
   padding: 8px 20px 14px;
 }
 
-// Buttons — compact, no heavy chrome
 .label-btn-cancel {
   padding: 5px 12px;
   font-size: 12px;
@@ -657,7 +635,6 @@ const saveLabels = async () => {
   }
 }
 
-// Spin
 .spin-animation {
   animation: spin 1s linear infinite;
 }
@@ -671,7 +648,6 @@ const saveLabels = async () => {
   }
 }
 
-// Transition
 .label-modal-enter-active {
   transition: opacity 0.18s ease;
 
