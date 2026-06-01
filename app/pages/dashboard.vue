@@ -768,7 +768,7 @@ watch(
     }
 
     void router.replace({
-      path: '/dashboard',
+      path: localePath('/dashboard'),
       query: buildDashboardQuery({
         ...route.query,
         tab: currentRouteTabId.value,
