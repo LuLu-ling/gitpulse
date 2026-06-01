@@ -29,9 +29,22 @@
 </template>
 
 <script setup lang="ts">
+interface ReferenceSubject {
+  number?: number;
+  title?: string;
+  resourceType?: string;
+  repository?: {
+    name?: string;
+    nameWithOwner?: string;
+    owner?: {
+      login?: string;
+    };
+  };
+}
+
 const props = withDefaults(
   defineProps<{
-    refSubject: any;
+    refSubject?: ReferenceSubject | null;
     crossRepository?: boolean;
     resourceType?: string;
   }>(),
@@ -54,9 +67,11 @@ const canNavigate = computed(() => {
 const handleClick = () => {
   if (!canNavigate.value) return;
 
-  const { repository, number } = props.refSubject;
-  const owner = repository.owner.login;
-  const repo = repository.name;
+  const { repository, number } = props.refSubject ?? {};
+  const owner = repository?.owner?.login;
+  const repo = repository?.name;
+
+  if (!owner || !repo || !number) return;
 
   if (resolvedResourceType.value === 'pull-request') {
     switchToPullRequest(owner, repo, number);
