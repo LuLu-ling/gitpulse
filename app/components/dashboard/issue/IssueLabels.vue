@@ -134,6 +134,8 @@ import {
 import { onUnmounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import getThrownErrorMessage from '~/utils/getThrownErrorMessage';
+
 const props = defineProps<{
   labels: any[];
   canEditLabels: boolean;
@@ -260,9 +262,9 @@ const saveLabels = async () => {
     isLabelEditorVisible.value = false;
     emit('update:is-label-editor-visible', false);
     closeModal();
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Error saving labels:', err);
-    labelError.value = err.message || t('issueDetail.failedToUpdateLabels');
+    labelError.value = getThrownErrorMessage(err, t('issueDetail.failedToUpdateLabels'));
     scheduleLabelErrorClear();
   } finally {
     savingLabels.value = false;

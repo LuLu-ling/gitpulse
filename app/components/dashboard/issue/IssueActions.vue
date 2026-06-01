@@ -86,6 +86,8 @@ import {
 import { onUnmounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import getThrownErrorMessage from '~/utils/getThrownErrorMessage';
+
 import LockReasonModal from './LockReasonModal.vue';
 
 const props = defineProps<{
@@ -186,9 +188,9 @@ const confirmLockIssue = async (lockReason: string) => {
     emit('update:isLocked', true);
     emit('add-timeline-event', lockEvent);
     closeLockModal();
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Error locking issue:', err);
-    lockError.value = err.message || t('issueDetail.failedToLockIssue');
+    lockError.value = getThrownErrorMessage(err, t('issueDetail.failedToLockIssue'));
     scheduleLockErrorClear();
   } finally {
     loadingLock.value = false;
@@ -226,9 +228,9 @@ const unlockIssue = async () => {
 
     emit('update:isLocked', false);
     emit('add-timeline-event', unlockEvent);
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Error unlocking issue:', err);
-    lockError.value = err.message || t('issueDetail.failedToUnlockIssue');
+    lockError.value = getThrownErrorMessage(err, t('issueDetail.failedToUnlockIssue'));
     scheduleLockErrorClear();
   } finally {
     loadingLock.value = false;
