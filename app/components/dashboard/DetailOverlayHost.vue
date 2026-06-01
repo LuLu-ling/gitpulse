@@ -67,7 +67,7 @@ const activeDetailPane = computed<ActiveDetailPane | null>(() => {
       loading: props.loadingPullRequest,
       hasData: Boolean(props.pullRequest),
       error: '',
-      loadingTitle: 'Loading Pull Request',
+      loadingTitle: t('issueDetail.loadingPullRequest'),
     };
   }
 
@@ -78,7 +78,7 @@ const activeDetailPane = computed<ActiveDetailPane | null>(() => {
       loading: props.loadingRepository,
       hasData: Boolean(props.repository),
       error: props.repoError,
-      loadingTitle: 'Loading Repository',
+      loadingTitle: t('issueDetail.loadingRepository'),
     };
   }
 
