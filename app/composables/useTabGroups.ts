@@ -85,7 +85,7 @@ const normalizeGroup = (group: unknown): TabGroup | null => {
       typeof candidate.parentId === 'string' && candidate.parentId.length > 0
         ? candidate.parentId
         : null,
-    collapsed: candidate.collapsed ?? false,
+    collapsed: typeof candidate.collapsed === 'boolean' ? candidate.collapsed : false,
     source:
       candidate.source === 'system' || candidate.source === 'github-search'
         ? candidate.source
