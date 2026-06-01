@@ -224,35 +224,48 @@ export function parseRepoFullName(repoFullName?: string): { owner: string; repo:
   return { owner, repo };
 }
 
+const GITHUB_WEB_HOSTS = new Set(['github.com', 'www.github.com']);
+const GITHUB_ISSUE_PATH_PATTERN = /^\/([^/]+)\/([^/]+)\/issues\/(\d+)(?:\/|$)/;
+const GITHUB_PULL_PATH_PATTERN = /^\/([^/]+)\/([^/]+)\/pull\/(\d+)(?:\/|$)/;
+
 export function parseGitHubIssueOrPullUrl(url?: string) {
   if (!url) return null;
 
-  const issueMatch = url.match(/github\.com\/([^\/]+)\/([^\/]+)\/issues\/(\d+)/);
-  if (issueMatch) {
-    const [, owner, repo, number] = issueMatch;
-    const parsedNumber = Number.parseInt(number ?? '', 10);
-    if (!owner || !repo || !Number.isSafeInteger(parsedNumber) || parsedNumber < 1) return null;
+  try {
+    const parsedUrl = new URL(url);
+    if (!GITHUB_WEB_HOSTS.has(parsedUrl.hostname.toLowerCase())) {
+      return null;
+    }
 
-    return {
-      kind: 'issue' as const,
-      owner,
-      repo,
-      number: parsedNumber,
-    };
-  }
+    const issueMatch = parsedUrl.pathname.match(GITHUB_ISSUE_PATH_PATTERN);
+    if (issueMatch) {
+      const [, owner, repo, number] = issueMatch;
+      const parsedNumber = Number.parseInt(number ?? '', 10);
+      if (!owner || !repo || !Number.isSafeInteger(parsedNumber) || parsedNumber < 1) return null;
 
-  const pullMatch = url.match(/github\.com\/([^\/]+)\/([^\/]+)\/pull\/(\d+)/);
-  if (pullMatch) {
-    const [, owner, repo, number] = pullMatch;
-    const parsedNumber = Number.parseInt(number ?? '', 10);
-    if (!owner || !repo || !Number.isSafeInteger(parsedNumber) || parsedNumber < 1) return null;
+      return {
+        kind: 'issue' as const,
+        owner,
+        repo,
+        number: parsedNumber,
+      };
+    }
 
-    return {
-      kind: 'pull-request' as const,
-      owner,
-      repo,
-      number: parsedNumber,
-    };
+    const pullMatch = parsedUrl.pathname.match(GITHUB_PULL_PATH_PATTERN);
+    if (pullMatch) {
+      const [, owner, repo, number] = pullMatch;
+      const parsedNumber = Number.parseInt(number ?? '', 10);
+      if (!owner || !repo || !Number.isSafeInteger(parsedNumber) || parsedNumber < 1) return null;
+
+      return {
+        kind: 'pull-request' as const,
+        owner,
+        repo,
+        number: parsedNumber,
+      };
+    }
+  } catch {
+    return null;
   }
 
   return null;
