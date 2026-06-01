@@ -48,11 +48,9 @@ export function useDashboardDetails(currentRouteTab: Ref<string>) {
     if (!rawValue) return null;
 
     const segments = rawValue.split('/').filter(Boolean);
-    if (segments.length < 3) return null;
+    if (segments.length !== 3) return null;
 
-    const numberSegment = segments[segments.length - 1];
-    const repo = segments[segments.length - 2];
-    const owner = segments.slice(0, -2).join('/');
+    const [owner, repo, numberSegment] = segments;
 
     if (!numberSegment || !/^\d+$/.test(numberSegment)) {
       return null;
