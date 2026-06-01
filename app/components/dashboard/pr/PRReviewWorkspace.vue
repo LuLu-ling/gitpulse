@@ -132,6 +132,7 @@ const totalDeletions = computed(() =>
         :sections="review.allDiffSections.value"
         :active-filename="review.activeFilename.value"
         :draft-comments="review.draftComments.value"
+        :review-comment-threads="review.reviewCommentThreads.value"
         :active-draft-target="review.activeDraftTarget.value"
         :submitting="review.submitting.value"
         @visible-file-changed="review.syncVisibleFile"

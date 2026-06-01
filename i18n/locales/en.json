@@ -351,6 +351,7 @@
     "pendingComments": "{count} pending comments",
     "lineLabel": "Line {line}",
     "removeDraft": "Remove draft",
+    "noReviewCommentBody": "No review comment body",
     "submitReview": "Submit review",
     "reviewEvent": "Review decision",
     "eventComment": "Comment",

@@ -109,14 +109,58 @@ export interface PRReviewDraftComment {
   body: string;
 }
 
+export interface PRReviewCommentAuthor {
+  login?: string;
+  avatarUrl?: string;
+  url?: string;
+}
+
+export interface PRReviewComment {
+  id: string;
+  pullRequestReviewId?: string;
+  inReplyToId?: string;
+  body: string;
+  path: string;
+  url?: string;
+  diffHunk?: string;
+  position?: number | null;
+  originalPosition?: number | null;
+  startLine?: number | null;
+  originalStartLine?: number | null;
+  line?: number | null;
+  originalLine?: number | null;
+  startSide?: string | null;
+  side?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+  author?: PRReviewCommentAuthor;
+}
+
+interface PRReviewThreadBuildRow {
+  lineKey: string;
+  line: number;
+}
+
 export interface PRReviewDiffSection {
   file: PRReviewFile;
   rows: PRReviewDiffRow[];
 }
 
+export interface PRReviewCommentThread {
+  id: string;
+  path: string;
+  lineKey: string;
+  line: number;
+  comments: PRReviewComment[];
+}
+
 interface PullFilesResponse {
   items?: PRReviewFile[];
   pagination?: PRReviewPagination;
+}
+
+interface PullReviewCommentsResponse {
+  items?: PRReviewComment[];
 }
 
 interface UsePRReviewOptions {
@@ -294,6 +338,7 @@ export function usePRReview(options: UsePRReviewOptions) {
   const draftBody = shallowRef('');
   const selectedEvent = shallowRef<PRReviewEvent>('COMMENT');
   const draftComments = ref<PRReviewDraftComment[]>([]);
+  const reviewComments = ref<PRReviewComment[]>([]);
   const activeDraftTarget = ref<{ path: string; line: number } | null>(null);
   const requestId = shallowRef(0);
 
@@ -317,6 +362,112 @@ export function usePRReview(options: UsePRReviewOptions) {
       rows: parsePRReviewPatch(file.patch),
     }))
   );
+
+  const reviewCommentThreads = computed<PRReviewCommentThread[]>(() => {
+    const threads: PRReviewCommentThread[] = [];
+    const commentsByFile = new Map<string, PRReviewComment[]>();
+
+    for (const comment of reviewComments.value) {
+      if (!comment.path) {
+        continue;
+      }
+
+      const nextComments = commentsByFile.get(comment.path) ?? [];
+      nextComments.push(comment);
+      commentsByFile.set(comment.path, nextComments);
+    }
+
+    const normalizeLine = (comment: PRReviewComment) => comment.line ?? comment.position ?? null;
+
+    const compareComments = (first: PRReviewComment, second: PRReviewComment) => {
+      const firstDate = Date.parse(first.createdAt ?? '') || 0;
+      const secondDate = Date.parse(second.createdAt ?? '') || 0;
+      if (firstDate !== secondDate) {
+        return firstDate - secondDate;
+      }
+
+      return (first.id ?? '').localeCompare(second.id ?? '');
+    };
+
+    const sortedFiles = sortFilesByTreeOrder(files.value).map((file) => file.filename);
+
+    const fileLines = new Map<string, Set<string>>();
+
+    for (const section of allDiffSections.value) {
+      const lineKeys = new Set<string>();
+
+      for (const row of section.rows) {
+        if (row.newLineNumber) {
+          lineKeys.add(`${section.file.filename}:${row.newLineNumber}`);
+        }
+      }
+
+      fileLines.set(section.file.filename, lineKeys);
+    }
+
+    for (const path of sortedFiles) {
+      const comments = (commentsByFile.get(path) ?? []).sort(compareComments);
+      const validLines = fileLines.get(path) ?? new Set<string>();
+      const threadsById = new Map<string, PRReviewCommentThread>();
+      const threadByCommentId = new Map<string, PRReviewCommentThread>();
+
+      for (const comment of comments) {
+        const line = normalizeLine(comment);
+        if (!line) {
+          continue;
+        }
+
+        const lineKey = `${path}:${line}`;
+        if (!validLines.has(lineKey)) {
+          continue;
+        }
+
+        const isRightSide = comment.side !== 'LEFT' && comment.startSide !== 'LEFT';
+        const parentThread = comment.inReplyToId
+          ? threadByCommentId.get(comment.inReplyToId)
+          : undefined;
+
+        if (parentThread) {
+          parentThread.comments.push(comment);
+          threadByCommentId.set(comment.id, parentThread);
+          continue;
+        }
+
+        if (!isRightSide) {
+          continue;
+        }
+
+        const thread: PRReviewCommentThread = {
+          id: comment.id,
+          path,
+          lineKey,
+          line,
+          comments: [comment],
+        };
+
+        threadsById.set(comment.id, thread);
+        threadByCommentId.set(comment.id, thread);
+      }
+
+      for (const thread of threadsById.values()) {
+        threads.push(thread);
+      }
+    }
+
+    return threads.sort((first, second) => {
+      if (first.path !== second.path) {
+        return first.path.localeCompare(second.path);
+      }
+
+      if (first.line !== second.line) {
+        return first.line - second.line;
+      }
+
+      const firstDate = Date.parse(first.comments[0]?.createdAt ?? '') || 0;
+      const secondDate = Date.parse(second.comments[0]?.createdAt ?? '') || 0;
+      return firstDate - secondDate;
+    });
+  });
 
   const pendingCommentCount = computed(() => draftComments.value.length);
 
@@ -381,6 +532,14 @@ export function usePRReview(options: UsePRReviewOptions) {
           query: { page, per_page: 100 },
         }
       );
+      const reviewCommentResponse = isFirstPage
+        ? await $fetch<PullReviewCommentsResponse>(
+            `/api/pulls/${owner}/${repo}/${pullNumber}/comments`,
+            {
+              method: 'GET',
+            }
+          )
+        : null;
 
       if (currentRequestId !== requestId.value) {
         return;
@@ -388,6 +547,9 @@ export function usePRReview(options: UsePRReviewOptions) {
 
       const nextFiles = response.items ?? [];
       files.value = isFirstPage ? nextFiles : [...files.value, ...nextFiles];
+      reviewComments.value = isFirstPage
+        ? (reviewCommentResponse?.items ?? [])
+        : reviewComments.value;
       pagination.value = response.pagination ?? defaultPagination();
 
       if (!activeFilename.value && files.value[0]) {
@@ -529,6 +691,7 @@ export function usePRReview(options: UsePRReviewOptions) {
 
   return {
     files,
+    reviewComments,
     activeFilename,
     pagination,
     loading,
@@ -543,6 +706,7 @@ export function usePRReview(options: UsePRReviewOptions) {
     selectedFile,
     selectedDiffRows,
     allDiffSections,
+    reviewCommentThreads,
     pendingCommentCount,
     canSubmit,
     loadMoreFiles,

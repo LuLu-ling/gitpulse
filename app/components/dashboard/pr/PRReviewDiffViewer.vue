@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ChevronRightIcon } from 'lucide-vue-next';
 import {
+  computed,
   nextTick,
   onBeforeUnmount,
   ref,
@@ -11,17 +12,22 @@ import {
 } from 'vue';
 
 import PRReviewInlineComment from '~/components/dashboard/pr/PRReviewInlineComment.vue';
+import MarkdownRenderer from '~/components/ui/MarkdownRenderer.vue';
+import RoundImg from '~/components/ui/RoundImg.vue';
 import type {
   PRReviewDiffSection,
   PRReviewDiffRow,
   PRReviewDraftComment,
+  PRReviewCommentThread,
 } from '~/composables/usePRReview';
+import formatDurationFromNow from '~/utils/formatDurationFromNow';
 import tokenizeCodeLine from '~/utils/tokenizeCodeLine';
 
 const props = defineProps<{
   sections: PRReviewDiffSection[];
   activeFilename: string;
   draftComments: PRReviewDraftComment[];
+  reviewCommentThreads: PRReviewCommentThread[];
   activeDraftTarget: { path: string; line: number } | null;
   submitting: boolean;
 }>();
@@ -35,6 +41,8 @@ const emit = defineEmits<{
 }>();
 
 const collapsedFiles = ref(new Set<string>());
+const { t, locale } = useI18n();
+const localeCode = computed(() => locale.value);
 
 const toggleFileCollapse = (filename: string) => {
   const updated = new Set(collapsedFiles.value);
@@ -46,7 +54,6 @@ const toggleFileCollapse = (filename: string) => {
   collapsedFiles.value = updated;
 };
 
-const { t } = useI18n();
 const scrollContainer = useTemplateRef<HTMLElement>('scrollContainer');
 const sectionElements = new Map<string, HTMLElement>();
 const isProgrammaticScroll = shallowRef(false);
@@ -73,6 +80,16 @@ const getDraftForLine = (path: string, line: number | null) => {
   }
 
   return props.draftComments.find((comment) => comment.path === path && comment.line === line);
+};
+
+const getReviewThreadsForLine = (path: string, line: number | null) => {
+  if (!line) {
+    return [];
+  }
+
+  return props.reviewCommentThreads.filter(
+    (thread) => thread.path === path && thread.line === line
+  );
 };
 
 const isActiveDraftTarget = (path: string, line: number | null) =>
@@ -299,18 +316,82 @@ onBeforeUnmount(() => {
                       +
                     </button>
                   </span>
-                  <code class="pr-review-diff-viewer__code">
-                    <span
-                      v-for="token in tokenizeCodeLine(
-                        getSideContent(row, 'new'),
-                        section.file.filename
-                      )"
-                      :key="token.key"
-                      class="pr-review-diff-viewer__token"
-                      :class="`pr-review-diff-viewer__token--${token.kind}`"
-                      >{{ token.text }}</span
+                  <div class="pr-review-diff-viewer__new-line">
+                    <code class="pr-review-diff-viewer__code">
+                      <span
+                        v-for="token in tokenizeCodeLine(
+                          getSideContent(row, 'new'),
+                          section.file.filename
+                        )"
+                        :key="token.key"
+                        class="pr-review-diff-viewer__token"
+                        :class="`pr-review-diff-viewer__token--${token.kind}`"
+                        >{{ token.text }}</span
+                      >
+                    </code>
+                    <div
+                      v-if="
+                        getReviewThreadsForLine(section.file.filename, row.newLineNumber).length
+                      "
+                      class="pr-review-diff-viewer__new-line-threads"
                     >
-                  </code>
+                      <div
+                        v-for="thread in getReviewThreadsForLine(
+                          section.file.filename,
+                          row.newLineNumber
+                        )"
+                        :key="thread.id"
+                        class="pr-review-diff-viewer__review-thread"
+                      >
+                        <article
+                          v-for="comment in thread.comments"
+                          :key="comment.id"
+                          class="pr-review-diff-viewer__review-comment"
+                        >
+                          <div class="pr-review-diff-viewer__review-comment-header">
+                            <RoundImg
+                              width="24"
+                              height="24"
+                              :src="comment.author?.avatarUrl || ''"
+                              :alt="comment.author?.login || ''"
+                            />
+                            <div class="pr-review-diff-viewer__review-comment-meta">
+                              <a
+                                v-if="comment.author?.url"
+                                :href="comment.author.url"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                class="has-text-link has-text-weight-semibold"
+                              >
+                                {{ comment.author.login }}
+                              </a>
+                              <strong v-else>{{
+                                comment.author?.login || 'Unknown author'
+                              }}</strong>
+                              <a
+                                v-if="comment.url"
+                                :href="comment.url"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                class="has-text-grey"
+                              >
+                                {{ formatDurationFromNow(comment.createdAt || '', localeCode) }}
+                              </a>
+                              <span v-else-if="comment.createdAt" class="has-text-grey">
+                                {{ formatDurationFromNow(comment.createdAt, localeCode) }}
+                              </span>
+                            </div>
+                          </div>
+                          <div class="pr-review-diff-viewer__review-comment-body content">
+                            <MarkdownRenderer v-if="comment.body" :value="comment.body" />
+                            <p v-else class="has-text-grey mb-0">
+                              {{ t('prReview.noReviewCommentBody') }}
+                            </p>
+                          </div>
+                        </article>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -419,14 +500,6 @@ onBeforeUnmount(() => {
 }
 
 .pr-review-diff-viewer__header-info .title {
-  font-family:
-    ui-monospace,
-    SFMono-Regular,
-    SF Mono,
-    Consolas,
-    Liberation Mono,
-    Menlo,
-    monospace;
   font-size: 0.82rem;
 }
 
@@ -437,14 +510,6 @@ onBeforeUnmount(() => {
   min-height: 0;
   max-height: 100%;
   overscroll-behavior: contain;
-  font-family:
-    ui-monospace,
-    SFMono-Regular,
-    SF Mono,
-    Menlo,
-    Consolas,
-    Liberation Mono,
-    monospace;
   font-size: 12px;
   line-height: 1.45;
 }
@@ -474,7 +539,14 @@ onBeforeUnmount(() => {
 
 .pr-review-diff-viewer__hunk code,
 .pr-review-diff-viewer__code {
-  font-family: inherit;
+  font-family:
+    ui-monospace,
+    SFMono-Regular,
+    SF Mono,
+    Menlo,
+    Consolas,
+    Liberation Mono,
+    monospace;
 }
 
 .pr-review-diff-viewer__split-divider {
@@ -585,6 +657,60 @@ onBeforeUnmount(() => {
 
 .pr-review-diff-viewer__pane--empty .pr-review-diff-viewer__code {
   color: transparent;
+}
+
+.pr-review-diff-viewer__new-line {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.pr-review-diff-viewer__new-line > .pr-review-diff-viewer__code {
+  display: block;
+}
+
+.pr-review-diff-viewer__new-line-threads {
+  margin-top: 0.35rem;
+  padding-left: 0.9rem;
+  border-left: 2px solid color-mix(in srgb, var(--gitpulse-border-strong) 75%, transparent);
+}
+
+.pr-review-diff-viewer__review-thread {
+  margin: 0 0 0.5rem;
+}
+
+.pr-review-diff-viewer__review-comment {
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--gitpulse-border);
+  border-radius: 6px;
+  background: var(--gitpulse-surface);
+}
+
+.pr-review-diff-viewer__review-comment + .pr-review-diff-viewer__review-comment {
+  margin-top: 0.5rem;
+}
+
+.pr-review-diff-viewer__review-comment-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.pr-review-diff-viewer__review-comment-meta {
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.5rem;
+  align-items: center;
+}
+
+.pr-review-diff-viewer__review-comment-body {
+  margin-top: 0.55rem;
+  margin-bottom: 0;
+}
+
+.pr-review-diff-viewer__review-comment-body :deep(.markdown-body) {
+  font-size: 12px;
 }
 
 .pr-review-diff-viewer__token--keyword {

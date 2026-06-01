@@ -351,6 +351,7 @@
     "pendingComments": "{count} 条待提交评论",
     "lineLabel": "第 {line} 行",
     "removeDraft": "移除草稿",
+    "noReviewCommentBody": "没有审查评论正文",
     "submitReview": "提交审查",
     "reviewEvent": "审查结论",
     "eventComment": "评论",
