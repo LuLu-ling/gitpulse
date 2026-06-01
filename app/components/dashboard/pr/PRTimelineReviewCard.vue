@@ -33,7 +33,9 @@
             {{ item.author?.login }}
           </a>
           <span class="review-item__action">{{ stateAction }}</span>
-          <span v-if="item.dismissal" class="review-item__dismissed-note">dismissed</span>
+          <span v-if="item.dismissal" class="review-item__dismissed-note">
+            {{ t('prReview.timelineDismissedNote') }}
+          </span>
           <span class="review-item__time has-text-grey">
             {{ formatDurationFromNow(item.createdAt || '', localeCode) }}
           </span>
@@ -45,9 +47,9 @@
           <div class="review-item__dismissal-heading">
             <SlashIcon :size="14" :stroke-width="2.5" />
             <span>
-              Dismissed
+              {{ t('prReview.timelineDismissed') }}
               <template v-if="item.dismissal.actor?.login">
-                by
+                {{ t('prReview.timelineDismissedBy') }}
                 <a
                   :href="item.dismissal.actor.url"
                   target="_blank"
@@ -106,7 +108,7 @@
                   class="review-item__diff"
                   :filename="comment.path ?? group.path"
                   :lines="buildReviewCommentDiffLines(comment)"
-                  :aria-label="`${group.path} review diff`"
+                  :aria-label="t('prReview.reviewDiffLabel', { filename: group.path })"
                 />
                 <div class="review-item__comment-meta">
                   <RoundImg
@@ -150,11 +152,13 @@
                         class="review-item__suggestion"
                         :filename="comment.path ?? group.path"
                         :lines="buildSuggestionDiffLines(comment, part.value)"
-                        :aria-label="`${group.path} suggested change`"
+                        :aria-label="t('prReview.suggestedChangeLabel', { filename: group.path })"
                       />
                     </template>
                   </template>
-                  <p v-else class="has-text-grey is-size-7">No review comment body</p>
+                  <p v-else class="has-text-grey is-size-7">
+                    {{ t('prReview.noReviewCommentBody') }}
+                  </p>
                 </div>
               </div>
             </div>
@@ -254,17 +258,17 @@ const stateModifier = computed(() => {
 const stateAction = computed(() => {
   switch (props.item.state) {
     case 'approved':
-      return 'approved these changes';
+      return t('prReview.timelineApprovedChanges');
     case 'changes_requested':
-      return 'requested changes';
+      return t('prReview.timelineRequestedChanges');
     case 'commented':
-      return 'commented';
+      return t('prReview.timelineCommented');
     case 'dismissed':
-      return 'dismissed this review';
+      return t('prReview.timelineDismissedReview');
     case 'pending':
-      return 'started a review';
+      return t('prReview.timelineStartedReview');
     default:
-      return 'reviewed';
+      return t('prReview.timelineReviewed');
   }
 });
 
@@ -286,7 +290,7 @@ const stateIcon = computed(() => {
 
 const commentLineLabel = (comment: TimelineReviewComment) => {
   const line = comment.line ?? comment.originalLine ?? comment.position ?? comment.originalPosition;
-  return line ? `Line ${line}` : 'File';
+  return line ? t('prReview.lineLabel', { line }) : t('prReview.fileLabel');
 };
 
 const isFileExpanded = (path: string) => expandedFiles.value.has(path);
