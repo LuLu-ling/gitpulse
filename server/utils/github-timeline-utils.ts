@@ -218,8 +218,8 @@ export async function fetchTimelinePage<T>(
 
   const items = Array.isArray(response.data) ? (response.data as T[]) : [];
 
-  const linkHeader =
-    (response.headers && (response.headers.link ?? (response.headers as any).Link)) ?? '';
+  const headers = response.headers as Record<string, string | undefined> | undefined;
+  const linkHeader = (headers && (headers.link ?? headers.Link)) ?? '';
   const hasNextPageByLink = typeof linkHeader === 'string' && linkHeader.includes('rel="next"');
   const hasNextPage = hasNextPageByLink || items.length === perPage;
 
