@@ -133,7 +133,7 @@ const visibility = computed(() =>
 const repoBadges = computed(() => {
   const badges: { icon: RepoDetailIcon; label: string; tone: string }[] = [
     {
-      icon: props.repository.private ? GithubIcon : GithubIcon,
+      icon: GithubIcon,
       label: visibility.value,
       tone: props.repository.private ? 'muted' : 'neutral',
     },
