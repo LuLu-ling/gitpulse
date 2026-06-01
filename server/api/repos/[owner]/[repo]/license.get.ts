@@ -1,3 +1,5 @@
+import { hasGitHubErrorStatus } from '../../../../utils/github-auth-utils';
+
 export default defineEventHandler(async (event) => {
   try {
     const { owner, repo } = event.context.params as {
@@ -18,8 +20,8 @@ export default defineEventHandler(async (event) => {
       url: data.license?.url || null,
       htmlUrl: data.html_url,
     };
-  } catch (error: any) {
-    if (error.status === 404) {
+  } catch (error: unknown) {
+    if (hasGitHubErrorStatus(error, 404)) {
       return { name: null, key: null, spdxId: null, url: null, htmlUrl: null };
     }
     throwGitHubRouteError(error, 'Failed to fetch license');

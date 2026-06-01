@@ -1,5 +1,7 @@
 import { Buffer } from 'node:buffer';
 
+import { hasGitHubErrorStatus } from '../../../../utils/github-auth-utils';
+
 export default defineEventHandler(async (event) => {
   try {
     const { owner, repo } = event.context.params as {
@@ -22,8 +24,8 @@ export default defineEventHandler(async (event) => {
       size: data.size,
       encoding: data.encoding,
     };
-  } catch (error: any) {
-    if (error.status === 404) {
+  } catch (error: unknown) {
+    if (hasGitHubErrorStatus(error, 404)) {
       return { content: null, htmlUrl: null, name: null, size: 0 };
     }
     throwGitHubRouteError(error, 'Failed to fetch README');
