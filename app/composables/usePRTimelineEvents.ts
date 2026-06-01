@@ -227,26 +227,28 @@ export function parseGitHubIssueOrPullUrl(url?: string) {
   const issueMatch = url.match(/github\.com\/([^\/]+)\/([^\/]+)\/issues\/(\d+)/);
   if (issueMatch) {
     const [, owner, repo, number] = issueMatch;
-    if (!owner || !repo || !number) return null;
+    const parsedNumber = Number.parseInt(number ?? '', 10);
+    if (!owner || !repo || !Number.isFinite(parsedNumber) || parsedNumber < 1) return null;
 
     return {
       kind: 'issue' as const,
       owner,
       repo,
-      number: Number.parseInt(number, 10),
+      number: parsedNumber,
     };
   }
 
   const pullMatch = url.match(/github\.com\/([^\/]+)\/([^\/]+)\/pull\/(\d+)/);
   if (pullMatch) {
     const [, owner, repo, number] = pullMatch;
-    if (!owner || !repo || !number) return null;
+    const parsedNumber = Number.parseInt(number ?? '', 10);
+    if (!owner || !repo || !Number.isFinite(parsedNumber) || parsedNumber < 1) return null;
 
     return {
       kind: 'pull-request' as const,
       owner,
       repo,
-      number: Number.parseInt(number, 10),
+      number: parsedNumber,
     };
   }
 
