@@ -3,7 +3,7 @@
     <div class="sidebar-card__header">
       <div class="sidebar-card__header-left">
         <TagIcon :size="14" class="sidebar-card__icon" />
-        <span class="sidebar-card__title">Labels</span>
+        <span class="sidebar-card__title">{{ t('issueDetail.labels') }}</span>
       </div>
       <button
         @click="toggleLabelEditor"
@@ -29,7 +29,7 @@
           {{ label.name }}
         </span>
       </div>
-      <p v-else class="sidebar-card__empty">No labels</p>
+      <p v-else class="sidebar-card__empty">{{ t('issueDetail.noLabels') }}</p>
     </div>
 
     <Teleport to="body">
