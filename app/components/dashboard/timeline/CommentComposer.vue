@@ -110,6 +110,7 @@ import { useI18n } from 'vue-i18n';
 
 import MarkdownRenderer from '~/components/ui/MarkdownRenderer.vue';
 import RoundImg from '~/components/ui/RoundImg.vue';
+import getFetchErrorMessage from '~/utils/getFetchErrorMessage';
 
 interface CreatedCommentResponse {
   id?: number | string;
@@ -228,9 +229,8 @@ const submitComment = async () => {
     });
 
     resetComposer();
-  } catch (error: any) {
-    errorMessage.value =
-      error?.data?.statusMessage || error?.message || t('commentComposer.failed');
+  } catch (error: unknown) {
+    errorMessage.value = getFetchErrorMessage(error, t('commentComposer.failed'));
   } finally {
     isSubmitting.value = false;
   }

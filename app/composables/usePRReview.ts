@@ -1,5 +1,7 @@
 import { computed, ref, shallowRef, watch } from 'vue';
 
+import getFetchErrorMessage from '~/utils/getFetchErrorMessage';
+
 /** Temporary tree node used for computing the depth-first tree ordering. */
 interface SortTreeNode {
   name: string;
@@ -183,23 +185,6 @@ const defaultPagination = (): PRReviewPagination => ({
   totalCount: null,
   totalPages: null,
 });
-
-const getFetchErrorMessage = (error: unknown, fallback: string) => {
-  if (!error || typeof error !== 'object') {
-    return fallback;
-  }
-
-  const data = 'data' in error ? error.data : undefined;
-  const statusMessage =
-    data && typeof data === 'object' && 'statusMessage' in data ? data.statusMessage : undefined;
-
-  if (typeof statusMessage === 'string' && statusMessage) {
-    return statusMessage;
-  }
-
-  const message = 'message' in error ? error.message : undefined;
-  return typeof message === 'string' && message ? message : fallback;
-};
 
 const hunkHeaderPattern = /^@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@/;
 

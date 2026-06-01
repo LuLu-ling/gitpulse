@@ -98,6 +98,7 @@ import PRLabels from '~/components/dashboard/pr/PRLabels.vue';
 import PRReviewWorkspace from '~/components/dashboard/pr/PRReviewWorkspace.vue';
 import PRTimelineEvents from '~/components/dashboard/pr/PRTimelineEvents.vue';
 import type { PRTimelineItem } from '~/composables/usePRTimelineEvents';
+import getFetchErrorMessage from '~/utils/getFetchErrorMessage';
 import parseGitHubRepoPath from '~/utils/parseGitHubRepoPath';
 
 const props = defineProps<{
@@ -380,12 +381,11 @@ const fetchPullRequestDetails = async () => {
     if (requestId === detailRequestId.value && pullRequestIdentity === getPullRequestIdentity()) {
       currentPullRequest.value = { ...basePullRequest, ...data };
     }
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Error fetching PR details:', err);
     if (requestId === detailRequestId.value && pullRequestIdentity === getPullRequestIdentity()) {
       currentPullRequest.value = basePullRequest;
-      detailError.value =
-        err?.data?.statusMessage || err?.message || 'Failed to load pull request details.';
+      detailError.value = getFetchErrorMessage(err, 'Failed to load pull request details.');
     }
   }
 };
