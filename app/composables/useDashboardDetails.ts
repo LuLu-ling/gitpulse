@@ -133,13 +133,13 @@ export function useDashboardDetails(currentRouteTab: Ref<string>) {
     const rawValue = getQueryParamValue(route.query.repo);
     if (!rawValue) return null;
 
-    const segments = rawValue.split('/').filter(Boolean);
-    if (segments.length !== 2) return null;
+    const repoPath = parseGitHubRepoPath(rawValue);
+    if (!repoPath) return null;
 
-    const [owner, repo] = segments;
-    if (!owner || !repo) return null;
-
-    return { owner, repo };
+    return {
+      owner: repoPath.owner,
+      repo: repoPath.repo,
+    };
   });
 
   const issueDetailKey = computed(() => {
