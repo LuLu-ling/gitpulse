@@ -21,6 +21,14 @@ function createPersonalModeStartupError(): Error {
   });
 }
 
+function getGitHubErrorStatus(error: unknown): number | undefined {
+  if (!error || typeof error !== 'object' || !('status' in error)) {
+    return undefined;
+  }
+
+  return typeof error.status === 'number' ? error.status : undefined;
+}
+
 export default defineNitroPlugin(async (_nitroApp) => {
   if (import.meta.prerender) {
     return;
@@ -59,9 +67,9 @@ export default defineNitroPlugin(async (_nitroApp) => {
     await useStorage(PERSONAL_MODE_STORAGE_BASE).setItem(PERSONAL_MODE_IDENTITY_KEY, identity);
 
     console.info(`[auth] Personal mode token validated for @${identity.login}.`);
-  } catch (error: any) {
-    const statusSuffix =
-      typeof error?.status === 'number' ? ` (GitHub status ${error.status})` : '';
+  } catch (error: unknown) {
+    const status = getGitHubErrorStatus(error);
+    const statusSuffix = status === undefined ? '' : ` (GitHub status ${status})`;
 
     console.error(`[auth] Personal mode startup validation failed${statusSuffix}.`);
     throw createPersonalModeStartupError();
