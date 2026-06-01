@@ -50,8 +50,26 @@ import type { NotificationSubjectState } from '#shared/types/notifications';
 import getDashboardSubjectStateVisual from '~/utils/getDashboardSubjectStateVisual';
 import getTextColorFromBackground from '~/utils/getTextColorFromBackground';
 
+interface SearchItemLabel {
+  id: number | string;
+  name: string;
+  color: string;
+}
+
+interface SearchItemIssue {
+  title: string;
+  repository_url: string;
+  number: number;
+  updated_at: string;
+  type?: { name?: string };
+  labels: SearchItemLabel[];
+  merged_at?: string | null;
+  state?: NotificationSubjectState;
+  pull_request?: unknown;
+}
+
 const props = defineProps<{
-  issue: any;
+  issue: SearchItemIssue;
 }>();
 
 const { locale } = useI18n();
