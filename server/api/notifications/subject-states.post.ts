@@ -78,19 +78,36 @@ const buildSubjectStatesQuery = (targets: NotificationSubjectStateTarget[]) => {
   };
 };
 
-const getSubjectTargetsBodyValue = (body: unknown) => {
+const normalizeSubjectTargetsBody = (body: unknown) => {
   if (!body || typeof body !== 'object' || Array.isArray(body)) {
-    return undefined;
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'Invalid notification subject state request body',
+    });
   }
 
-  return (body as { targets?: unknown }).targets;
+  const targets = (body as { targets?: unknown }).targets;
+
+  if (!Array.isArray(targets)) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'Invalid notification subject state request body',
+    });
+  }
+
+  const normalizedTargets = targets.slice(0, maxTargets);
+  if (!normalizedTargets.every(isSubjectTarget)) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'Invalid notification subject state request body',
+    });
+  }
+
+  return normalizedTargets;
 };
 
 export default defineEventHandler(async (event) => {
-  const bodyTargets = getSubjectTargetsBodyValue(await readBody(event));
-  const targets = Array.isArray(bodyTargets)
-    ? bodyTargets.filter(isSubjectTarget).slice(0, maxTargets)
-    : [];
+  const targets = normalizeSubjectTargetsBody(await readBody(event));
 
   if (targets.length === 0) {
     return { items: [] satisfies NotificationSubjectStateResult[] };
