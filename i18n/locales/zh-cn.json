@@ -384,6 +384,7 @@
     "filesCount": "{count} 个文件",
     "commitFallbackTitle": "提交",
     "unknownAuthor": "未知",
+    "unknownReviewAuthor": "未知作者",
     "committedAt": "于 {time} 提交",
     "commitFallbackRef": "提交",
     "loadMoreFiles": "加载更多文件",

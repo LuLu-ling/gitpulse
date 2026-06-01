@@ -366,7 +366,7 @@ onBeforeUnmount(() => {
                                 {{ comment.author.login }}
                               </a>
                               <strong v-else>{{
-                                comment.author?.login || 'Unknown author'
+                                comment.author?.login || t('prReview.unknownReviewAuthor')
                               }}</strong>
                               <a
                                 v-if="comment.url"
