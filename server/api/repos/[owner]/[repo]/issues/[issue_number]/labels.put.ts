@@ -17,8 +17,14 @@ function parseIssueNumber(value: string) {
 }
 
 function normalizeLabelsBody(body: unknown) {
-  const requestBody =
-    body && typeof body === 'object' && !Array.isArray(body) ? (body as LabelsRequestBody) : {};
+  if (!body || typeof body !== 'object' || Array.isArray(body) || !('labels' in body)) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'Invalid labels request body',
+    });
+  }
+
+  const requestBody = body as LabelsRequestBody;
   const rawLabels = Array.isArray(requestBody.labels)
     ? requestBody.labels
     : requestBody.labels
