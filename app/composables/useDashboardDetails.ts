@@ -134,10 +134,9 @@ export function useDashboardDetails(currentRouteTab: Ref<string>) {
     if (!rawValue) return null;
 
     const segments = rawValue.split('/').filter(Boolean);
-    if (segments.length < 2) return null;
+    if (segments.length !== 2) return null;
 
-    const repo = segments[segments.length - 1];
-    const owner = segments.slice(0, -1).join('/');
+    const [owner, repo] = segments;
     if (!owner || !repo) return null;
 
     return { owner, repo };
