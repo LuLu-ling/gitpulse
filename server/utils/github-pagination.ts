@@ -26,7 +26,7 @@ export function parsePaginationNumber(value: unknown, fallback: number, max?: nu
 
   const parsedValue = Number.parseInt(rawValue, 10);
 
-  if (!Number.isFinite(parsedValue) || parsedValue < 1) {
+  if (!Number.isSafeInteger(parsedValue) || parsedValue < 1) {
     return fallback;
   }
 
