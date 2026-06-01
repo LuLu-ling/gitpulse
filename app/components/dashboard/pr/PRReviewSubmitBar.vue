@@ -8,7 +8,7 @@ import {
   Trash2Icon,
   XCircleIcon,
 } from 'lucide-vue-next';
-import { computed, shallowRef } from 'vue';
+import { shallowRef } from 'vue';
 
 import type { PRReviewDraftComment, PRReviewEvent } from '~/composables/usePRReview';
 
@@ -40,10 +40,6 @@ const reviewEvents: { value: PRReviewEvent; labelKey: string; icon: typeof Messa
   { value: 'APPROVE', labelKey: 'prReview.eventApprove', icon: CheckCircle2Icon },
   { value: 'REQUEST_CHANGES', labelKey: 'prReview.eventRequestChanges', icon: XCircleIcon },
 ];
-
-const submitClass = computed(() => ({
-  'pr-review-submit-bar__submit--approve': false,
-}));
 
 const isSectionExpanded = (section: string) => expandedSections.value.has(section);
 
@@ -229,7 +225,7 @@ const handleBodyInput = (event: Event) => {
         <button
           class="button is-link is-fullwidth"
           type="button"
-          :class="[{ 'is-loading': submitting }, submitClass]"
+          :class="{ 'is-loading': submitting }"
           :disabled="!canSubmit || submitting"
           @click="emit('submit')"
         >
@@ -489,10 +485,5 @@ const handleBodyInput = (event: Event) => {
 .pr-review-submit-bar__empty {
   color: var(--gitpulse-text-muted);
   font-size: 0.78rem;
-}
-
-.pr-review-submit-bar__submit--approve {
-  background: var(--gitpulse-success);
-  border-color: var(--gitpulse-success);
 }
 </style>
