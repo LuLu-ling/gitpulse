@@ -1,3 +1,7 @@
+import parseGitHubMarkdownTarget, {
+  type GitHubMarkdownTarget,
+} from '~/utils/parseGitHubMarkdownTarget';
+
 interface NotificationSubject {
   type?: string;
   url?: string;
@@ -17,55 +21,59 @@ interface NotificationDetails {
   isPR: boolean;
 }
 
+function isIssueOrPullSubject(notification: NotificationLike) {
+  return notification.subject?.type === 'Issue' || notification.subject?.type === 'PullRequest';
+}
+
+function isSubjectTypeForTarget(
+  subjectType: string | undefined,
+  targetType: GitHubMarkdownTarget['type']
+) {
+  return (
+    (subjectType === 'Issue' && targetType === 'issue') ||
+    (subjectType === 'PullRequest' && targetType === 'pull-request')
+  );
+}
+
+function getNotificationDetailType(targetType: GitHubMarkdownTarget['type']) {
+  return targetType === 'issue' ? 'issues' : 'pulls';
+}
+
 export function useUrlHelper() {
   const getNotificationDetails = (notification: NotificationLike): NotificationDetails | null => {
-    if (notification.subject?.type === 'Issue' || notification.subject?.type === 'PullRequest') {
-      const url = notification.subject.url;
-      if (!url) return null;
+    if (isIssueOrPullSubject(notification)) {
+      const target = parseGitHubMarkdownTarget(notification.subject?.url);
+      if (!target || !isSubjectTypeForTarget(notification.subject?.type, target.type)) return null;
 
-      const match = url.match(/repos\/([^\/]+)\/([^\/]+)\/(issues|pulls)\/(\d+)/);
-      if (match) {
-        const [, owner, repo, type, number] = match;
-        const parsedNumber = Number.parseInt(number ?? '', 10);
-        if (
-          !owner ||
-          !repo ||
-          !Number.isSafeInteger(parsedNumber) ||
-          parsedNumber < 1 ||
-          (type !== 'issues' && type !== 'pulls')
-        ) {
-          return null;
-        }
+      const type = getNotificationDetailType(target.type);
 
-        return {
-          owner,
-          repo,
-          type,
-          number: parsedNumber,
-          isIssue: type === 'issues',
-          isPR: type === 'pulls',
-        };
-      }
+      return {
+        owner: target.owner,
+        repo: target.repo,
+        type,
+        number: target.number,
+        isIssue: type === 'issues',
+        isPR: type === 'pulls',
+      };
     }
+
     return null;
   };
 
   const openExternalNotification = (notification: NotificationLike) => {
-    if (notification.subject?.type === 'Issue' || notification.subject?.type === 'PullRequest') {
-      const url = notification.subject.url;
-      if (!url) return;
+    if (isIssueOrPullSubject(notification)) {
+      const details = getNotificationDetails(notification);
+      if (!details) return;
 
-      const match = url.match(/repos\/([^\/]+)\/([^\/]+)\/(issues|pulls)\/(\d+)/);
-      if (match) {
-        const [, owner, repo, type, number] = match;
-        const parsedNumber = Number.parseInt(number ?? '', 10);
-        if (!owner || !repo || !Number.isSafeInteger(parsedNumber) || parsedNumber < 1) {
-          return;
-        }
+      window.open(
+        `https://github.com/${details.owner}/${details.repo}/${details.type}/${details.number}`,
+        '_blank',
+        'noopener'
+      );
+      return;
+    }
 
-        window.open(`https://github.com/${owner}/${repo}/${type}/${number}`, '_blank', 'noopener');
-      }
-    } else if (notification.html_url) {
+    if (notification.html_url) {
       window.open(notification.html_url, '_blank', 'noopener');
     }
   };

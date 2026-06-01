@@ -1,4 +1,4 @@
-interface GitHubMarkdownTarget {
+export interface GitHubMarkdownTarget {
   owner: string;
   repo: string;
   number: number;

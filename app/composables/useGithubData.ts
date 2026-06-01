@@ -8,6 +8,9 @@ import type {
 import { appendCustomTabQueryParams } from '#shared/utils/github-search-query';
 import type { CustomTabQuery, CustomTabSource } from '~/composables/useCustomTabs';
 import type { DashboardTab } from '~/composables/useDashboardTabs';
+import parseGitHubMarkdownTarget, {
+  type GitHubMarkdownTarget,
+} from '~/utils/parseGitHubMarkdownTarget';
 
 interface DashboardEntity {
   id: PropertyKey;
@@ -86,35 +89,39 @@ const buildPaginationUrl = (path: string, page: number, perPage = defaultPerPage
   return `${path}?${searchParams.toString()}`;
 };
 
+const isSubjectTypeForTarget = (
+  subjectType: string | undefined,
+  targetType: GitHubMarkdownTarget['type']
+) => {
+  return (
+    (subjectType === 'Issue' && targetType === 'issue') ||
+    (subjectType === 'PullRequest' && targetType === 'pull-request')
+  );
+};
+
+const getSubjectStateType = (
+  targetType: GitHubMarkdownTarget['type']
+): NotificationSubjectStateTarget['type'] => {
+  return targetType === 'issue' ? 'issues' : 'pulls';
+};
+
 const parseNotificationSubjectTarget = (
   notification: DashboardNotification
 ): NotificationSubjectStateTarget | null => {
   const subjectType = notification.subject?.type;
   if (subjectType !== 'Issue' && subjectType !== 'PullRequest') return null;
 
-  const url = notification.subject?.url;
-  if (!url) return null;
+  const target = parseGitHubMarkdownTarget(notification.subject?.url);
+  if (!target || !isSubjectTypeForTarget(subjectType, target.type)) return null;
 
-  const match = url.match(/repos\/([^/]+)\/([^/]+)\/(issues|pulls)\/(\d+)/);
-  if (!match) return null;
-
-  const [, owner, repo, type, number] = match;
-  const parsedNumber = Number.parseInt(number ?? '', 10);
-  if (
-    !owner ||
-    !repo ||
-    !Number.isSafeInteger(parsedNumber) ||
-    parsedNumber < 1 ||
-    (type !== 'issues' && type !== 'pulls')
-  )
-    return null;
+  const type = getSubjectStateType(target.type);
 
   return {
-    key: `${owner}/${repo}/${type}/${parsedNumber}`,
-    owner,
-    repo,
+    key: `${target.owner}/${target.repo}/${type}/${target.number}`,
+    owner: target.owner,
+    repo: target.repo,
     type,
-    number: parsedNumber,
+    number: target.number,
   };
 };
 
