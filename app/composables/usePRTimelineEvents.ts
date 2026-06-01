@@ -215,7 +215,10 @@ export function usePRTimelineEvents(timeline: MaybeRefOrGetter<PRTimelineItem[]>
 export function parseRepoFullName(repoFullName?: string): { owner: string; repo: string } | null {
   if (!repoFullName) return null;
 
-  const [owner, repo] = repoFullName.split('/');
+  const segments = repoFullName.split('/');
+  if (segments.length !== 2) return null;
+
+  const [owner, repo] = segments;
   if (!owner || !repo) return null;
 
   return { owner, repo };
