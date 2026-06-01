@@ -6,6 +6,10 @@ import {
 import { assertCsrfToken } from '../../utils/csrf-utils';
 import { createGitHubClient } from '../../utils/github-auth-utils';
 
+function isGitHubUnauthorizedError(error: unknown): boolean {
+  return !!error && typeof error === 'object' && 'status' in error && error.status === 401;
+}
+
 export default defineEventHandler(async (event) => {
   assertCsrfToken(event, '/auth/pat');
 
@@ -51,8 +55,8 @@ export default defineEventHandler(async (event) => {
         avatar_url: user.avatar_url ?? '',
       },
     };
-  } catch (error: any) {
-    const isUnauthorized = error?.status === 401;
+  } catch (error: unknown) {
+    const isUnauthorized = isGitHubUnauthorizedError(error);
     console.error(`[auth] Token validation failed: ${isUnauthorized ? 'unauthorized' : 'error'}`);
 
     throw createError({
