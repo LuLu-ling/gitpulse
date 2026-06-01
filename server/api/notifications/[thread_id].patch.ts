@@ -1,8 +1,8 @@
 export default defineEventHandler(async (event) => {
   const threadIdParam = getRouterParam(event, 'thread_id') ?? '';
-  const threadId = /^\d+$/.test(threadIdParam) ? Number.parseInt(threadIdParam, 10) : 0;
+  const threadId = parsePaginationNumber(threadIdParam, 0);
 
-  if (!Number.isSafeInteger(threadId) || threadId < 1) {
+  if (threadId < 1) {
     throw createError({
       statusCode: 400,
       statusMessage: 'Invalid notification thread id',
