@@ -13,7 +13,7 @@ import {
   StarIcon,
   XIcon,
 } from 'lucide-vue-next';
-import { computed, onMounted, ref, watch } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 
 import { formatDurationFromNow } from '#imports';
 import MarkdownRenderer from '~/components/ui/MarkdownRenderer.vue';
@@ -153,8 +153,6 @@ const watchStateLabel = computed(() => {
   if (watchState.value === 'ignore') return copy.value.notWatching;
   return copy.value.watchNone;
 });
-
-const watchStateIcon = computed(() => EyeIcon);
 
 const aboutItems = computed(() => {
   const items: { label: string; value: string; href?: string; icon: any }[] = [];
