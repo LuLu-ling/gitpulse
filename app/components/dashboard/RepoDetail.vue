@@ -1,16 +1,22 @@
 <script setup lang="ts">
 import {
   ArchiveIcon,
-  CircleDotIcon,
+  BookmarkIcon,
+  EyeIcon,
   ExternalLinkIcon,
+  FileTextIcon,
+  GlobeIcon,
   GitForkIcon,
   GithubIcon,
   InfoIcon,
-  LockIcon,
+  Loader2Icon,
+  StarIcon,
+  XIcon,
 } from 'lucide-vue-next';
-import { computed } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 
 import { formatDurationFromNow } from '#imports';
+import MarkdownRenderer from '~/components/ui/MarkdownRenderer.vue';
 
 const props = defineProps<{
   repository: any;
@@ -18,72 +24,118 @@ const props = defineProps<{
   repo: string;
 }>();
 
-const { locale } = useI18n();
+const emit = defineEmits<{
+  back: [];
+  home: [];
+}>();
 
+const { locale } = useI18n();
+const apiFetch = useGitPulseApiFetch();
+
+// ---- i18n ----
 const copy = computed(() => {
   if (locale.value.startsWith('zh')) {
     return {
-      archived: '\u5df2\u5f52\u6863',
-      branch: '\u9ed8\u8ba4\u5206\u652f',
-      created: '\u521b\u5efa',
-      details: '\u8be6\u60c5',
-      fork: '\u6d3e\u751f',
-      forks: '\u5206\u53c9',
-      issues: '\u5f00\u653e\u95ee\u9898',
-      language: '\u8bed\u8a00',
-      noDescription: '\u8fd9\u4e2a\u4ed3\u5e93\u6682\u65e0\u63cf\u8ff0',
-      openGitHub: '\u5728 GitHub \u67e5\u770b',
-      owner: '\u6240\u6709\u8005',
-      private: '\u79c1\u6709',
-      public: '\u516c\u5f00',
-      pushed: '\u6700\u8fd1\u63a8\u9001',
-      repository: '\u4ed3\u5e93',
-      stats: '\u7edf\u8ba1',
-      stars: 'Stars',
-      updated: '\u66f4\u65b0',
-      visibility: '\u53ef\u89c1\u6027',
-      watchers: '\u5173\u6ce8',
+      about: '关于',
+      archived: '已归档',
+      branch: '默认分支',
+      created: '创建',
+      fork: '衍生',
+      forks: '分叉',
+      homepage: '主页',
+      issues: '开放问题',
+      language: '语言',
+      license: '许可证',
+      noDescription: '这个仓库暂无描述',
+      notWatching: '不关注',
+      openGitHub: '在 GitHub 查看',
+      private: '私有',
+      public: '公开',
+      pushed: '最近推送',
+      readme: 'README',
+      repository: '仓库',
+      source: '链接',
+      star: 'Star',
+      starCount: 'Stars',
+      starred: '已 Star',
+      stats: '统计',
+      unstar: 'Unstar',
+      updated: '更新',
+      watchAll: '关注所有',
+      watchIgnore: '忽略',
+      watchNone: '仅被@时',
+      watching: '关注',
     };
   }
 
   return {
+    about: 'About',
     archived: 'Archived',
     branch: 'Default branch',
     created: 'Created',
-    details: 'Details',
     fork: 'Fork',
     forks: 'Forks',
+    homepage: 'Homepage',
     issues: 'Open issues',
     language: 'Language',
+    license: 'License',
     noDescription: 'No description provided',
+    notWatching: 'Ignore',
     openGitHub: 'View on GitHub',
-    owner: 'Owner',
     private: 'Private',
     public: 'Public',
     pushed: 'Pushed',
+    readme: 'README',
     repository: 'Repository',
+    source: 'Links',
+    star: 'Star',
+    starCount: 'Stars',
+    starred: 'Starred',
     stats: 'Stats',
-    stars: 'Stars',
+    unstar: 'Unstar',
     updated: 'Updated',
-    visibility: 'Visibility',
-    watchers: 'Watchers',
+    watchAll: 'All',
+    watchIgnore: 'Ignore',
+    watchNone: 'Default',
+    watching: 'Watching',
   };
 });
 
 const localeCode = computed(() => locale.value);
 
-const languageColor = computed(() => {
-  return getLanguageColor(props.repository.language);
-});
+// ---- Star state ----
+const isStarred = ref(false);
+const loadingStar = ref(false);
+const starCount = ref(props.repository.stargazers_count ?? 0);
+
+// ---- Watch state ----
+type WatchState = 'all' | 'default' | 'ignore' | null;
+const watchState = ref<WatchState>(null);
+const loadingWatch = ref(false);
+const showWatchDropdown = ref(false);
+const watchCount = ref(props.repository.watchers_count ?? 0);
+
+// ---- README ----
+const readmeContent = ref<string | null>(null);
+const loadingReadme = ref(false);
+
+// ---- LICENSE ----
+const licenseInfo = ref<{ name: string | null; spdxId: string | null; url: string | null } | null>(
+  null
+);
+const loadingLicense = ref(false);
+
+// ---- Computed ----
+const languageColor = computed(() => getLanguageColor(props.repository.language));
 
 const visibility = computed(() =>
   props.repository.private ? copy.value.private : copy.value.public
 );
 
 const repoBadges = computed(() => {
-  const badges = [
+  const badges: { icon: any; label: string; tone: string }[] = [
     {
-      icon: LockIcon,
+      icon: props.repository.private ? GithubIcon : GithubIcon,
       label: visibility.value,
       tone: props.repository.private ? 'muted' : 'neutral',
     },
@@ -100,55 +152,292 @@ const repoBadges = computed(() => {
   return badges;
 });
 
-const stats = computed(() => [
-  { label: copy.value.stars, value: props.repository.stargazers_count ?? 0 },
-  { label: copy.value.forks, value: props.repository.forks_count ?? 0 },
-  { label: copy.value.watchers, value: props.repository.watchers_count ?? 0 },
-  { label: copy.value.issues, value: props.repository.open_issues_count ?? 0 },
-]);
+const watchStateLabel = computed(() => {
+  if (watchState.value === 'all') return copy.value.watching;
+  if (watchState.value === 'ignore') return copy.value.notWatching;
+  return copy.value.watchNone;
+});
 
-const details = computed(() => [
-  {
-    label: copy.value.created,
-    value: formatDate(props.repository.created_at),
-  },
-  {
-    label: copy.value.updated,
-    value: formatDate(props.repository.updated_at),
-  },
-  {
-    label: copy.value.pushed,
-    value: formatDate(props.repository.pushed_at),
-  },
-  {
+const watchStateIcon = computed(() => EyeIcon);
+
+const aboutItems = computed(() => {
+  const items: { label: string; value: string; href?: string; icon: any }[] = [];
+
+  if (props.repository.homepage) {
+    const url = props.repository.homepage.startsWith('http')
+      ? props.repository.homepage
+      : `https://${props.repository.homepage}`;
+    items.push({
+      label: copy.value.homepage,
+      value: props.repository.homepage,
+      href: url,
+      icon: GlobeIcon,
+    });
+  }
+
+  if (licenseInfo.value?.name) {
+    items.push({
+      label: copy.value.license,
+      value: licenseInfo.value.name,
+      href: licenseInfo.value.url || undefined,
+      icon: FileTextIcon,
+    });
+  }
+
+  items.push({
     label: copy.value.branch,
     value: props.repository.default_branch || '-',
-  },
-  {
-    label: copy.value.owner,
-    value: props.repository.owner?.login || '-',
-  },
+    icon: GitForkIcon,
+  });
+
+  items.push({
+    label: copy.value.created,
+    value: formatDate(props.repository.created_at),
+    icon: BookmarkIcon,
+  });
+
+  items.push({
+    label: copy.value.updated,
+    value: formatDate(props.repository.updated_at),
+    icon: BookmarkIcon,
+  });
+
+  return items;
+});
+
+const stats = computed(() => [
+  { label: copy.value.starCount, value: starCount.value, icon: StarIcon },
+  { label: copy.value.watchers, value: watchCount.value, icon: EyeIcon },
+  { label: copy.value.forks, value: props.repository.forks_count ?? 0, icon: GitForkIcon },
+  { label: copy.value.issues, value: props.repository.open_issues_count ?? 0, icon: InfoIcon },
 ]);
 
+// ---- Methods ----
 const formatDate = (value?: string | null) => {
   if (!value) return '-';
   return formatDurationFromNow(value, localeCode.value);
 };
+
+const toggleStar = async () => {
+  if (loadingStar.value) return;
+  loadingStar.value = true;
+
+  const previousState = isStarred.value;
+  const previousCount = starCount.value;
+
+  try {
+    if (isStarred.value) {
+      isStarred.value = false;
+      starCount.value = Math.max(0, starCount.value - 1);
+      await apiFetch(`/api/repos/${props.owner}/${props.repo}/star`, { method: 'DELETE' });
+    } else {
+      isStarred.value = true;
+      starCount.value = starCount.value + 1;
+      await apiFetch(`/api/repos/${props.owner}/${props.repo}/star`, { method: 'PUT' });
+    }
+  } catch {
+    isStarred.value = previousState;
+    starCount.value = previousCount;
+  } finally {
+    loadingStar.value = false;
+  }
+};
+
+const setWatchState = async (state: WatchState) => {
+  if (loadingWatch.value) return;
+  loadingWatch.value = true;
+  showWatchDropdown.value = false;
+
+  const previousState = watchState.value;
+
+  try {
+    if (state === null) {
+      await apiFetch(`/api/repos/${props.owner}/${props.repo}/subscription`, { method: 'DELETE' });
+      watchState.value = null;
+      watchCount.value = Math.max(0, watchCount.value - 1);
+    } else {
+      await apiFetch(`/api/repos/${props.owner}/${props.repo}/subscription`, {
+        method: 'PUT',
+        body: { subscribed: state === 'all', ignored: state === 'ignore' },
+      });
+      const wasWatching = previousState === 'all';
+      watchState.value = state;
+      if (state === 'all' && !wasWatching) {
+        watchCount.value = watchCount.value + 1;
+      } else if (state !== 'all' && wasWatching) {
+        watchCount.value = Math.max(0, watchCount.value - 1);
+      }
+    }
+  } catch {
+    watchState.value = previousState;
+  } finally {
+    loadingWatch.value = false;
+  }
+};
+
+const toggleWatchDropdown = () => {
+  showWatchDropdown.value = !showWatchDropdown.value;
+};
+
+const closeWatchDropdown = () => {
+  showWatchDropdown.value = false;
+};
+
+const fetchStarState = async () => {
+  try {
+    const data = await apiFetch<{ starred: boolean }>(
+      `/api/repos/${props.owner}/${props.repo}/star`
+    );
+    isStarred.value = data.starred;
+  } catch {
+    // Silently fail - default to unstarred
+  }
+};
+
+const fetchWatchState = async () => {
+  try {
+    const data = await apiFetch<{ subscribed: boolean; ignored: boolean }>(
+      `/api/repos/${props.owner}/${props.repo}/subscription`
+    );
+    if (data.subscribed) {
+      watchState.value = 'all';
+    } else if (data.ignored) {
+      watchState.value = 'ignore';
+    } else {
+      watchState.value = 'default';
+    }
+  } catch {
+    watchState.value = 'default';
+  }
+};
+
+const fetchReadme = async () => {
+  loadingReadme.value = true;
+  try {
+    const data = await apiFetch<{ content: string | null }>(
+      `/api/repos/${props.owner}/${props.repo}/readme`
+    );
+    readmeContent.value = data.content;
+  } catch {
+    readmeContent.value = null;
+  } finally {
+    loadingReadme.value = false;
+  }
+};
+
+const fetchLicense = async () => {
+  loadingLicense.value = true;
+  try {
+    const data = await apiFetch<{ name: string | null; spdxId: string | null; url: string | null }>(
+      `/api/repos/${props.owner}/${props.repo}/license`
+    );
+    licenseInfo.value = data;
+  } catch {
+    licenseInfo.value = null;
+  } finally {
+    loadingLicense.value = false;
+  }
+};
+
+// ---- Lifecycle ----
+onMounted(() => {
+  fetchStarState();
+  fetchWatchState();
+  fetchReadme();
+  fetchLicense();
+});
+
+// Close dropdown on outside click
+if (import.meta.client) {
+  const handleClickOutside = (e: MouseEvent) => {
+    const target = e.target as HTMLElement;
+    if (!target.closest('.watch-dropdown-wrapper')) {
+      closeWatchDropdown();
+    }
+  };
+  onMounted(() => document.addEventListener('click', handleClickOutside));
+  onUnmounted(() => document.removeEventListener('click', handleClickOutside));
+}
 </script>
 
 <template>
   <div class="repo-detail-layout">
     <div class="columns">
+      <!-- Main content (3/4) -->
       <div class="column is-three-quarters">
         <section class="repo-detail-header">
+          <!-- Title row with star/watch buttons -->
           <div class="repo-detail-header__title-row">
             <GithubIcon :size="28" class="repo-detail-header__icon" />
             <h1 class="title is-3 repo-detail-header__title">{{ repository.name }}</h1>
+            <div class="repo-detail-header__actions">
+              <!-- Star button -->
+              <button
+                class="repo-action-btn"
+                :class="{ 'repo-action-btn--active': isStarred }"
+                :disabled="loadingStar"
+                @click="toggleStar"
+              >
+                <Loader2Icon v-if="loadingStar" :size="14" class="spin-animation" />
+                <StarIcon v-else :size="14" :fill="isStarred ? 'currentColor' : 'none'" />
+                <span>{{ isStarred ? copy.starred : copy.star }}</span>
+              </button>
+
+              <!-- Watch dropdown -->
+              <div class="watch-dropdown-wrapper">
+                <button
+                  class="repo-action-btn"
+                  :class="{ 'repo-action-btn--active': watchState === 'all' }"
+                  :disabled="loadingWatch"
+                  @click.stop="toggleWatchDropdown"
+                >
+                  <Loader2Icon v-if="loadingWatch" :size="14" class="spin-animation" />
+                  <EyeIcon v-else :size="14" />
+                  <span>{{ watchStateLabel }}</span>
+                </button>
+                <div v-if="showWatchDropdown" class="watch-dropdown">
+                  <button
+                    class="watch-dropdown__item"
+                    :class="{ 'watch-dropdown__item--active': watchState === 'all' }"
+                    @click="setWatchState('all')"
+                  >
+                    <EyeIcon :size="14" />
+                    <div class="watch-dropdown__item-content">
+                      <span class="watch-dropdown__item-label">{{ copy.watchAll }}</span>
+                      <span class="watch-dropdown__item-desc">Receive all notifications</span>
+                    </div>
+                  </button>
+                  <button
+                    class="watch-dropdown__item"
+                    :class="{ 'watch-dropdown__item--active': watchState === 'default' }"
+                    @click="setWatchState('default')"
+                  >
+                    <EyeIcon :size="14" />
+                    <div class="watch-dropdown__item-content">
+                      <span class="watch-dropdown__item-label">{{ copy.watchNone }}</span>
+                      <span class="watch-dropdown__item-desc">Only @mentions</span>
+                    </div>
+                  </button>
+                  <button
+                    class="watch-dropdown__item"
+                    :class="{ 'watch-dropdown__item--active': watchState === 'ignore' }"
+                    @click="setWatchState('ignore')"
+                  >
+                    <XIcon :size="14" />
+                    <div class="watch-dropdown__item-content">
+                      <span class="watch-dropdown__item-label">{{ copy.watchIgnore }}</span>
+                      <span class="watch-dropdown__item-desc">Receive no notifications</span>
+                    </div>
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
 
+          <!-- Meta row -->
           <div class="repo-detail-header__meta">
             <span class="tag mr-2 repo-detail-header__type">{{ copy.repository }}</span>
-            <span class="subtitle mb-0 is-6 has-text-weight-medium"> {{ owner }}/{{ repo }} </span>
+            <span class="subtitle mb-0 is-6 has-text-weight-medium">{{ owner }}/{{ repo }}</span>
             <span
               v-if="repository.language"
               class="tag is-link is-light ml-3 repo-detail-header__language"
@@ -169,40 +458,63 @@ const formatDate = (value?: string | null) => {
             </span>
           </div>
 
+          <!-- Description -->
+          <div v-if="repository.description" class="repo-detail-description mb-4">
+            <p class="repo-detail-description__body">
+              {{ repository.description }}
+            </p>
+          </div>
+
+          <!-- About section -->
+          <div class="repo-about mb-4">
+            <div class="repo-about__grid">
+              <div v-for="item in aboutItems" :key="item.label" class="repo-about__item">
+                <component :is="item.icon" :size="14" class="repo-about__item-icon" />
+                <span class="repo-about__item-label">{{ item.label }}:</span>
+                <a
+                  v-if="item.href"
+                  :href="item.href"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="repo-about__item-value repo-about__item-value--link"
+                >
+                  {{ item.value }}
+                  <ExternalLinkIcon :size="10" />
+                </a>
+                <span v-else class="repo-about__item-value">{{ item.value }}</span>
+              </div>
+            </div>
+          </div>
+
           <hr class="mr-4" />
 
-          <div class="repo-detail-description">
-            <p class="repo-detail-description__eyebrow">{{ owner }}/{{ repo }}</p>
-            <p class="repo-detail-description__body">
-              {{ repository.description || copy.noDescription }}
-            </p>
+          <!-- README Section -->
+          <div class="repo-readme">
+            <h2 class="title is-5 repo-readme__title">
+              <BookmarkIcon :size="18" />
+              <span>{{ copy.readme }}</span>
+            </h2>
+            <div v-if="loadingReadme" class="repo-readme__loading">
+              <Loader2Icon :size="20" class="spin-animation" />
+            </div>
+            <div v-else-if="readmeContent" class="repo-readme__content content">
+              <MarkdownRenderer :value="readmeContent" :repo-owner="owner" :repo-name="repo" />
+            </div>
+            <div v-else class="repo-readme__empty">
+              {{ copy.noDescription }}
+            </div>
           </div>
         </section>
       </div>
 
+      <!-- Sidebar (1/4) -->
       <div class="column is-one-quarter detail-sidebar-column">
         <div class="sidebar-scroll">
+          <!-- Stats card -->
           <div class="sidebar-card mb-4">
             <div class="sidebar-card__header">
               <div class="sidebar-card__header-left">
-                <InfoIcon :size="14" class="sidebar-card__icon" />
-                <span class="sidebar-card__title">{{ copy.details }}</span>
-              </div>
-            </div>
-            <div class="sidebar-card__content">
-              <div class="info-list">
-                <div v-for="item in details" :key="item.label" class="info-item">
-                  <span class="info-item__label">{{ item.label }}</span>
-                  <span class="info-item__value">{{ item.value }}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="sidebar-card mb-4">
-            <div class="sidebar-card__header">
-              <div class="sidebar-card__header-left">
-                <CircleDotIcon :size="14" class="sidebar-card__icon" />
+                <StarIcon :size="14" class="sidebar-card__icon" />
                 <span class="sidebar-card__title">{{ copy.stats }}</span>
               </div>
             </div>
@@ -216,7 +528,14 @@ const formatDate = (value?: string | null) => {
             </div>
           </div>
 
+          <!-- GitHub link -->
           <div class="sidebar-card">
+            <div class="sidebar-card__header">
+              <div class="sidebar-card__header-left">
+                <ExternalLinkIcon :size="14" class="sidebar-card__icon" />
+                <span class="sidebar-card__title">{{ copy.source }}</span>
+              </div>
+            </div>
             <div class="sidebar-card__content">
               <a
                 :href="repository.html_url"
@@ -275,7 +594,7 @@ const formatDate = (value?: string | null) => {
   display: flex;
   align-items: center;
   gap: 1rem;
-  margin-bottom: 1.4rem;
+  margin-bottom: 1rem;
 }
 
 .repo-detail-header__icon {
@@ -289,12 +608,119 @@ const formatDate = (value?: string | null) => {
   letter-spacing: 0;
 }
 
+.repo-detail-header__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+.repo-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid var(--gitpulse-border);
+  border-radius: 6px;
+  background: var(--gitpulse-surface);
+  color: var(--gitpulse-text-muted);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.12s ease;
+
+  &:hover:not(:disabled) {
+    background: var(--gitpulse-surface-hover);
+    border-color: var(--gitpulse-border-strong);
+    color: var(--bulma-text-strong, var(--gitpulse-text-strong));
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  &--active {
+    background: var(--gitpulse-surface-active);
+    border-color: var(--gitpulse-accent);
+    color: var(--gitpulse-accent);
+
+    &:hover:not(:disabled) {
+      background: var(--gitpulse-surface-active);
+    }
+  }
+}
+
+.watch-dropdown-wrapper {
+  position: relative;
+}
+
+.watch-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  z-index: 100;
+  min-width: 200px;
+  margin-top: 4px;
+  border: 1px solid var(--gitpulse-border);
+  border-radius: 8px;
+  background: var(--gitpulse-surface);
+  box-shadow: var(--gitpulse-shadow-raised);
+}
+
+.watch-dropdown__item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border: none;
+  background: transparent;
+  color: var(--gitpulse-text-muted);
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.1s ease;
+
+  &:hover {
+    background: var(--gitpulse-surface-hover);
+  }
+
+  &--active {
+    background: var(--gitpulse-surface-active);
+    color: var(--gitpulse-accent);
+  }
+
+  &:first-child {
+    border-radius: 8px 8px 0 0;
+  }
+
+  &:last-child {
+    border-radius: 0 0 8px 8px;
+  }
+}
+
+.watch-dropdown__item-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.watch-dropdown__item-label {
+  font-weight: 600;
+}
+
+.watch-dropdown__item-desc {
+  color: var(--gitpulse-text-muted);
+  font-size: 11px;
+}
+
 .repo-detail-header__meta {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   gap: 0.45rem;
-  margin-bottom: 1.35rem;
+  margin-bottom: 1rem;
 }
 
 .repo-detail-header__type {
@@ -320,17 +746,82 @@ const formatDate = (value?: string | null) => {
   max-width: 54rem;
 }
 
-.repo-detail-description__eyebrow {
-  margin-bottom: 0.45rem;
-  color: var(--gitpulse-link);
-  font-weight: 700;
-}
-
 .repo-detail-description__body {
   margin-bottom: 0;
   color: var(--bulma-text-strong);
-  font-size: 1.05rem;
-  line-height: 1.65;
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+.repo-about {
+  margin-bottom: 1rem;
+}
+
+.repo-about__grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.5rem;
+}
+
+.repo-about__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.repo-about__item-icon {
+  color: var(--gitpulse-text-muted);
+  flex-shrink: 0;
+}
+
+.repo-about__item-label {
+  color: var(--gitpulse-text-muted);
+  font-weight: 500;
+}
+
+.repo-about__item-value {
+  color: var(--bulma-text-strong, var(--gitpulse-text-strong));
+}
+
+.repo-about__item-value--link {
+  color: var(--gitpulse-link);
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.repo-readme {
+  margin-top: 1.5rem;
+}
+
+.repo-readme__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 1rem;
+  color: var(--bulma-text-strong, var(--gitpulse-text-strong));
+  font-size: 1.125rem;
+}
+
+.repo-readme__loading {
+  display: flex;
+  justify-content: center;
+  padding: 3rem;
+  color: var(--gitpulse-text-muted);
+}
+
+.repo-readme__content {
+  // Let MarkdownRenderer handle its own styles
+}
+
+.repo-readme__empty {
+  padding: 2rem;
+  color: var(--gitpulse-text-muted);
+  font-size: 13px;
+  text-align: center;
 }
 
 .sidebar-scroll {
@@ -413,6 +904,9 @@ const formatDate = (value?: string | null) => {
 }
 
 .info-item__label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   flex-shrink: 0;
   color: var(--gitpulse-text-muted);
   font-size: 12px;
@@ -426,6 +920,18 @@ const formatDate = (value?: string | null) => {
   text-align: right;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.info-item__value--link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--gitpulse-link);
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
 }
 
 .info-stats {
@@ -483,6 +989,19 @@ const formatDate = (value?: string | null) => {
   }
 }
 
+.spin-animation {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 @media screen and (max-width: 1024px) {
   .repo-detail-layout :deep(.columns) {
     display: block;
@@ -498,6 +1017,16 @@ const formatDate = (value?: string | null) => {
   .repo-detail-header {
     padding-right: 0;
     padding-bottom: 2rem;
+  }
+
+  .repo-detail-header__title-row {
+    flex-wrap: wrap;
+  }
+
+  .repo-detail-header__actions {
+    width: 100%;
+    margin-top: 0.5rem;
+    margin-left: 0;
   }
 }
 </style>
