@@ -1,5 +1,5 @@
 <template>
-  <div class="dropdown is-right" :class="{ 'is-active': langOpen }">
+  <div ref="dropdown" class="dropdown is-right" :class="{ 'is-active': langOpen }">
     <div class="dropdown-trigger">
       <button
         class="button is-small"
@@ -32,11 +32,12 @@
 
 <script setup lang="ts">
 import { ChevronDownIcon } from 'lucide-vue-next';
-import { onMounted, onBeforeUnmount, ref, computed } from 'vue';
+import { computed, onBeforeUnmount, onMounted, shallowRef, useTemplateRef } from 'vue';
 
 const { locale, setLocale, locales } = useI18n();
 
-const langOpen = ref(false);
+const langOpen = shallowRef(false);
+const dropdown = useTemplateRef<HTMLElement>('dropdown');
 
 type LocaleCode = (typeof locales.value)[number]['code'];
 
@@ -50,8 +51,8 @@ const currentLocaleName = computed(() => {
 });
 
 const onClickOutside = (e: MouseEvent) => {
-  const target = e.target as HTMLElement;
-  if (!target.closest('.dropdown')) {
+  const target = e.target;
+  if (!(target instanceof Node) || !dropdown.value?.contains(target)) {
     langOpen.value = false;
   }
 };
