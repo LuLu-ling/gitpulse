@@ -105,7 +105,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, ref } from 'vue';
+import { computed, nextTick, shallowRef, useTemplateRef } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import MarkdownRenderer from '~/components/ui/MarkdownRenderer.vue';
@@ -156,12 +156,12 @@ const { t } = useI18n();
 const { user } = useUserSession();
 const { isAnyModalOpen } = useModalState();
 
-const textareaRef = ref<HTMLTextAreaElement | null>(null);
-const isExpanded = ref(false);
-const isSubmitting = ref(false);
-const activeTab = ref<'write' | 'preview'>('write');
-const draft = ref('');
-const errorMessage = ref('');
+const textareaRef = useTemplateRef<HTMLTextAreaElement>('textareaRef');
+const isExpanded = shallowRef(false);
+const isSubmitting = shallowRef(false);
+const activeTab = shallowRef<'write' | 'preview'>('write');
+const draft = shallowRef('');
+const errorMessage = shallowRef('');
 
 const trimmedDraft = computed(() => draft.value.trim());
 const canSubmit = computed(() => Boolean(props.repoOwner && props.repoName && props.itemNumber));
