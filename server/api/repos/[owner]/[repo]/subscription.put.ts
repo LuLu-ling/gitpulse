@@ -36,8 +36,8 @@ export default defineEventHandler(async (event) => {
   const { data } = await octokit.request('PUT /repos/{owner}/{repo}/subscription', {
     owner,
     repo,
-    subscribed: subscribed ?? true,
-    ignored: ignored ?? false,
+    subscribed,
+    ignored,
   });
 
   return {
