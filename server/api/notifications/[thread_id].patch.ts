@@ -1,10 +1,19 @@
 export default defineEventHandler(async (event) => {
+  const threadIdParam = getRouterParam(event, 'thread_id') ?? '';
+  const threadId = /^\d+$/.test(threadIdParam) ? Number.parseInt(threadIdParam, 10) : 0;
+
+  if (!Number.isSafeInteger(threadId) || threadId < 1) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'Invalid notification thread id',
+    });
+  }
+
   const octokit = await getGitHubClient(event);
-  const thread_id = Number(getRouterParam(event, 'thread_id'));
 
   try {
     const { data } = await octokit.request('PATCH /notifications/threads/{thread_id}', {
-      thread_id,
+      thread_id: threadId,
     });
     return data;
   } catch (error) {
