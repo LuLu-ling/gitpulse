@@ -94,8 +94,24 @@ import RoundImg from '~/components/ui/RoundImg.vue';
 const { locale } = useI18n();
 const localeCode = computed(() => locale.value);
 
+interface PullRequestHeaderPullRequest {
+  title?: string;
+  number?: number | string;
+  state?: string;
+  merged_at?: string | null;
+  updated_at?: string;
+  head?: { ref?: string };
+  base?: { ref?: string };
+  user?: {
+    avatar_url?: string;
+    login?: string;
+  };
+  created_at?: string;
+  body?: string;
+}
+
 const props = defineProps<{
-  pullRequest: any;
+  pullRequest?: PullRequestHeaderPullRequest | null;
   repoOwner: string;
   repoName: string;
 }>();
