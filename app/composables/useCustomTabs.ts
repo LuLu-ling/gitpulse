@@ -279,7 +279,7 @@ export function useCustomTabs(initialTabs: CustomTab[] = DEFAULT_CUSTOM_TABS) {
       name: input.name,
       subtitle: normalizeString(input.subtitle),
       source: input.source ?? 'github-search',
-      query: cloneQuery(input.query),
+      query: normalizeQuery(input.query),
     };
 
     customTabs.value = [...customTabs.value, tab];
@@ -295,7 +295,7 @@ export function useCustomTabs(initialTabs: CustomTab[] = DEFAULT_CUSTOM_TABS) {
     const updatedTab: CustomTab = {
       ...target,
       ...updates,
-      query: updates.query ? cloneQuery(updates.query) : target.query,
+      query: updates.query ? normalizeQuery(updates.query) : target.query,
     };
 
     customTabs.value = customTabs.value.map((tab) => {
