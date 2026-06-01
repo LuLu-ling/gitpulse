@@ -131,6 +131,7 @@ const onChange = () => {
     color: var(--gitpulse-text-muted);
     font-size: 0.875rem;
     font-style: italic;
+    margin-bottom: 1.5rem;
   }
 
   &__list {
