@@ -135,7 +135,7 @@ export default defineEventHandler(async (event) => {
       warnings: createUnsupportedWarnings('pull'),
       errors: [],
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching GitHub pull request timeline:', error);
     throwTimelineFatalError(error, 'Failed to fetch pull request timeline');
   }

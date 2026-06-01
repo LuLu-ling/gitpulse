@@ -50,7 +50,7 @@ export default defineEventHandler(async (event) => {
       warnings: createUnsupportedWarnings('issue'),
       errors: [],
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching GitHub issue timeline:', error);
     throwTimelineFatalError(error, 'Failed to fetch issue timeline');
   }
