@@ -560,9 +560,8 @@ export function useGithubData() {
     error.value = null;
 
     try {
-      const path = source === 'github-search' ? '/api/search/issues' : '/api/search/issues';
       const data = await apiFetch<PaginatedDashboardResponse<DashboardEntity>>(
-        buildCustomTabUrl(path, page, query)
+        buildCustomTabUrl('/api/search/issues', page, query)
       );
       if (requestId !== activeRequestId.value) return;
 
