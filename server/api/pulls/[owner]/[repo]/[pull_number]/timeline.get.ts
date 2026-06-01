@@ -71,7 +71,7 @@ export default defineEventHandler(async (event) => {
     const parsedPage = Number.parseInt(String(query.page ?? '1'), 10);
     const page = Number.isFinite(parsedPage) && parsedPage > 0 ? parsedPage : 1;
 
-    const [timelinePage, pullCommits, pullReviews] = await Promise.all([
+    const [timelinePage, pullCommits, pullReviews, pullReviewComments] = await Promise.all([
       fetchTimelinePage<Record<string, any>>(
         octokit,
         'GET /repos/{owner}/{repo}/issues/{issue_number}/timeline',
@@ -100,6 +100,15 @@ export default defineEventHandler(async (event) => {
           pull_number: pullNumber,
         }
       ),
+      fetchPaginatedArray<Record<string, any>>(
+        octokit,
+        'GET /repos/{owner}/{repo}/pulls/{pull_number}/comments',
+        {
+          owner,
+          repo,
+          pull_number: pullNumber,
+        }
+      ),
     ]);
 
     const pullCommitsBySha = buildPullCommitLookup(pullCommits);
@@ -110,7 +119,11 @@ export default defineEventHandler(async (event) => {
     const normalizedTimeline = sortTimelineItems(
       enrichedTimeline.flatMap((rawEvent) => normalizePRTimelineEvent(rawEvent, { owner, repo }))
     );
-    const timeline = enrichPRTimelineWithReviewData(normalizedTimeline, pullReviews);
+    const timeline = enrichPRTimelineWithReviewData(
+      normalizedTimeline,
+      pullReviews,
+      pullReviewComments
+    );
 
     return {
       timeline,

@@ -41,6 +41,26 @@ interface TimelineCommitPayload {
   };
 }
 
+interface TimelineReviewCommentPayload {
+  id?: string;
+  author?: ReturnType<typeof mapActor>;
+  body?: string;
+  createdAt?: string;
+  path?: string;
+  url?: string;
+  diffHunk?: string;
+  pullRequestReviewId?: string;
+  inReplyToId?: string;
+  position?: number;
+  originalPosition?: number;
+  startLine?: number;
+  originalStartLine?: number;
+  line?: number;
+  originalLine?: number;
+  startSide?: string;
+  side?: string;
+}
+
 interface SortableTimelineItem {
   kind: string;
   eventType?: string;
@@ -50,6 +70,9 @@ interface SortableTimelineItem {
   commit?: TimelineCommitPayload;
   reviewId?: string;
   commitId?: string;
+  pullRequestReviewId?: string;
+  inReplyToId?: string;
+  reviewComments?: TimelineReviewCommentPayload[];
   dismissal?: {
     actor?: ReturnType<typeof mapActor>;
     createdAt?: string;
@@ -655,6 +678,11 @@ function normalizePRReviewCommentEvents(rawEvent: Record<string, any>): Sortable
         body: rawEvent.body ?? '',
         path: rawEvent.path,
         url: rawEvent.html_url,
+        pullRequestReviewId: stringifyId(rawEvent.pull_request_review_id),
+        inReplyToId: stringifyId(rawEvent.in_reply_to_id),
+        startLine: rawEvent.start_line,
+        originalStartLine: rawEvent.original_start_line,
+        startSide: rawEvent.start_side,
         isResolved: false,
         isOutdated: false,
         displayText: 'commented on a review thread',
@@ -676,7 +704,12 @@ function normalizePRReviewCommentEvents(rawEvent: Record<string, any>): Sortable
     url: comment.html_url,
     originalUrl: comment.html_url,
     pullRequestReviewUrl: comment.pull_request_review_url,
+    pullRequestReviewId: stringifyId(comment.pull_request_review_id),
+    inReplyToId: stringifyId(comment.in_reply_to_id),
     diffHunk: comment.diff_hunk,
+    startLine: comment.start_line,
+    originalStartLine: comment.original_start_line,
+    startSide: comment.start_side,
     isResolved: false,
     isOutdated: false,
     timelineSource: 'rest.timeline',
@@ -700,6 +733,9 @@ function normalizePRCommitCommentEvents(rawEvent: Record<string, any>): Sortable
         commit: mapCommitPayload(rawEvent),
         displayText: 'commented on a commit in this PR',
         diffHunk: rawEvent.diff_hunk,
+        startLine: rawEvent.start_line,
+        originalStartLine: rawEvent.original_start_line,
+        startSide: rawEvent.start_side,
         timelineSource: 'rest.timeline',
       },
     ];
@@ -721,6 +757,9 @@ function normalizePRCommitCommentEvents(rawEvent: Record<string, any>): Sortable
       html_url: comment.html_url ?? rawEvent.html_url,
     }),
     diffHunk: comment.diff_hunk,
+    startLine: comment.start_line,
+    originalStartLine: comment.original_start_line,
+    startSide: comment.start_side,
     isResolved: false,
     isOutdated: false,
     timelineSource: 'rest.timeline',
@@ -729,8 +768,10 @@ function normalizePRCommitCommentEvents(rawEvent: Record<string, any>): Sortable
 
 export function enrichPRTimelineWithReviewData(
   timeline: SortableTimelineItem[],
-  reviews: Record<string, any>[]
+  reviews: Record<string, any>[],
+  reviewComments: Record<string, any>[]
 ): SortableTimelineItem[] {
+  const commentsByReviewId = buildReviewCommentsByReviewId(reviewComments);
   const reviewsById = buildReviewsById(reviews);
   const dismissalsByReviewId = buildDismissalsByReviewId(timeline);
 
@@ -746,6 +787,7 @@ export function enrichPRTimelineWithReviewData(
 
     const review = reviewsById.get(reviewId);
     const dismissal = dismissalsByReviewId.get(reviewId);
+    const reviewComments = commentsByReviewId.get(reviewId) ?? [];
     const submittedState = normalizeReviewState(
       dismissal?.previousState ?? item.state ?? review?.state
     );
@@ -757,6 +799,7 @@ export function enrichPRTimelineWithReviewData(
       state: submittedState,
       body: item.body ?? review?.body ?? '',
       url: item.url ?? review?.html_url,
+      reviewComments,
       dismissal,
     };
   });
@@ -774,8 +817,46 @@ export function enrichPRTimelineWithReviewData(
       return !review?.id || !reviewIdsInTimeline.has(review.id);
     }
 
-    return true;
+    if (item.kind !== 'review-comment') {
+      return true;
+    }
+
+    return (
+      Boolean(item.inReplyToId) ||
+      !item.pullRequestReviewId ||
+      !reviewIdsInTimeline.has(item.pullRequestReviewId)
+    );
   });
+}
+
+function buildReviewCommentsByReviewId(comments: Record<string, any>[]) {
+  const commentsByReviewId = new Map<string, TimelineReviewCommentPayload[]>();
+
+  for (const comment of comments) {
+    const reviewId = stringifyId(comment.pull_request_review_id);
+    if (!reviewId) {
+      continue;
+    }
+
+    if (comment.in_reply_to_id) {
+      continue;
+    }
+
+    const normalizedComment = normalizeReviewCommentForReview(comment);
+    const existing = commentsByReviewId.get(reviewId) ?? [];
+    existing.push(normalizedComment);
+    commentsByReviewId.set(reviewId, existing);
+  }
+
+  for (const comments of commentsByReviewId.values()) {
+    comments.sort((left, right) => {
+      const leftDate = Date.parse(left.createdAt ?? '') || 0;
+      const rightDate = Date.parse(right.createdAt ?? '') || 0;
+      return leftDate - rightDate;
+    });
+  }
+
+  return commentsByReviewId;
 }
 
 function buildReviewsById(reviews: Record<string, any>[]) {
@@ -823,6 +904,30 @@ function buildDismissalsByReviewId(timeline: SortableTimelineItem[]) {
   }
 
   return dismissalsByReviewId;
+}
+
+function normalizeReviewCommentForReview(
+  comment: Record<string, any>
+): TimelineReviewCommentPayload {
+  return {
+    id: stringifyId(comment.id ?? comment.node_id),
+    author: mapActor(comment.user),
+    body: comment.body ?? '',
+    createdAt: comment.created_at,
+    path: comment.path,
+    url: comment.html_url,
+    diffHunk: comment.diff_hunk,
+    pullRequestReviewId: stringifyId(comment.pull_request_review_id),
+    inReplyToId: stringifyId(comment.in_reply_to_id),
+    position: comment.position,
+    originalPosition: comment.original_position,
+    startLine: comment.start_line,
+    originalStartLine: comment.original_start_line,
+    line: comment.line,
+    originalLine: comment.original_line,
+    startSide: comment.start_side,
+    side: comment.side,
+  };
 }
 
 function normalizeReviewState(state: unknown) {

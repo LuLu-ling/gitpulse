@@ -43,6 +43,26 @@ export interface TimelineCommit {
   };
 }
 
+export interface TimelineReviewComment {
+  id?: string;
+  author?: TimelineActor;
+  body?: string;
+  createdAt?: string;
+  path?: string;
+  url?: string;
+  diffHunk?: string;
+  pullRequestReviewId?: string;
+  inReplyToId?: string;
+  position?: number;
+  originalPosition?: number;
+  startLine?: number;
+  originalStartLine?: number;
+  line?: number;
+  originalLine?: number;
+  startSide?: string;
+  side?: string;
+}
+
 export interface TimelineReviewDismissal {
   actor?: TimelineActor;
   createdAt?: string;
@@ -119,6 +139,7 @@ export interface PRTimelineItem {
   };
   reviewId?: string;
   commitId?: string;
+  reviewComments?: TimelineReviewComment[];
   dismissal?: TimelineReviewDismissal;
   requestedReviewer?: TimelineRequestedReviewer;
   deletedCommentAuthor?: { login?: string };
@@ -139,6 +160,8 @@ export interface PRTimelineItem {
   issueField?: { resourceType?: string; name?: string };
   originalUrl?: string;
   pullRequestReviewUrl?: string;
+  pullRequestReviewId?: string;
+  inReplyToId?: string;
   diffHunk?: string;
 }
 
