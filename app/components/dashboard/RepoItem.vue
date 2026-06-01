@@ -1,5 +1,7 @@
 <template>
-  <div class="card dashboard-list-card dashboard-list-card--repo dashboard-list-card--compact">
+  <div
+    class="card dashboard-list-card dashboard-list-card--repo dashboard-list-card--compact repo-item"
+  >
     <div class="card-content p-3 pl-4">
       <div class="dashboard-list-card__content">
         <div class="is-flex is-align-items-flex-start mb-2">
@@ -13,10 +15,7 @@
             </p>
           </div>
           <div v-if="repo.language" class="repo-language ml-3">
-            <span
-              class="repo-language-dot"
-              :style="{ backgroundColor: languageColor }"
-            />
+            <span class="repo-language-dot" :style="{ backgroundColor: languageColor }" />
             <span class="repo-language-text">{{ repo.language }}</span>
           </div>
         </div>
@@ -25,10 +24,6 @@
           <div class="is-flex is-align-items-center mr-4">
             <StarIcon :size="14" class="mr-1 has-text-grey" />
             <span class="is-size-7 has-text-grey">{{ repo.stargazers_count }}</span>
-          </div>
-          <div class="is-flex is-align-items-center mr-4">
-            <GitForkIcon :size="14" class="mr-1 has-text-grey" />
-            <span class="is-size-7 has-text-grey">{{ repo.forks_count }}</span>
           </div>
           <div class="is-flex is-align-items-center mr-4">
             <EyeIcon :size="14" class="mr-1 has-text-grey" />
@@ -41,16 +36,34 @@
         </div>
       </div>
     </div>
+    <NuxtLinkLocale
+      class="repo-item__link"
+      :to="detailPath"
+      :aria-label="`Open repository ${repo.owner?.login}/${repo.name}`"
+      :title="`Open repository ${repo.owner?.login}/${repo.name}`"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { StarIcon, GitForkIcon, EyeIcon, LockIcon } from 'lucide-vue-next';
+import { EyeIcon, LockIcon, StarIcon } from 'lucide-vue-next';
 import { computed } from 'vue';
 
 const props = defineProps<{
   repo: any;
 }>();
+
+const localePath = useLocalePath();
+
+const detailPath = computed(() => {
+  return localePath({
+    path: '/dashboard',
+    query: {
+      tab: 'repos',
+      repo: `${props.repo.owner?.login}/${props.repo.name}`,
+    },
+  });
+});
 
 const languageColor = computed(() => {
   return getLanguageColor(props.repo.language);
@@ -59,6 +72,23 @@ const languageColor = computed(() => {
 
 <style scoped lang="scss">
 @use '~/assets/scss/card.scss';
+
+.repo-item {
+  position: relative;
+}
+
+.repo-item__link {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  color: inherit;
+  text-decoration: none;
+}
+
+.repo-item__link:focus-visible {
+  outline: 2px solid var(--gitpulse-link);
+  outline-offset: 2px;
+}
 
 .repo-language {
   display: flex;
