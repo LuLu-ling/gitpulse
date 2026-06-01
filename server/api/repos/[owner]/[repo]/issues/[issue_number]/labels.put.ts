@@ -3,6 +3,42 @@ import {
   getGitHubErrorStatusCode,
 } from '../../../../../../utils/github-auth-utils';
 
+interface LabelsRequestBody {
+  labels?: unknown;
+}
+
+function parseIssueNumber(value: string) {
+  if (!/^\d+$/.test(value)) {
+    return 0;
+  }
+
+  const issueNumber = Number.parseInt(value, 10);
+  return Number.isSafeInteger(issueNumber) ? issueNumber : 0;
+}
+
+function normalizeLabelsBody(body: unknown) {
+  const requestBody =
+    body && typeof body === 'object' && !Array.isArray(body) ? (body as LabelsRequestBody) : {};
+  const rawLabels = Array.isArray(requestBody.labels)
+    ? requestBody.labels
+    : requestBody.labels
+      ? [requestBody.labels]
+      : [];
+
+  if (!rawLabels.every((label): label is string => typeof label === 'string')) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'Invalid labels request body',
+    });
+  }
+
+  return rawLabels;
+}
+
+function hasRouteStatusCode(error: unknown): error is { statusCode: unknown } {
+  return !!error && typeof error === 'object' && 'statusCode' in error && !!error.statusCode;
+}
+
 export default defineEventHandler(async (event) => {
   try {
     const { owner, repo, issue_number } = event.context.params as {
@@ -10,9 +46,16 @@ export default defineEventHandler(async (event) => {
       repo: string;
       issue_number: string;
     };
+    const issueNumber = parseIssueNumber(issue_number);
 
-    const body = await readBody(event);
-    const labels = Array.isArray(body.labels) ? body.labels : body.labels ? [body.labels] : [];
+    if (!owner || !repo || issueNumber < 1) {
+      throw createError({
+        statusCode: 400,
+        statusMessage: 'Missing required parameters',
+      });
+    }
+
+    const labels = normalizeLabelsBody(await readBody(event));
 
     const octokit = await getGitHubClient(event);
 
@@ -21,7 +64,7 @@ export default defineEventHandler(async (event) => {
       {
         owner,
         repo,
-        issue_number: parseInt(issue_number),
+        issue_number: issueNumber,
         labels,
       }
     );
@@ -29,6 +72,10 @@ export default defineEventHandler(async (event) => {
     return updatedLabels;
   } catch (error: unknown) {
     console.error('Error updating issue labels:', error);
+
+    if (hasRouteStatusCode(error)) {
+      throw error;
+    }
 
     const statusCode = getGitHubErrorStatusCode(error);
     if (statusCode) {
