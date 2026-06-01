@@ -10,6 +10,15 @@ function isGitHubUnauthorizedError(error: unknown): boolean {
   return !!error && typeof error === 'object' && 'status' in error && error.status === 401;
 }
 
+function normalizeTokenBody(body: unknown) {
+  if (!body || typeof body !== 'object' || Array.isArray(body)) {
+    return '';
+  }
+
+  const token = (body as { token?: unknown }).token;
+  return typeof token === 'string' ? token.trim() : '';
+}
+
 export default defineEventHandler(async (event) => {
   assertCsrfToken(event, '/auth/pat');
 
@@ -29,8 +38,7 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  const body = (await readBody(event)) as { token?: unknown };
-  const token = typeof body.token === 'string' ? body.token.trim() : '';
+  const token = normalizeTokenBody(await readBody(event));
 
   if (!token) {
     throw createError({
