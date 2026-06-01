@@ -106,13 +106,19 @@ const localeCode = computed(() => locale.value);
 
 dayjs.extend(relativeTime);
 
+interface PullRequestUserSummary {
+  id?: number | string;
+  login: string;
+  avatar_url?: string | null;
+}
+
 defineProps<{
-  requestedReviewers: any[];
+  requestedReviewers: PullRequestUserSummary[];
   htmlUrl: string | undefined;
   createdAt: string | undefined;
   updatedAt: string | undefined;
   mergedAt: string | undefined;
-  assignee: any | undefined;
+  assignee: PullRequestUserSummary | undefined;
   commits: number | undefined;
   changedFiles: number | undefined;
   additions: number | undefined;
