@@ -38,7 +38,23 @@ export async function getGitHubClient(event: H3Event): Promise<Octokit> {
 }
 
 export function hasGitHubErrorStatus(error: unknown, statusCode: number): boolean {
-  return !!error && typeof error === 'object' && 'status' in error && error.status === statusCode;
+  return getGitHubErrorStatusCode(error) === statusCode;
+}
+
+export function getGitHubErrorStatusCode(error: unknown): number | undefined {
+  if (!error || typeof error !== 'object' || !('status' in error)) {
+    return undefined;
+  }
+
+  return typeof error.status === 'number' ? error.status : undefined;
+}
+
+export function getGitHubErrorMessage(error: unknown, fallbackStatusMessage: string): string {
+  if (!error || typeof error !== 'object' || !('message' in error)) {
+    return fallbackStatusMessage;
+  }
+
+  return typeof error.message === 'string' && error.message ? error.message : fallbackStatusMessage;
 }
 
 export function throwGitHubRouteError(error: unknown, fallbackStatusMessage: string): never {

@@ -1,3 +1,8 @@
+import {
+  getGitHubErrorMessage,
+  getGitHubErrorStatusCode,
+} from '../../../../utils/github-auth-utils';
+
 export default defineEventHandler(async (event) => {
   try {
     const { owner, repo } = event.context.params as {
@@ -28,13 +33,14 @@ export default defineEventHandler(async (event) => {
       canEditLabels: Boolean(permissions.admin || permissions.maintain || permissions.push),
       canLockIssue: Boolean(permissions.admin || permissions.maintain || permissions.push),
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching repository permissions:', error);
 
-    if (error.status) {
+    const statusCode = getGitHubErrorStatusCode(error);
+    if (statusCode) {
       throw createError({
-        statusCode: error.status,
-        statusMessage: error.message || 'Failed to fetch repository permissions',
+        statusCode,
+        statusMessage: getGitHubErrorMessage(error, 'Failed to fetch repository permissions'),
       });
     }
 

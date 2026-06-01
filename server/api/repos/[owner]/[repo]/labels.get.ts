@@ -1,3 +1,8 @@
+import {
+  getGitHubErrorMessage,
+  getGitHubErrorStatusCode,
+} from '../../../../utils/github-auth-utils';
+
 export default defineEventHandler(async (event) => {
   try {
     const { owner, repo } = event.context.params as {
@@ -13,13 +18,14 @@ export default defineEventHandler(async (event) => {
     });
 
     return labels;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching repository labels:', error);
 
-    if (error.status) {
+    const statusCode = getGitHubErrorStatusCode(error);
+    if (statusCode) {
       throw createError({
-        statusCode: error.status,
-        statusMessage: error.message || 'Failed to fetch repository labels',
+        statusCode,
+        statusMessage: getGitHubErrorMessage(error, 'Failed to fetch repository labels'),
       });
     }
 
