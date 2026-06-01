@@ -4,6 +4,7 @@ import type { DefineComponent } from 'vue';
 import { shallowRef } from 'vue';
 
 import MarkdownRendererProseA from '~/components/ui/MarkdownRendererProseA.vue';
+import MarkdownRendererProseImg from '~/components/ui/MarkdownRendererProseImg.vue';
 import MarkdownRendererProseMermaidWrapper from '~/components/ui/MarkdownRendererProseMermaidWrapper.vue';
 import useGitHubAutolinks from '~/composables/useGitHubAutolinks';
 
@@ -22,6 +23,7 @@ const { applyGitHubAutolinks } = useGitHubAutolinks();
 // differ from the bare PascalCase filename (e.g. path-prefixed variants).
 const rendererComponents: Record<string, string | DefineComponent<any, any, any>> = {
   a: MarkdownRendererProseA,
+  img: MarkdownRendererProseImg,
   // Override the block-level `pre` renderer (not `code` — inline backticks
   // must NOT trigger MermaidBlock). The wrapper inspects `language` and routes
   // mermaid fences to MermaidBlock; everything else delegates to ProsePre.
