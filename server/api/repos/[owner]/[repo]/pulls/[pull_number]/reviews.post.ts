@@ -1,16 +1,10 @@
 type ReviewEvent = 'APPROVE' | 'COMMENT' | 'REQUEST_CHANGES';
 
-interface ReviewCommentPayload {
-  path?: string;
-  body?: string;
-  position?: number;
-}
-
 interface ReviewRequestBody {
   commitId?: string;
   event?: ReviewEvent;
   body?: string;
-  comments?: ReviewCommentPayload[];
+  comments?: unknown[];
 }
 
 const allowedEvents = new Set<ReviewEvent>(['APPROVE', 'COMMENT', 'REQUEST_CHANGES']);
@@ -35,15 +29,19 @@ const getErrorMessage = (error: unknown) => {
   return typeof value === 'string' ? value : '';
 };
 
-const normalizeReviewComments = (comments: ReviewCommentPayload[] | undefined) => {
+const normalizeReviewComments = (comments: unknown[] | undefined) => {
   if (!Array.isArray(comments)) {
     return [];
   }
 
   return comments.map((comment, index) => {
-    const path = trimString(comment.path);
-    const body = trimString(comment.body);
-    const position = Number(comment.position);
+    const entry =
+      comment && typeof comment === 'object' && !Array.isArray(comment)
+        ? (comment as Record<string, unknown>)
+        : {};
+    const path = trimString(entry.path);
+    const body = trimString(entry.body);
+    const position = Number(entry.position);
 
     if (!path || !body || !Number.isSafeInteger(position) || position < 1) {
       throw createError({
