@@ -60,6 +60,21 @@ const normalizeString = (value: unknown) => {
   return typeof value === 'string' && value.trim().length > 0 ? value.trim() : undefined;
 };
 
+const normalizeStringList = (values: unknown) => {
+  if (!Array.isArray(values)) {
+    return undefined;
+  }
+
+  return values.flatMap((value) => {
+    if (typeof value !== 'string') {
+      return [];
+    }
+
+    const normalized = value.trim();
+    return normalized ? [normalized] : [];
+  });
+};
+
 const cloneTab = (tab: CustomTab): CustomTab => {
   return {
     ...tab,
@@ -115,11 +130,7 @@ const normalizeQuery = (query: unknown): CustomTabQuery => {
       ? review
       : undefined;
 
-  const labels = Array.isArray(candidate.labels)
-    ? candidate.labels.filter(
-        (label): label is string => typeof label === 'string' && label.length > 0
-      )
-    : undefined;
+  const labels = normalizeStringList(candidate.labels);
   const scopes = Array.isArray(candidate.scopes)
     ? candidate.scopes.filter(
         (scope): scope is CustomTabSearchScope =>
