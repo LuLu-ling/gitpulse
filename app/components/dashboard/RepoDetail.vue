@@ -29,6 +29,8 @@ const emit = defineEmits<{
   home: [];
 }>();
 
+type RepoDetailIcon = typeof GithubIcon;
+
 const { locale } = useI18n();
 const apiFetch = useGitPulseApiFetch();
 
@@ -129,7 +131,7 @@ const visibility = computed(() =>
 );
 
 const repoBadges = computed(() => {
-  const badges: { icon: any; label: string; tone: string }[] = [
+  const badges: { icon: RepoDetailIcon; label: string; tone: string }[] = [
     {
       icon: props.repository.private ? GithubIcon : GithubIcon,
       label: visibility.value,
@@ -155,7 +157,7 @@ const watchStateLabel = computed(() => {
 });
 
 const aboutItems = computed(() => {
-  const items: { label: string; value: string; href?: string; icon: any }[] = [];
+  const items: { label: string; value: string; href?: string; icon: RepoDetailIcon }[] = [];
 
   if (props.repository.homepage) {
     const url = props.repository.homepage.startsWith('http')
