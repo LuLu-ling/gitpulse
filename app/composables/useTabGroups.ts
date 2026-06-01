@@ -63,24 +63,32 @@ const cloneGroups = (groups: TabGroup[]) => {
   return groups.map((group) => ({ ...group }));
 };
 
-const normalizeGroup = (group: Partial<TabGroup>): TabGroup | null => {
-  if (typeof group.id !== 'string' || group.id.length === 0) {
+const normalizeGroup = (group: unknown): TabGroup | null => {
+  if (!group || typeof group !== 'object') {
     return null;
   }
 
-  if (typeof group.name !== 'string' || group.name.length === 0) {
+  const candidate = group as Partial<TabGroup>;
+
+  if (typeof candidate.id !== 'string' || candidate.id.length === 0) {
+    return null;
+  }
+
+  if (typeof candidate.name !== 'string' || candidate.name.length === 0) {
     return null;
   }
 
   return {
-    id: group.id,
-    name: group.name,
+    id: candidate.id,
+    name: candidate.name,
     parentId:
-      typeof group.parentId === 'string' && group.parentId.length > 0 ? group.parentId : null,
-    collapsed: group.collapsed ?? false,
+      typeof candidate.parentId === 'string' && candidate.parentId.length > 0
+        ? candidate.parentId
+        : null,
+    collapsed: candidate.collapsed ?? false,
     source:
-      group.source === 'system' || group.source === 'github-search'
-        ? group.source
+      candidate.source === 'system' || candidate.source === 'github-search'
+        ? candidate.source
         : 'github-search',
   };
 };
@@ -121,7 +129,7 @@ const readStoredGroups = (login: string): TabGroup[] | null => {
     }
 
     const groups = parsed
-      .map((entry) => normalizeGroup(entry as Partial<TabGroup>))
+      .map((entry) => normalizeGroup(entry))
       .filter((entry): entry is TabGroup => entry !== null);
 
     if (groups.length === 0) {
