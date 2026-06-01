@@ -26,7 +26,14 @@ export function useUrlHelper() {
       const match = url.match(/repos\/([^\/]+)\/([^\/]+)\/(issues|pulls)\/(\d+)/);
       if (match) {
         const [, owner, repo, type, number] = match;
-        if (!owner || !repo || !number || (type !== 'issues' && type !== 'pulls')) {
+        const parsedNumber = Number.parseInt(number ?? '', 10);
+        if (
+          !owner ||
+          !repo ||
+          !Number.isFinite(parsedNumber) ||
+          parsedNumber < 1 ||
+          (type !== 'issues' && type !== 'pulls')
+        ) {
           return null;
         }
 
@@ -34,7 +41,7 @@ export function useUrlHelper() {
           owner,
           repo,
           type,
-          number: Number.parseInt(number, 10),
+          number: parsedNumber,
           isIssue: type === 'issues',
           isPR: type === 'pulls',
         };
@@ -51,6 +58,11 @@ export function useUrlHelper() {
       const match = url.match(/repos\/([^\/]+)\/([^\/]+)\/(issues|pulls)\/(\d+)/);
       if (match) {
         const [, owner, repo, type, number] = match;
+        const parsedNumber = Number.parseInt(number ?? '', 10);
+        if (!owner || !repo || !Number.isFinite(parsedNumber) || parsedNumber < 1) {
+          return;
+        }
+
         window.open(`https://github.com/${owner}/${repo}/${type}/${number}`, '_blank');
       }
     } else if (notification.html_url) {
