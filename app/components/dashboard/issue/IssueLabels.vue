@@ -134,7 +134,7 @@ import {
 import { onUnmounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-import getThrownErrorMessage from '~/utils/getThrownErrorMessage';
+import getFetchErrorMessage from '~/utils/getFetchErrorMessage';
 
 interface DashboardLabel {
   id?: number | string;
@@ -274,7 +274,7 @@ const saveLabels = async () => {
     closeModal();
   } catch (err: unknown) {
     console.error('Error saving labels:', err);
-    labelError.value = getThrownErrorMessage(err, t('issueDetail.failedToUpdateLabels'));
+    labelError.value = getFetchErrorMessage(err, t('issueDetail.failedToUpdateLabels'));
     scheduleLabelErrorClear();
   } finally {
     savingLabels.value = false;
