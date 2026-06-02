@@ -14,6 +14,7 @@ import MarkdownRendererProseA from '~/components/ui/MarkdownRendererProseA.vue';
 import MarkdownRendererProseImg from '~/components/ui/MarkdownRendererProseImg.vue';
 import MarkdownRendererProseMermaidWrapper from '~/components/ui/MarkdownRendererProseMermaidWrapper.vue';
 import useGitHubAutolinks from '~/composables/useGitHubAutolinks';
+import fixHtmlBlockIndentation from '~/utils/comark-fix-html-indentation';
 
 const props = defineProps<{
   value: string;
@@ -30,6 +31,7 @@ async function createMarkdownPlugins() {
   const languages = await loadBundledLanguages();
 
   return [
+    fixHtmlBlockIndentation(),
     security({
       blockedTags: ['script', 'style', 'iframe', 'object', 'embed'],
       allowedProtocols: ['http', 'https', 'mailto', 'tel'],
@@ -102,7 +104,7 @@ watch(
 .markdown-body {
   font-size: 14px;
   p {
-    white-space: pre-wrap;
+    white-space: normal;
   }
   hr {
     display: revert;
