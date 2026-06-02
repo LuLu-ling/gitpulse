@@ -29,6 +29,10 @@
             <EyeIcon :size="14" class="mr-1 has-text-grey" />
             <span class="is-size-7 has-text-grey">{{ repo.watchers_count || 0 }}</span>
           </div>
+          <div class="is-flex is-align-items-center mr-4">
+            <GitForkIcon :size="14" class="mr-1 has-text-grey" />
+            <span class="is-size-7 has-text-grey">{{ repo.forks_count || 0 }}</span>
+          </div>
           <div v-if="repo.private" class="is-flex is-align-items-center repo-private-badge">
             <LockIcon :size="12" class="mr-1" />
             <span class="is-size-7">Private</span>
@@ -46,7 +50,7 @@
 </template>
 
 <script setup lang="ts">
-import { EyeIcon, LockIcon, StarIcon } from 'lucide-vue-next';
+import { EyeIcon, GitForkIcon, LockIcon, StarIcon } from 'lucide-vue-next';
 import { computed } from 'vue';
 
 interface RepositoryListItem {
@@ -55,6 +59,7 @@ interface RepositoryListItem {
   language?: string | null;
   stargazers_count?: number;
   watchers_count?: number;
+  forks_count?: number;
   private?: boolean;
   owner?: {
     login?: string;
