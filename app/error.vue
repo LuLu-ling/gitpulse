@@ -10,6 +10,7 @@ import { computed } from 'vue';
 
 import LandingNavbar from '~/components/layouts/LandingNavbar.vue';
 import Button from '~/components/ui/Button.vue';
+import type {NuxtError} from "#app";
 
 const props = defineProps<{ error: NuxtError }>();
 
@@ -86,8 +87,8 @@ const variants: Record<number, ErrorVariant> = {
   },
 };
 
-const variant = computed<ErrorVariant>(() => variants[props.error.status] ?? fallbackVariant);
-const statusCode = computed<number>(() => props.error.status);
+const variant = computed<ErrorVariant>(() => variants[props.error.status ?? 500] ?? fallbackVariant);
+const statusCode = computed<number>(() => props.error.status ?? 500);
 
 const title = computed(() => t(variant.value.titleKey));
 const description = computed(() => t(variant.value.descriptionKey));
