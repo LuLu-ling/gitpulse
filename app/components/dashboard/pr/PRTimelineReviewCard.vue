@@ -347,19 +347,14 @@ const getCommentDiffSide = (comment: TimelineReviewComment): 'LEFT' | 'RIGHT' =>
 
 const getCommentDiffRange = (comment: TimelineReviewComment) => {
   const side = getCommentDiffSide(comment);
-  const isSingleLineComment = comment.startLine == null && comment.originalStartLine == null;
   const start =
     side === 'LEFT'
       ? (comment.originalStartLine ?? comment.originalLine ?? comment.startLine ?? comment.line)
-      : isSingleLineComment
-        ? (comment.originalLine ?? comment.line)
-        : (comment.startLine ?? comment.line ?? comment.originalStartLine ?? comment.originalLine);
+      : (comment.originalStartLine ?? comment.originalLine ?? comment.startLine ?? comment.line);
   const end =
     side === 'LEFT'
       ? (comment.originalLine ?? comment.line ?? comment.originalStartLine ?? comment.startLine)
-      : isSingleLineComment
-        ? (comment.originalLine ?? comment.line)
-        : (comment.line ?? comment.originalLine ?? comment.startLine ?? comment.originalStartLine);
+      : (comment.originalLine ?? comment.line ?? comment.originalStartLine ?? comment.startLine);
 
   if (!start || !end) {
     return null;
