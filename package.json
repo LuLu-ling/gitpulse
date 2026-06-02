@@ -16,7 +16,7 @@
   "dependencies": {
     "@comark/nuxt": "^0.3.1",
     "@nuxt/image": "^2.0.0",
-    "@nuxtjs/color-mode": "^3.5.2",
+    "@nuxtjs/color-mode": "^4.0.0",
     "@octokit/core": "^7.0.6",
     "@primer/css": "^22.2.0",
     "bulma": "^1.0.4",
@@ -35,8 +35,8 @@
   },
   "devDependencies": {
     "@nuxtjs/i18n": "^10.4.0",
-    "oxfmt": "^0.52.0",
-    "oxlint": "^1.67.0",
+    "oxfmt": "^0.53.0",
+    "oxlint": "^1.68.0",
     "oxlint-tsgolint": "^0.23.0",
     "sass-embedded": "^1.100.0",
     "vue3-simple-icons": "^16.10.0"
