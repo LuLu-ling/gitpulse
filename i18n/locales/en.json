@@ -108,6 +108,8 @@
     "unknownCommitAuthor": "Unknown",
     "committedAt": "committed {time}",
     "commitFallbackRef": "commit",
+    "referenceCommitIntro": "added a commit that references this issue",
+    "referenceCommitFallback": "Referenced this issue from a commit",
     "labels": "Labels",
     "editLabels": "Edit labels",
     "selectLabels": "Select labels",

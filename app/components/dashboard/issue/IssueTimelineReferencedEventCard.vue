@@ -21,7 +21,7 @@
             {{ item.actor?.login }}
           </a>
           <span class="commit-message is-size-7 has-text-grey">
-            added a commit that references this issue
+            {{ t('issueDetail.referenceCommitIntro') }}
           </span>
         </div>
 
@@ -30,7 +30,9 @@
           class="is-size-6 has-text-weight-medium commit-message"
           v-html="sanitizedCommitMessageHeadlineHtml"
         />
-        <span v-else class="is-size-7 has-text-grey">Referenced this issue from a commit</span>
+        <span v-else class="is-size-7 has-text-grey">
+          {{ t('issueDetail.referenceCommitFallback') }}
+        </span>
       </div>
 
       <a
@@ -43,7 +45,7 @@
         {{ item.commit?.oid?.slice(0, 7) }}
       </a>
       <span v-else class="tag is-light is-family-monospace ml-3">
-        {{ item.commit?.oid?.slice(0, 7) || 'commit' }}
+        {{ item.commit?.oid?.slice(0, 7) || t('issueDetail.commitFallbackRef') }}
       </span>
     </div>
   </div>
@@ -51,6 +53,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import RoundImg from '~/components/ui/RoundImg.vue';
 import type { IssueTimelineItem } from '~/composables/useIssueTimelineEvents';
@@ -59,6 +62,8 @@ import { sanitizeHtml } from '~/utils/sanitizeHtml';
 const props = defineProps<{
   item: IssueTimelineItem;
 }>();
+
+const { t } = useI18n();
 
 const sanitizedCommitMessageHeadlineHtml = computed(() => {
   const headlineHtml = props.item.commit?.messageHeadlineHTML;
