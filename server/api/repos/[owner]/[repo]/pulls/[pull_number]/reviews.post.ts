@@ -1,3 +1,5 @@
+import { extractPullRouteParams, executeGitHubRequest } from '#server/utils/repo-route-utils';
+
 type ReviewEvent = 'APPROVE' | 'COMMENT' | 'REQUEST_CHANGES';
 
 interface ReviewRequestBody {
@@ -32,75 +34,58 @@ const normalizeReviewComments = (comments: unknown[] | undefined) => {
       });
     }
 
-    return {
-      path,
-      body,
-      position,
-    };
+    return { path, body, position };
   });
 };
 
 export default defineEventHandler(async (event) => {
-  try {
-    const { owner, repo, pull_number } = event.context.params as {
-      owner: string;
-      repo: string;
-      pull_number: string;
-    };
+  const { owner, repo, pullNumber } = extractPullRouteParams(event);
 
-    const pullNumber = parsePaginationNumber(pull_number, 0);
+  const body = await readBody<ReviewRequestBody>(event);
+  const commitId = trimString(body?.commitId);
+  const reviewEvent = body?.event;
+  const reviewBody = trimString(body?.body);
 
-    if (!owner || !repo || pullNumber < 1) {
-      throw createError({
-        statusCode: 400,
-        statusMessage: 'Invalid pull request number',
-      });
-    }
-
-    const body = await readBody<ReviewRequestBody>(event);
-    const commitId = trimString(body?.commitId);
-    const reviewEvent = body?.event;
-    const reviewBody = trimString(body?.body);
-
-    if (!commitId) {
-      throw createError({
-        statusCode: 400,
-        statusMessage: 'Review commitId is required',
-      });
-    }
-
-    if (!reviewEvent || !allowedEvents.has(reviewEvent)) {
-      throw createError({
-        statusCode: 400,
-        statusMessage: 'Review event must be APPROVE, COMMENT, or REQUEST_CHANGES',
-      });
-    }
-
-    if ((reviewEvent === 'COMMENT' || reviewEvent === 'REQUEST_CHANGES') && !reviewBody) {
-      throw createError({
-        statusCode: 400,
-        statusMessage: 'Review body is required for this event',
-      });
-    }
-
-    const comments = normalizeReviewComments(body?.comments);
-    const octokit = await getGitHubClient(event);
-    const { data: review } = await octokit.request(
-      'POST /repos/{owner}/{repo}/pulls/{pull_number}/reviews',
-      {
-        owner,
-        repo,
-        pull_number: pullNumber,
-        commit_id: commitId,
-        event: reviewEvent,
-        body: reviewBody || undefined,
-        comments,
-      }
-    );
-
-    return review;
-  } catch (error: unknown) {
-    console.error('Error creating pull request review:', error);
-    throwGitHubRouteError(error, 'Failed to create pull request review');
+  if (!commitId) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'Review commitId is required',
+    });
   }
+
+  if (!reviewEvent || !allowedEvents.has(reviewEvent)) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'Review event must be APPROVE, COMMENT, or REQUEST_CHANGES',
+    });
+  }
+
+  if ((reviewEvent === 'COMMENT' || reviewEvent === 'REQUEST_CHANGES') && !reviewBody) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'Review body is required for this event',
+    });
+  }
+
+  const comments = normalizeReviewComments(body?.comments);
+
+  return executeGitHubRequest(
+    event,
+    async (octokit) => {
+      const { data: review } = await octokit.request(
+        'POST /repos/{owner}/{repo}/pulls/{pull_number}/reviews',
+        {
+          owner,
+          repo,
+          pull_number: pullNumber,
+          commit_id: commitId,
+          event: reviewEvent,
+          body: reviewBody || undefined,
+          comments,
+        }
+      );
+      return review;
+    },
+    'Failed to create pull request review'
+  );
 });

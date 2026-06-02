@@ -1,38 +1,34 @@
-import { throwGitHubRouteError } from '../../../../utils/github-auth-utils';
+import { extractRepoParams, executeGitHubRequest } from '#server/utils/repo-route-utils';
 
 export default defineEventHandler(async (event) => {
-  try {
-    const { owner, repo } = event.context.params as {
-      owner: string;
-      repo: string;
-    };
+  const { owner, repo } = extractRepoParams(event);
 
-    const octokit = await getGitHubClient(event);
-    const { data: repository } = await octokit.request('GET /repos/{owner}/{repo}', {
-      owner,
-      repo,
-    });
+  return executeGitHubRequest(
+    event,
+    async (octokit) => {
+      const { data: repository } = await octokit.request('GET /repos/{owner}/{repo}', {
+        owner,
+        repo,
+      });
 
-    const permissions = repository.permissions || {
-      admin: false,
-      maintain: false,
-      push: false,
-      triage: false,
-      pull: false,
-    };
+      const permissions = repository.permissions || {
+        admin: false,
+        maintain: false,
+        push: false,
+        triage: false,
+        pull: false,
+      };
 
-    return {
-      admin: Boolean(permissions.admin),
-      maintain: Boolean(permissions.maintain),
-      push: Boolean(permissions.push),
-      triage: Boolean(permissions.triage),
-      pull: Boolean(permissions.pull),
-      canEditLabels: Boolean(permissions.admin || permissions.maintain || permissions.push),
-      canLockIssue: Boolean(permissions.admin || permissions.maintain || permissions.push),
-    };
-  } catch (error: unknown) {
-    console.error('Error fetching repository permissions:', error);
-
-    throwGitHubRouteError(error, 'Failed to fetch repository permissions');
-  }
+      return {
+        admin: Boolean(permissions.admin),
+        maintain: Boolean(permissions.maintain),
+        push: Boolean(permissions.push),
+        triage: Boolean(permissions.triage),
+        pull: Boolean(permissions.pull),
+        canEditLabels: Boolean(permissions.admin || permissions.maintain || permissions.push),
+        canLockIssue: Boolean(permissions.admin || permissions.maintain || permissions.push),
+      };
+    },
+    'Failed to fetch repository permissions'
+  );
 });

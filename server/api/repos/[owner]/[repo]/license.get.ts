@@ -1,4 +1,4 @@
-import { hasGitHubErrorStatus } from '../../../../utils/github-auth-utils';
+import { hasGitHubErrorStatus } from '#server/utils/github-auth-utils';
 
 export default defineEventHandler(async (event) => {
   try {

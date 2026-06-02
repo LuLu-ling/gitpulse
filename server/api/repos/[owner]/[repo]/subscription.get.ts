@@ -1,33 +1,25 @@
-import { hasGitHubErrorStatus } from '../../../../utils/github-auth-utils';
+import { hasGitHubErrorStatus } from '#server/utils/github-auth-utils';
+import { extractRepoParams, executeGitHubRequest } from '#server/utils/repo-route-utils';
 
 export default defineEventHandler(async (event) => {
-  const { owner, repo } = event.context.params as {
-    owner: string;
-    repo: string;
-  };
+  const { owner, repo } = extractRepoParams(event);
 
-  if (!owner || !repo) {
-    throw createError({
-      statusCode: 400,
-      statusMessage: 'Missing required parameters',
-    });
-  }
-
-  const octokit = await getGitHubClient(event);
-
-  try {
-    const { data } = await octokit.request('GET /repos/{owner}/{repo}/subscription', {
-      owner,
-      repo,
-    });
-    return {
-      subscribed: data.subscribed,
-      ignored: data.ignored,
-    };
-  } catch (error: unknown) {
-    if (hasGitHubErrorStatus(error, 404)) {
-      return { subscribed: false, ignored: false };
-    }
-    throwGitHubRouteError(error, 'Failed to get subscription status');
-  }
+  return executeGitHubRequest(
+    event,
+    async (octokit) => {
+      try {
+        const { data } = await octokit.request('GET /repos/{owner}/{repo}/subscription', {
+          owner,
+          repo,
+        });
+        return { subscribed: data.subscribed, ignored: data.ignored };
+      } catch (error: unknown) {
+        if (hasGitHubErrorStatus(error, 404)) {
+          return { subscribed: false, ignored: false };
+        }
+        throw error;
+      }
+    },
+    'Failed to get subscription status'
+  );
 });

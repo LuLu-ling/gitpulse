@@ -1,30 +1,23 @@
-import { hasGitHubErrorStatus } from '../../../../utils/github-auth-utils';
+import { extractRepoParams, executeGitHubRequest } from '#server/utils/repo-route-utils';
+
+import { hasGitHubErrorStatus } from '#server/utils/github-auth-utils';
 
 export default defineEventHandler(async (event) => {
-  const { owner, repo } = event.context.params as {
-    owner: string;
-    repo: string;
-  };
+  const { owner, repo } = extractRepoParams(event);
 
-  if (!owner || !repo) {
-    throw createError({
-      statusCode: 400,
-      statusMessage: 'Missing required parameters',
-    });
-  }
-
-  const octokit = await getGitHubClient(event);
-
-  try {
-    await octokit.request('GET /user/starred/{owner}/{repo}', {
-      owner,
-      repo,
-    });
-    return { starred: true };
-  } catch (error: unknown) {
-    if (hasGitHubErrorStatus(error, 404)) {
-      return { starred: false };
-    }
-    throwGitHubRouteError(error, 'Failed to check star status');
-  }
+  return executeGitHubRequest(
+    event,
+    async (octokit) => {
+      try {
+        await octokit.request('GET /user/starred/{owner}/{repo}', { owner, repo });
+        return { starred: true };
+      } catch (error: unknown) {
+        if (hasGitHubErrorStatus(error, 404)) {
+          return { starred: false };
+        }
+        throw error;
+      }
+    },
+    'Failed to check star status'
+  );
 });

@@ -1,28 +1,26 @@
-import { throwGitHubRouteError } from '../../../../../../utils/github-auth-utils';
+import {
+  extractIssueRouteParams,
+  normalizeRequestBody,
+  executeGitHubRequest,
+} from '#server/utils/repo-route-utils';
 
 interface LabelsRequestBody {
   labels?: unknown;
 }
 
 function normalizeLabelsBody(body: unknown) {
-  if (!body || typeof body !== 'object' || Array.isArray(body) || !('labels' in body)) {
-    throw createError({
-      statusCode: 400,
-      statusMessage: 'Invalid labels request body',
-    });
-  }
+  const requestBody = normalizeRequestBody<LabelsRequestBody>(body, ['labels']);
 
-  const requestBody = body as LabelsRequestBody;
-  const rawLabels = Array.isArray(requestBody.labels)
-    ? requestBody.labels
-    : requestBody.labels
-      ? [requestBody.labels]
+  const rawLabels = Array.isArray(requestBody!.labels)
+    ? requestBody!.labels
+    : requestBody!.labels
+      ? [requestBody!.labels]
       : [];
 
   if (!rawLabels.every((label): label is string => typeof label === 'string')) {
     throw createError({
       statusCode: 400,
-      statusMessage: 'Invalid labels request body',
+      statusMessage: 'Invalid labels: all labels must be strings',
     });
   }
 
@@ -30,39 +28,18 @@ function normalizeLabelsBody(body: unknown) {
 }
 
 export default defineEventHandler(async (event) => {
-  try {
-    const { owner, repo, issue_number } = event.context.params as {
-      owner: string;
-      repo: string;
-      issue_number: string;
-    };
-    const issueNumber = parsePaginationNumber(issue_number, 0);
+  const { owner, repo, issueNumber } = extractIssueRouteParams(event);
+  const labels = normalizeLabelsBody(await readBody(event));
 
-    if (!owner || !repo || issueNumber < 1) {
-      throw createError({
-        statusCode: 400,
-        statusMessage: 'Missing required parameters',
-      });
-    }
-
-    const labels = normalizeLabelsBody(await readBody(event));
-
-    const octokit = await getGitHubClient(event);
-
-    const { data: updatedLabels } = await octokit.request(
-      'PUT /repos/{owner}/{repo}/issues/{issue_number}/labels',
-      {
-        owner,
-        repo,
-        issue_number: issueNumber,
-        labels,
-      }
-    );
-
-    return updatedLabels;
-  } catch (error: unknown) {
-    console.error('Error updating issue labels:', error);
-
-    throwGitHubRouteError(error, 'Failed to update issue labels');
-  }
+  return executeGitHubRequest(
+    event,
+    async (octokit) => {
+      const { data: updatedLabels } = await octokit.request(
+        'PUT /repos/{owner}/{repo}/issues/{issue_number}/labels',
+        { owner, repo, issue_number: issueNumber, labels }
+      );
+      return updatedLabels;
+    },
+    'Failed to update issue labels'
+  );
 });

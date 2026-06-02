@@ -1,23 +1,17 @@
-import { throwGitHubRouteError } from '../../../../utils/github-auth-utils';
+import { extractRepoParams, executeGitHubRequest } from '#server/utils/repo-route-utils';
 
 export default defineEventHandler(async (event) => {
-  try {
-    const { owner, repo } = event.context.params as {
-      owner: string;
-      repo: string;
-    };
+  const { owner, repo } = extractRepoParams(event);
 
-    const octokit = await getGitHubClient(event);
-
-    const { data: labels } = await octokit.request('GET /repos/{owner}/{repo}/labels', {
-      owner,
-      repo,
-    });
-
-    return labels;
-  } catch (error: unknown) {
-    console.error('Error fetching repository labels:', error);
-
-    throwGitHubRouteError(error, 'Failed to fetch repository labels');
-  }
+  return executeGitHubRequest(
+    event,
+    async (octokit) => {
+      const { data: labels } = await octokit.request('GET /repos/{owner}/{repo}/labels', {
+        owner,
+        repo,
+      });
+      return labels;
+    },
+    'Failed to fetch repository labels'
+  );
 });
