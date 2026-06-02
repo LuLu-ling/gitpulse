@@ -55,7 +55,7 @@
   </template>
 
   <template v-else-if="item.eventType === 'referenced'">
-    referenced this PR from commit
+    {{ t('prReview.referenceCommitIntro') }}
     <a
       v-if="item.commit?.commitUrl"
       :href="item.commit.commitUrl"
@@ -63,10 +63,10 @@
       rel="noopener"
       class="tag is-activity ml-1 is-light is-family-monospace"
     >
-      {{ item.commit?.oid?.slice(0, 7) || 'commit' }}
+      {{ item.commit?.oid?.slice(0, 7) || t('prReview.commitFallbackRef') }}
     </a>
     <span v-else class="tag is-activity ml-1 is-light is-family-monospace">
-      {{ item.commit?.oid?.slice(0, 7) || 'commit' }}
+      {{ item.commit?.oid?.slice(0, 7) || t('prReview.commitFallbackRef') }}
     </span>
   </template>
 
@@ -123,6 +123,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import {
   parseGitHubIssueOrPullUrl,
@@ -140,6 +141,8 @@ const emit = defineEmits<{
   (e: 'switch-issue', owner: string, repo: string, issueNumber: number): void;
   (e: 'switch-pull-request', owner: string, repo: string, pullNumber: number): void;
 }>();
+
+const { t } = useI18n();
 
 const sourceReferencePrefix = computed(() => {
   switch (props.item.eventType) {

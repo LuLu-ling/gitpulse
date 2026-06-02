@@ -401,6 +401,7 @@
     "unknownReviewAuthor": "Unknown author",
     "committedAt": "committed {time}",
     "commitFallbackRef": "commit",
+    "referenceCommitIntro": "referenced this PR from commit",
     "loadMoreFiles": "Load more files",
     "selectFile": "Select a changed file to review.",
     "renamedFrom": "Renamed from {filename}",
