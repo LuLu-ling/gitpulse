@@ -45,7 +45,12 @@
       {{ item.project?.title }}
     </a>
     <span v-else class="tag is-activity ml-1 is-link is-light">
-      {{ item.project?.title || item.project?.name || item.projectColumnName || 'Project' }}
+      {{
+        item.project?.title ||
+        item.project?.name ||
+        item.projectColumnName ||
+        t('issueDetail.projectFallback')
+      }}
     </span>
   </template>
 
@@ -125,7 +130,7 @@
     </template>
     <template v-else>
       updated project status in
-      <ProjectTag :project="item.project" fallback-title="Project" />
+      <ProjectTag :project="item.project" :fallback-title="t('issueDetail.projectFallback')" />
     </template>
   </template>
 
@@ -136,7 +141,7 @@
     </span>
     to
     <span class="tag is-activity ml-1 is-success is-light">
-      {{ item.projectColumnName || 'column' }}
+      {{ item.projectColumnName || t('issueDetail.projectColumnFallback') }}
     </span>
   </template>
 
@@ -181,6 +186,8 @@
 </template>
 
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n';
+
 import ProjectTag from '~/components/dashboard/timeline/ProjectTag.vue';
 import type { ProcessedIssueTimelineItem } from '~/composables/useIssueTimelineEvents';
 import {
@@ -195,6 +202,8 @@ defineProps<{
   repoOwner: string;
   repoName: string;
 }>();
+
+const { t } = useI18n();
 
 const labelStyle = (color?: string) => {
   if (!color) return undefined;

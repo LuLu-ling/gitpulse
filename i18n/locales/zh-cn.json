@@ -110,6 +110,8 @@
     "commitFallbackRef": "提交",
     "referenceCommitIntro": "添加了引用此议题的提交",
     "referenceCommitFallback": "此议题被一个提交引用",
+    "projectFallback": "项目",
+    "projectColumnFallback": "列",
     "labels": "标签",
     "editLabels": "编辑标签",
     "selectLabels": "选择标签",

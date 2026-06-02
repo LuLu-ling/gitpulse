@@ -110,6 +110,8 @@
     "commitFallbackRef": "commit",
     "referenceCommitIntro": "added a commit that references this issue",
     "referenceCommitFallback": "Referenced this issue from a commit",
+    "projectFallback": "Project",
+    "projectColumnFallback": "column",
     "labels": "Labels",
     "editLabels": "Edit labels",
     "selectLabels": "Select labels",
