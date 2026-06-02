@@ -357,28 +357,15 @@ export function useDashboardDetails(currentRouteTab: Ref<string>) {
     await restorePreviousEntry();
   };
 
-  const handlePRDetailBack = async () => {
-    await restorePreviousEntry();
-  };
-
-  const handleRepoDetailBack = async () => {
-    await restorePreviousEntry();
-  };
-
   const handleIssueDetailHome = async () => {
     goToHome();
     await clearDetailRoute();
   };
 
-  const handlePRDetailHome = async () => {
-    goToHome();
-    await clearDetailRoute();
-  };
-
-  const handleRepoDetailHome = async () => {
-    goToHome();
-    await clearDetailRoute();
-  };
+  const handlePRDetailBack = handleIssueDetailBack;
+  const handleRepoDetailBack = handleIssueDetailBack;
+  const handlePRDetailHome = handleIssueDetailHome;
+  const handleRepoDetailHome = handleIssueDetailHome;
 
   watch(
     () => [route.query.issue, route.query.pr, route.query.repo],
