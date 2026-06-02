@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { ArrowLeftIcon, LinkIcon } from 'lucide-vue-next';
 
+import TabsEditorPanel from '~/components/dashboard/tabs-settings/TabsEditorPanel.vue';
+import TabsViewsPanel from '~/components/dashboard/tabs-settings/TabsViewsPanel.vue';
 import type { TabsSettingsPageState } from '~/composables/useTabsSettingsPage';
 
 const props = defineProps<{
