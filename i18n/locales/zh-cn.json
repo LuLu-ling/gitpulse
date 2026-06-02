@@ -365,6 +365,11 @@
     "unavailableError": "当前条目暂时无法发表评论。",
     "failed": "发表评论失败"
   },
+  "timeline": {
+    "referenceUnavailable": "引用不可用",
+    "pullRequestType": "PR",
+    "issueType": "议题"
+  },
   "prReview": {
     "openReview": "审查变更",
     "backToDetails": "返回拉取请求详情",

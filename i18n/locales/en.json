@@ -365,6 +365,11 @@
     "unavailableError": "Comments are temporarily unavailable for this item.",
     "failed": "Failed to create comment"
   },
+  "timeline": {
+    "referenceUnavailable": "Reference unavailable",
+    "pullRequestType": "PR",
+    "issueType": "Issue"
+  },
   "prReview": {
     "openReview": "Review changes",
     "backToDetails": "Back to PR details",

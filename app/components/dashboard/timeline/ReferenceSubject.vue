@@ -14,7 +14,7 @@
     </span>
 
     <span class="tag is-activity is-link is-light">
-      {{ refSubject?.title || 'Unavailable reference' }}
+      {{ refSubject?.title || t('timeline.referenceUnavailable') }}
     </span>
   </a>
 
@@ -23,12 +23,14 @@
       {{ formatReferenceType(resolvedResourceType) }} #{{ refSubject?.number ?? '?' }}
     </span>
     <span class="tag is-activity is-link is-light">
-      {{ refSubject?.title || 'Reference unavailable' }}
+      {{ refSubject?.title || t('timeline.referenceUnavailable') }}
     </span>
   </span>
 </template>
 
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n';
+
 interface ReferenceSubject {
   number?: number;
   title?: string;
@@ -58,6 +60,8 @@ const emit = defineEmits<{
   (e: 'switch-pull-request', owner: string, repo: string, pullNumber: number): void;
 }>();
 
+const { t } = useI18n();
+
 const resolvedResourceType = computed(() => props.resourceType ?? props.refSubject?.resourceType);
 const canNavigate = computed(() => {
   const repository = props.refSubject?.repository;
@@ -81,7 +85,7 @@ const handleClick = () => {
 };
 
 const formatReferenceType = (resourceType?: string) => {
-  return resourceType === 'pull-request' ? 'PR' : 'Issue';
+  return resourceType === 'pull-request' ? t('timeline.pullRequestType') : t('timeline.issueType');
 };
 
 const switchToIssue = (owner: string, repo: string, issueNumber: number) => {
