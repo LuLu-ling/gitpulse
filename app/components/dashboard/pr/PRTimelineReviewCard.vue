@@ -92,7 +92,7 @@
                 aria-hidden="true"
               />
               <span class="review-item__file-name">{{ group.path }}</span>
-              <span class="tag is-light review-item__file-count">
+              <span class="review-item__file-count">
                 {{ group.comments.length }}
               </span>
             </button>
@@ -130,7 +130,7 @@
                     :href="comment.url"
                     target="_blank"
                     rel="noopener"
-                    class="tag is-light review-item__path-tag"
+                    class="review-item__path-tag"
                   >
                     {{ commentLineLabel(comment) }}
                   </a>
@@ -289,7 +289,16 @@ const stateIcon = computed(() => {
 });
 
 const commentLineLabel = (comment: TimelineReviewComment) => {
-  const line = comment.line ?? comment.originalLine ?? comment.position ?? comment.originalPosition;
+  // Range display: if originalStartLine exists, show range
+  if (comment.originalStartLine != null && comment.originalLine != null) {
+    return t('prReview.lineRangeLabel', {
+      start: comment.originalStartLine,
+      end: comment.originalLine,
+    });
+  }
+
+  // Single line display: prefer originalLine
+  const line = comment.originalLine ?? comment.line ?? comment.position ?? comment.originalPosition;
   return line ? t('prReview.lineLabel', { line }) : t('prReview.fileLabel');
 };
 
@@ -791,6 +800,17 @@ const buildSuggestionDiffLines = (
 
 .review-item__file-count {
   flex: none;
+  font-size: 0.65rem;
+  font-weight: 600;
+  min-width: 1.4rem;
+  height: 1.4rem;
+  padding: 0 0.4rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--gitpulse-text-muted) 15%, transparent);
+  color: var(--gitpulse-text-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .review-item__file-comments {
@@ -801,6 +821,19 @@ const buildSuggestionDiffLines = (
 
 .review-item__path-tag {
   font-size: 0.68rem;
+  font-family:
+    ui-monospace,
+    SFMono-Regular,
+    SF Mono,
+    Menlo,
+    Consolas,
+    Liberation Mono,
+    monospace;
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--gitpulse-info) 10%, transparent);
+  color: var(--gitpulse-text-muted);
+  border: 1px solid color-mix(in srgb, var(--gitpulse-info) 20%, transparent);
   max-width: 100%;
   overflow-wrap: anywhere;
 }
@@ -825,6 +858,8 @@ const buildSuggestionDiffLines = (
 
 .review-item__comment-body {
   margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid color-mix(in srgb, var(--gitpulse-border) 60%, transparent);
   min-width: 0;
 }
 

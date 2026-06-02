@@ -423,6 +423,7 @@
     "pendingDrafts": "待提交评论",
     "pendingComments": "{count} 条待提交评论",
     "lineLabel": "第 {line} 行",
+    "lineRangeLabel": "第 {start}\u2013{end} 行",
     "fileLabel": "文件",
     "removeDraft": "移除草稿",
     "noReviewCommentBody": "没有审查评论正文",

@@ -423,6 +423,7 @@
     "pendingDrafts": "Pending comments",
     "pendingComments": "{count} pending comments",
     "lineLabel": "Line {line}",
+    "lineRangeLabel": "Lines {start}\u2013{end}",
     "fileLabel": "File",
     "removeDraft": "Remove draft",
     "noReviewCommentBody": "No review comment body",
