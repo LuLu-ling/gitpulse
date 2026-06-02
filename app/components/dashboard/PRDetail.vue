@@ -123,6 +123,7 @@ const detailError = ref('');
 const timeline = ref<PRTimelineItem[]>([]);
 const timelineRequestId = ref(0);
 const detailRequestId = ref(0);
+const permissionRequestId = ref(0);
 const currentTimelinePage = ref(1);
 const hasNextTimelinePage = ref(false);
 const loadingMoreTimeline = ref(false);
@@ -152,7 +153,7 @@ const onSidebarScroll = () => {
 
 onBeforeUnmount(clearScrollTimeout);
 
-const repoPermissions = ref({
+const createEmptyRepoPermissions = () => ({
   admin: false,
   maintain: false,
   push: false,
@@ -161,6 +162,8 @@ const repoPermissions = ref({
   canEditLabels: false,
   canLockIssue: false,
 });
+
+const repoPermissions = ref(createEmptyRepoPermissions());
 
 const repoInfo = computed(() => {
   const pullRequest = currentPullRequest.value;
@@ -230,15 +233,7 @@ const resetPullRequestScopedState = (pullRequest: any) => {
   currentPullRequest.value = pullRequest;
   detailError.value = '';
   timeline.value = [];
-  repoPermissions.value = {
-    admin: false,
-    maintain: false,
-    push: false,
-    triage: false,
-    pull: false,
-    canEditLabels: false,
-    canLockIssue: false,
-  };
+  repoPermissions.value = createEmptyRepoPermissions();
   currentTimelinePage.value = 1;
   hasNextTimelinePage.value = false;
   loadingMoreTimeline.value = false;
@@ -330,11 +325,18 @@ const loadMoreTimeline = async () => {
 const fetchRepoPermissions = async () => {
   if (!repoInfo.value || !currentPullRequest.value?.number) return;
 
+  const requestId = permissionRequestId.value + 1;
+  permissionRequestId.value = requestId;
+
   try {
     const { owner, repo } = repoInfo.value;
     const permissionData = await apiFetch(`/api/repos/${owner}/${repo}/permissions`, {
       method: 'GET',
     });
+
+    if (requestId !== permissionRequestId.value) {
+      return;
+    }
 
     if (permissionData) {
       repoPermissions.value = {
@@ -349,15 +351,9 @@ const fetchRepoPermissions = async () => {
     }
   } catch (err) {
     console.error('Error fetching repository permissions:', err);
-    repoPermissions.value = {
-      admin: false,
-      maintain: false,
-      push: false,
-      triage: false,
-      pull: false,
-      canEditLabels: false,
-      canLockIssue: false,
-    };
+    if (requestId === permissionRequestId.value) {
+      repoPermissions.value = createEmptyRepoPermissions();
+    }
   }
 };
 
@@ -400,6 +396,7 @@ watch(
   (newPullRequest) => {
     timelineRequestId.value += 1;
     detailRequestId.value += 1;
+    permissionRequestId.value += 1;
     resetPullRequestScopedState(newPullRequest);
     if (newPullRequest) {
       fetchTimeline();
