@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { parseMarkdown } from '@nuxtjs/mdc/runtime';
-import type { DefineComponent } from 'vue';
+import type { Component } from 'vue';
 import { shallowRef } from 'vue';
 
 import MarkdownRendererProseA from '~/components/ui/MarkdownRendererProseA.vue';
@@ -21,7 +21,7 @@ const { applyGitHubAutolinks } = useGitHubAutolinks();
 // Pass imported component objects directly — bypasses Vue string-based
 // component resolution which can fail when Nuxt's auto-registered names
 // differ from the bare PascalCase filename (e.g. path-prefixed variants).
-const rendererComponents: Record<string, string | DefineComponent<any, any, any>> = {
+const rendererComponents: Record<string, Component> = {
   a: MarkdownRendererProseA,
   img: MarkdownRendererProseImg,
   // Override the block-level `pre` renderer (not `code` — inline backticks
