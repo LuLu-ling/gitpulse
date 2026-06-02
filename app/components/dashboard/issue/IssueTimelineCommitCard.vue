@@ -15,7 +15,7 @@
 
       <div class="is-flex is-flex-direction-column is-justify-content-center is-flex-grow-1">
         <span class="is-size-6 has-text-weight-medium commit-message">
-          {{ item.commit?.message?.split('\n')[0] || 'Commit' }}
+          {{ item.commit?.message?.split('\n')[0] || t('issueDetail.commitFallbackTitle') }}
         </span>
 
         <div class="is-flex is-align-items-center mt-1">
@@ -29,10 +29,14 @@
             {{ item.commit.author.user.login }}
           </a>
           <span v-else class="is-size-7 has-text-grey mr-1">
-            {{ item.commit?.author?.name || 'Unknown' }}
+            {{ item.commit?.author?.name || t('issueDetail.unknownCommitAuthor') }}
           </span>
           <span class="is-size-7 has-text-grey">
-            committed {{ formatDurationFromNow(item.commit?.committedDate || '', localeCode) }}
+            {{
+              t('issueDetail.committedAt', {
+                time: formatDurationFromNow(item.commit?.committedDate || '', localeCode),
+              })
+            }}
           </span>
         </div>
       </div>
@@ -51,7 +55,7 @@
         {{ item.commit.oid.slice(0, 7) }}
       </a>
       <span v-else class="tag is-light is-family-monospace ml-3" style="font-size: 0.75rem">
-        commit
+        {{ t('issueDetail.commitFallbackRef') }}
       </span>
     </div>
   </div>
@@ -71,7 +75,7 @@ defineProps<{
   repoName: string;
 }>();
 
-const { locale } = useI18n();
+const { locale, t } = useI18n();
 const localeCode = computed(() => locale.value);
 </script>
 
