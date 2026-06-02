@@ -24,11 +24,6 @@ const props = defineProps<{
   repo: string;
 }>();
 
-const emit = defineEmits<{
-  back: [];
-  home: [];
-}>();
-
 type RepoDetailIcon = typeof GithubIcon;
 
 const { locale, t } = useI18n();
