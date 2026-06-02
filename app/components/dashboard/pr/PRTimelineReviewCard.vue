@@ -455,8 +455,17 @@ const buildReviewCommentDiffLines = (comment: TimelineReviewComment): Suggestion
     return rows.flatMap(rowToTimelineLines);
   }
 
+  // When originalStartLine is null, this is a single-line comment.
+  // Show 3 lines of context before the commented line.
+  // When originalStartLine is not null, this is a multi-line range comment —
+  // show exactly originalStartLine..originalLine as-is.
+  const isSingleLineComment = comment.originalStartLine == null;
+  const effectiveRange = isSingleLineComment
+    ? { ...range, start: Math.max(1, range.end - 3) }
+    : range;
+
   const selectedLines = rows
-    .filter((row) => isRowInCommentRange(row, range))
+    .filter((row) => isRowInCommentRange(row, effectiveRange))
     .flatMap(rowToTimelineLines);
 
   if (!selectedLines.length) {
