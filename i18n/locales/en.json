@@ -374,10 +374,43 @@
     "pullRequestType": "PR",
     "issueType": "Issue"
   },
+  "branchSelector": {
+    "label": "Switch branch",
+    "searchPlaceholder": "Filter branches...",
+    "default": "default",
+    "noBranches": "No branches found"
+  },
   "repoDetail": {
     "watchAllDescription": "Receive all notifications",
     "watchDefaultDescription": "Only \\@mentions",
-    "watchIgnoreDescription": "Receive no notifications"
+    "watchIgnoreDescription": "Receive no notifications",
+    "files": "Files",
+    "filesEmpty": "No files found",
+    "filesLoadError": "Failed to load files"
+  },
+  "repoFileView": {
+    "fileTree": "File tree",
+    "collapseSidebar": "Collapse sidebar",
+    "expandSidebar": "Expand sidebar",
+    "expandDirectory": "Expand {name}",
+    "collapseDirectory": "Collapse {name}",
+    "items": "{count} items",
+    "loadingTree": "Loading file tree...",
+    "emptyDirectory": "This directory is empty",
+    "backToParent": "Back to parent",
+    "root": "Root",
+    "back": "Back",
+    "backToRepo": "Back to repository",
+    "size": "Size",
+    "name": "Name",
+    "lines": "{count} lines",
+    "selectFile": "Select a file to view its content",
+    "binaryFile": "Binary file",
+    "binaryFileHint": "This file is a binary and cannot be displayed as text.",
+    "toggleWrap": "Toggle word wrap",
+    "copyContent": "Copy content",
+    "download": "Download",
+    "copied": "Copied"
   },
   "prReview": {
     "openReview": "Review changes",

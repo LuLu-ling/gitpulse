@@ -16,6 +16,7 @@ import {
 import { computed, onMounted, onUnmounted, ref } from 'vue';
 
 import { formatDurationFromNow } from '#imports';
+import RepoFileTree from '~/components/dashboard/RepoFileTree.vue';
 import MarkdownRenderer from '~/components/ui/MarkdownRenderer.vue';
 
 const props = defineProps<{
@@ -487,6 +488,8 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside));
           </div>
 
           <hr class="mr-4" />
+
+          <RepoFileTree :owner="owner" :repo="repo" />
 
           <div class="repo-readme">
             <h2 class="title is-5 repo-readme__title">

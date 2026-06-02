@@ -1,6 +1,12 @@
 <template>
   <NuxtPage v-if="isDashboardChildRoute" />
 
+  <div v-else-if="showFileBrowsingView && fileBrowsingRepo" class="dashboard-file-browser">
+    <KeepAlive>
+      <RepoFileView :owner="fileBrowsingRepo.owner" :repo="fileBrowsingRepo.repo" />
+    </KeepAlive>
+  </div>
+
   <div v-else class="dashboard-page">
     <DashboardLayout>
       <template #activity-bar>
@@ -133,6 +139,7 @@
   </div>
 
   <DetailOverlayHost
+    v-if="!showFileBrowsingView"
     :issue="currentIssue"
     :pull-request="currentPR"
     :repository="currentRepo"
@@ -164,7 +171,7 @@ import {
   SearchIcon,
 } from 'lucide-vue-next';
 import SimpleBar from 'simplebar-vue';
-import { defineAsyncComponent, computed, onMounted, ref, watch, type Component } from 'vue';
+import { defineAsyncComponent, computed, onMounted, ref, watch } from 'vue';
 import type { LocationQueryRaw } from 'vue-router';
 
 import ActivityBar from '~/components/dashboard/activity-bar/ActivityBar.vue';
@@ -172,6 +179,7 @@ import DashboardLayout from '~/components/dashboard/DashboardLayout.vue';
 import DashboardLoadingList from '~/components/dashboard/DashboardLoadingList.vue';
 import DashboardPagination from '~/components/dashboard/DashboardPagination.vue';
 import DetailOverlayHost from '~/components/dashboard/DetailOverlayHost.vue';
+import RepoFileView from '~/components/dashboard/repo-files/RepoFileView.vue';
 import TabSidebar from '~/components/dashboard/tab-sidebar/TabSidebar.vue';
 import QuickActions from '~/components/dashboard/widgets/QuickActions.vue';
 import QuickFilters from '~/components/dashboard/widgets/QuickFilters.vue';
@@ -179,6 +187,7 @@ import TabStats from '~/components/dashboard/widgets/TabStats.vue';
 import WidgetsPanel from '~/components/dashboard/widgets/WidgetsPanel.vue';
 import type { DashboardTab } from '~/composables/useDashboardTabs';
 import getQueryParamValue from '~/utils/getQueryParamValue';
+import parseGitHubRepoPath from '~/utils/parseGitHubRepoPath';
 
 const AsyncNotificationItem = defineAsyncComponent(
   () => import('~/components/dashboard/NotificationItem.vue')
@@ -203,6 +212,17 @@ interface DashboardEntity {
 
 const isDashboardChildRoute = computed(() => {
   return !route.path.replace(/\/$/, '').endsWith('/dashboard');
+});
+
+const fileBrowsingRepo = computed(() => {
+  const repoQuery = getQueryParamValue(route.query.repo);
+  return repoQuery ? parseGitHubRepoPath(repoQuery) : null;
+});
+
+const hasFileBrowsingPath = computed(() => Object.hasOwn(route.query, 'path'));
+
+const showFileBrowsingView = computed(() => {
+  return Boolean(fileBrowsingRepo.value && hasFileBrowsingPath.value);
 });
 
 type QuickFilterMap = Partial<Record<DashboardTab, Record<string, boolean>>>;
@@ -813,6 +833,14 @@ watch(
   width: 100%;
   height: calc(100vh - var(--bulma-navbar-height, 3.25rem));
   min-height: calc(100vh - var(--bulma-navbar-height, 3.25rem));
+  overflow: hidden;
+  background: var(--gitpulse-page-bg);
+}
+
+.dashboard-file-browser {
+  width: 100%;
+  height: 100vh;
+  min-height: 100vh;
   overflow: hidden;
   background: var(--gitpulse-page-bg);
 }

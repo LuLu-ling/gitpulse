@@ -5,16 +5,20 @@ const GITHUB_API_VERSION = '2026-03-10';
 const GITHUB_ACCEPT_HEADER = 'application/vnd.github+json';
 
 export function createGitHubClient(accessToken: string): Octokit {
-  return new Octokit({
+  const octokit = new Octokit({
     auth: accessToken,
-    request: {
-      headers: {
-        'X-GitHub-Api-Version': GITHUB_API_VERSION,
-        accept: GITHUB_ACCEPT_HEADER,
-        'user-agent': 'gitpulse',
-      },
-    },
+    userAgent: 'gitpulse',
   });
+
+  octokit.hook.before('request', (options) => {
+    options.headers = {
+      ...options.headers,
+      accept: GITHUB_ACCEPT_HEADER,
+      'x-github-api-version': GITHUB_API_VERSION,
+    };
+  });
+
+  return octokit;
 }
 
 export async function getAccessToken(event: H3Event): Promise<string> {

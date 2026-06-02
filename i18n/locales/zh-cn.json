@@ -374,10 +374,43 @@
     "pullRequestType": "PR",
     "issueType": "议题"
   },
+  "branchSelector": {
+    "label": "切换分支",
+    "searchPlaceholder": "筛选分支...",
+    "default": "默认",
+    "noBranches": "未找到分支"
+  },
   "repoDetail": {
     "watchAllDescription": "接收所有通知",
     "watchDefaultDescription": "仅 \\@ 提及时通知",
-    "watchIgnoreDescription": "不接收通知"
+    "watchIgnoreDescription": "不接收通知",
+    "files": "文件",
+    "filesEmpty": "暂无文件",
+    "filesLoadError": "加载文件失败"
+  },
+  "repoFileView": {
+    "fileTree": "文件树",
+    "collapseSidebar": "收起侧边栏",
+    "expandSidebar": "展开侧边栏",
+    "expandDirectory": "展开 {name}",
+    "collapseDirectory": "收起 {name}",
+    "items": "{count} 个项目",
+    "loadingTree": "加载文件树...",
+    "emptyDirectory": "此目录为空",
+    "backToParent": "返回上级",
+    "root": "根目录",
+    "back": "返回",
+    "backToRepo": "返回仓库",
+    "size": "大小",
+    "name": "名称",
+    "lines": "{count} 行",
+    "selectFile": "选择一个文件查看其内容",
+    "binaryFile": "二进制文件",
+    "binaryFileHint": "此文件是二进制文件，无法以文本形式显示。",
+    "toggleWrap": "切换自动换行",
+    "copyContent": "复制内容",
+    "download": "下载",
+    "copied": "已复制"
   },
   "prReview": {
     "openReview": "审查变更",

@@ -59,6 +59,8 @@ export default defineNuxtConfig({
     optimizeDeps: {
       include: [
         '@comark/vue',
+        '@shikijs/themes/github-dark',
+        '@shikijs/themes/github-light',
         '@vue/devtools-core',
         '@vue/devtools-kit',
         'comark',
@@ -71,6 +73,8 @@ export default defineNuxtConfig({
         'dayjs/plugin/relativeTime.js', // CJS
         'lucide-vue-next',
         'mermaid',
+        'shiki',
+        'shiki/langs',
         'simplebar-vue',
         'vue-draggable-plus',
         'vue3-simple-icons',
