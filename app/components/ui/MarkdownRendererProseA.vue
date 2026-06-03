@@ -7,6 +7,7 @@ import {
   parseMarkdownRepoResource,
 } from '~/utils/markdown-repo-path-utils';
 import parseGitHubMarkdownTarget from '~/utils/parseGitHubMarkdownTarget';
+import parseGitHubRepoPath from '~/utils/parseGitHubRepoPath';
 
 const SAFE_EXTERNAL_PROTOCOLS = new Set(['http:', 'https:', 'mailto:', 'tel:']);
 
@@ -27,6 +28,21 @@ const internalTarget = computed(() => parseGitHubMarkdownTarget(props.href));
 const internalRepoResource = computed(() =>
   parseMarkdownRepoResource(props.href, markdownRepoContext?.value)
 );
+const internalRepoTarget = computed(() => {
+  const href = props.href.trim();
+  if (!href) return null;
+
+  try {
+    const url = new URL(href);
+    const host = url.hostname.toLowerCase();
+    const GITHUB_WEB_HOSTS = new Set(['github.com', 'www.github.com']);
+    if (!GITHUB_WEB_HOSTS.has(host)) return null;
+
+    return parseGitHubRepoPath(href);
+  } catch {
+    return null;
+  }
+});
 
 const externalHref = computed(() => {
   const href = props.href.trim();
@@ -63,6 +79,14 @@ const internalTo = computed(() => {
             ? `${target.owner}/${target.repo}/${target.number}`
             : undefined,
       },
+    });
+  }
+
+  const repoTarget = internalRepoTarget.value;
+  if (repoTarget) {
+    return localePath({
+      path: '/dashboard',
+      query: { repo: repoTarget.fullName },
     });
   }
 

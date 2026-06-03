@@ -23,8 +23,15 @@ export function useDashboardDetails(currentRouteTab: Ref<string>) {
   const apiFetch = useGitPulseApiFetch();
   const { loggedIn, ready: sessionReady } = useUserSession();
   const { getNotificationDetails, openExternalNotification } = useUrlHelper();
-  const { goBack, goToHome, hasHistory, navigateToIssue, navigateToPullRequest, navigateToRepo } =
-    useNavigationHistory();
+  const {
+    goBack,
+    goToHome,
+    hasHistory,
+    navigateToIssue,
+    navigateToPullRequest,
+    navigateToRepo,
+    currentEntry,
+  } = useNavigationHistory();
   const route = useRoute();
   const router = useRouter();
   const localePath = useLocalePath();
@@ -400,7 +407,12 @@ export function useDashboardDetails(currentRouteTab: Ref<string>) {
       }
 
       if (activeRepoTarget.value) {
-        await loadRepoData(activeRepoTarget.value.owner, activeRepoTarget.value.repo);
+        const { owner, repo } = activeRepoTarget.value;
+        const currentData = currentEntry.value?.data;
+        if (currentData?.owner !== owner || currentData?.repo !== repo) {
+          navigateToRepo(owner, repo);
+        }
+        await loadRepoData(owner, repo);
         return;
       }
 
