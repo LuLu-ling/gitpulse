@@ -21,7 +21,7 @@
         {{ displayState }}
       </span>
       <span class="ml-4 has-text-grey has-text-weight-medium">
-        {{ formatDurationFromNow(pullRequest?.updated_at, localeCode) }}
+        {{ updatedAtLabel }}
       </span>
     </div>
 
@@ -48,7 +48,7 @@
           class="mr-4"
           width="32"
           height="32"
-          :src="pullRequest?.user?.avatar_url"
+          :src="pullRequest?.user?.avatar_url ?? ''"
           :alt="pullRequest?.user?.login"
         />
         <div class="is-flex is-flex-direction-column is-justify-content-center">
@@ -61,7 +61,7 @@
             {{ pullRequest?.user?.login }}
           </a>
           <span class="is-size-7 has-text-grey">
-            {{ formatDurationFromNow(pullRequest?.created_at, localeCode) }}
+            {{ createdAtLabel }}
           </span>
         </div>
       </div>
@@ -120,6 +120,18 @@ const props = defineProps<{
 const displayState = computed(() => {
   if (props.pullRequest?.merged_at) return 'merged';
   return props.pullRequest?.state || 'closed';
+});
+
+const updatedAtLabel = computed(() => {
+  return props.pullRequest?.updated_at
+    ? formatDurationFromNow(props.pullRequest.updated_at, localeCode.value)
+    : '-';
+});
+
+const createdAtLabel = computed(() => {
+  return props.pullRequest?.created_at
+    ? formatDurationFromNow(props.pullRequest.created_at, localeCode.value)
+    : '-';
 });
 
 const stateIcon = computed(() => {

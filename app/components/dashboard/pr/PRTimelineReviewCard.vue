@@ -316,7 +316,7 @@ const toggleFile = (path: string) => {
 
 const splitSuggestionBody = (body: string): CommentBodyPart[] => {
   const parts: CommentBodyPart[] = [];
-  const suggestionPattern = /```suggestion[^\n\r]*(?:\r?\n)([\s\S]*?)(?:\r?\n)?```/g;
+  const suggestionPattern = /```suggestion[^\n\r]*\r?\n([\s\S]*?)(?:\r?\n)?```/g;
   let cursor = 0;
   let partIndex = 0;
 
