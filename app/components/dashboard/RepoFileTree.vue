@@ -13,6 +13,7 @@ const { t } = useI18n();
 const localePath = useLocalePath();
 const apiFetch = useGitPulseApiFetch();
 const router = useRouter();
+const { navigateToFile } = useNavigationHistory();
 
 const items = ref<RepoContentItem[]>([]);
 const loading = ref(false);
@@ -48,6 +49,8 @@ const fetchContents = async () => {
 };
 
 const navigateToItem = (item: RepoContentItem) => {
+  navigateToFile(props.owner, props.repo, item.path);
+
   const query: Record<string, string> = {
     repo: `${props.owner}/${props.repo}`,
     path: item.path,

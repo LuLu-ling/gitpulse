@@ -9,6 +9,7 @@ import {
   DownloadIcon,
   FileIcon,
   FolderIcon,
+  HomeIcon,
   Loader2Icon,
   PanelLeftCloseIcon,
   PanelLeftOpenIcon,
@@ -47,6 +48,16 @@ const { t } = useI18n();
 const localePath = useLocalePath();
 const apiFetch = useGitPulseApiFetch();
 const router = useRouter();
+const {
+  goBack: goNavigationBack,
+  goToHome,
+  previousEntry,
+  replaceWithEntry,
+} = useNavigationHistory();
+
+const shouldShowRepoButton = computed(() => {
+  return previousEntry.value?.type === 'issue' || previousEntry.value?.type === 'pull-request';
+});
 
 const {
   branches,
@@ -514,6 +525,54 @@ const countFiles = (node: FolderTreeNode): number =>
 
 const isCurrentPath = (path: string) => currentPath.value === path;
 
+const navigateToEntryRoute = async (entry: typeof previousEntry.value) => {
+  if (!entry || entry.type === 'dashboard' || entry.type === 'notification') {
+    await router.push(localePath('/dashboard'));
+    return;
+  }
+
+  const data = entry.data;
+
+  if (entry.type === 'issue' && data?.owner && data.repo && data.number) {
+    const query: LocationQueryRaw = {
+      tab: data.tab,
+      issue: `${data.owner}/${data.repo}/${data.number}`,
+    };
+    await router.push({ path: localePath('/dashboard'), query });
+    return;
+  }
+
+  if (entry.type === 'pull-request' && data?.owner && data.repo && data.number) {
+    const query: LocationQueryRaw = {
+      tab: data.tab,
+      pr: `${data.owner}/${data.repo}/${data.number}`,
+    };
+    await router.push({ path: localePath('/dashboard'), query });
+    return;
+  }
+
+  if (entry.type === 'repository' && data?.owner && data.repo) {
+    const query: LocationQueryRaw = {
+      tab: data.tab ?? 'repos',
+      repo: `${data.owner}/${data.repo}`,
+    };
+    await router.push({ path: localePath('/dashboard'), query });
+    return;
+  }
+
+  if (entry.type === 'file' && data?.owner && data.repo) {
+    const query: LocationQueryRaw = {
+      repo: `${data.owner}/${data.repo}`,
+      path: data.path ?? '',
+      branch: data.branch,
+    };
+    await router.push({ path: localePath('/dashboard'), query });
+    return;
+  }
+
+  await router.push(localePath('/dashboard'));
+};
+
 const handleTreeDirectoryClick = async (row: VisibleTreeRow) => {
   await navigateToPath(row.node.path);
 };
@@ -522,7 +581,20 @@ const handleTreeFileClick = async (row: VisibleTreeRow) => {
   await navigateToPath(row.node.path);
 };
 
+const goBack = async () => {
+  await navigateToEntryRoute(goNavigationBack());
+};
+
+const goHome = async () => {
+  goToHome();
+  await router.push(localePath('/dashboard'));
+};
+
 const navigateToRepoDetail = async () => {
+  replaceWithEntry({
+    type: 'repository',
+    data: { owner: props.owner, repo: props.repo, tab: 'repos' },
+  });
   const query: LocationQueryRaw = {
     tab: 'repos',
     repo: `${props.owner}/${props.repo}`,
@@ -602,15 +674,36 @@ onActivated(() => {
   <section class="repo-file-view">
     <header class="repo-file-view__header">
       <div class="repo-file-view__identity">
-        <button
-          type="button"
-          class="repo-file-view__back-button"
-          :aria-label="t('repoFileView.backToRepo')"
-          :title="t('repoFileView.backToRepo')"
-          @click="navigateToRepoDetail"
-        >
-          <ArrowLeftIcon :size="16" aria-hidden="true" />
-        </button>
+        <div class="repo-file-view__nav-buttons">
+          <button
+            type="button"
+            class="repo-file-view__nav-button"
+            :aria-label="t('repoFileView.back')"
+            :title="t('repoFileView.back')"
+            @click="goBack"
+          >
+            <ArrowLeftIcon :size="16" aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            class="repo-file-view__nav-button"
+            :aria-label="t('repoFileView.home')"
+            :title="t('repoFileView.home')"
+            @click="goHome"
+          >
+            <HomeIcon :size="16" aria-hidden="true" />
+          </button>
+          <button
+            v-if="shouldShowRepoButton"
+            type="button"
+            class="repo-file-view__nav-button"
+            :aria-label="t('repoFileView.backToRepo')"
+            :title="t('repoFileView.backToRepo')"
+            @click="navigateToRepoDetail"
+          >
+            <FolderIcon :size="16" aria-hidden="true" />
+          </button>
+        </div>
         <FileIcon
           v-if="fileContent"
           :size="18"
@@ -1008,6 +1101,39 @@ onActivated(() => {
 .repo-file-view__back-button {
   width: 2rem;
   height: 2rem;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--gitpulse-text-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition:
+    background 0.1s ease,
+    color 0.1s ease;
+
+  &:hover {
+    background: var(--gitpulse-surface-hover);
+    color: var(--bulma-text-strong, var(--gitpulse-text-strong));
+  }
+}
+
+.repo-file-view__nav-buttons {
+  display: flex;
+  align-items: center;
+  gap: 0.125rem;
+  margin-right: 0.5rem;
+  padding: 0.125rem;
+  border-radius: 8px;
+  background: var(--gitpulse-surface);
+  border: 1px solid var(--gitpulse-border);
+}
+
+.repo-file-view__nav-button {
+  width: 1.75rem;
+  height: 1.75rem;
   border: 0;
   border-radius: 6px;
   background: transparent;

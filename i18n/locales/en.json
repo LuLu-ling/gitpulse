@@ -401,6 +401,7 @@
     "root": "Root",
     "back": "Back",
     "backToRepo": "Back to repository",
+    "home": "Home",
     "size": "Size",
     "name": "Name",
     "lines": "{count} lines",
