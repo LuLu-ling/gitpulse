@@ -13,9 +13,11 @@ import {
   StarIcon,
   XIcon,
 } from 'lucide-vue-next';
-import { computed, onMounted, onUnmounted, ref } from 'vue';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
+import type { LocationQueryRaw } from 'vue-router';
 
 import { formatDurationFromNow } from '#imports';
+import BranchSelector from '~/components/dashboard/repo-files/BranchSelector.vue';
 import RepoFileTree from '~/components/dashboard/RepoFileTree.vue';
 import MarkdownRenderer from '~/components/ui/MarkdownRenderer.vue';
 
@@ -28,7 +30,34 @@ const props = defineProps<{
 type RepoDetailIcon = typeof GithubIcon;
 
 const { locale, t } = useI18n();
+const localePath = useLocalePath();
 const apiFetch = useGitPulseApiFetch();
+const { navigateToFile } = useNavigationHistory();
+const {
+  branches,
+  currentBranch,
+  defaultBranch,
+  directoryContents,
+  loading: loadingFiles,
+  error: filesError,
+  navigateToBranch,
+} = useRepoFiles();
+
+interface LicenseInfo {
+  name: string | null;
+  spdxId: string | null;
+  url: string | null;
+  path: string | null;
+}
+
+interface AboutItem {
+  label: string;
+  value: string;
+  href?: string;
+  to?: string;
+  icon: RepoDetailIcon;
+  onClick?: () => void;
+}
 
 const copy = computed(() => {
   if (locale.value.startsWith('zh')) {
@@ -115,13 +144,23 @@ const watchCount = ref(props.repository.watchers_count ?? 0);
 const readmeContent = ref<string | null>(null);
 const readmePath = ref<string | null>(null);
 const loadingReadme = ref(false);
+const readmeRequestId = ref(0);
 
-const licenseInfo = ref<{ name: string | null; spdxId: string | null; url: string | null } | null>(
-  null
-);
+const licenseInfo = ref<LicenseInfo | null>(null);
 const loadingLicense = ref(false);
+const licenseRequestId = ref(0);
 
 const languageColor = computed(() => getLanguageColor(props.repository.language));
+const repoDefaultBranch = computed(
+  () => defaultBranch.value || props.repository.default_branch || ''
+);
+const repoCurrentBranch = computed(() => currentBranch.value || repoDefaultBranch.value);
+const canonicalBranch = computed(() => repoCurrentBranch.value || undefined);
+const currentBranchQueryValue = computed(() => {
+  return repoCurrentBranch.value && repoCurrentBranch.value !== repoDefaultBranch.value
+    ? repoCurrentBranch.value
+    : undefined;
+});
 
 const visibility = computed(() =>
   props.repository.private ? copy.value.private : copy.value.public
@@ -155,8 +194,25 @@ const watchStateLabel = computed(() => {
 
 const isSubscribedWatchState = (state: WatchState | null) => state === 'all' || state === 'ignore';
 
+const buildRepoFileQuery = (path: string): LocationQueryRaw => ({
+  repo: `${props.owner}/${props.repo}`,
+  path,
+  branch: currentBranchQueryValue.value,
+});
+
+const buildRepoFileTo = (path: string) => {
+  return localePath({
+    path: '/dashboard',
+    query: buildRepoFileQuery(path),
+  });
+};
+
+const trackFileNavigation = (path: string) => {
+  navigateToFile(props.owner, props.repo, path, canonicalBranch.value);
+};
+
 const aboutItems = computed(() => {
-  const items: { label: string; value: string; href?: string; icon: RepoDetailIcon }[] = [];
+  const items: AboutItem[] = [];
 
   if (props.repository.homepage) {
     const url = props.repository.homepage.startsWith('http')
@@ -170,12 +226,14 @@ const aboutItems = computed(() => {
     });
   }
 
-  if (licenseInfo.value?.name) {
+  if (licenseInfo.value?.name && licenseInfo.value.path) {
+    const licensePath = licenseInfo.value.path;
     items.push({
       label: copy.value.license,
       value: licenseInfo.value.name,
-      href: licenseInfo.value.url || undefined,
+      to: buildRepoFileTo(licensePath),
       icon: FileTextIcon,
+      onClick: () => trackFileNavigation(licensePath),
     });
   }
 
@@ -316,42 +374,73 @@ const fetchWatchState = async () => {
   }
 };
 
+const buildRefQuery = () => {
+  const branch = currentBranchQueryValue.value;
+  return branch ? `?ref=${encodeURIComponent(branch)}` : '';
+};
+
 const fetchReadme = async () => {
+  const requestId = readmeRequestId.value + 1;
+  readmeRequestId.value = requestId;
   loadingReadme.value = true;
   try {
     const data = await apiFetch<{ content: string | null; path?: string | null }>(
-      `/api/repos/${props.owner}/${props.repo}/readme`
+      `/api/repos/${props.owner}/${props.repo}/readme${buildRefQuery()}`
     );
+    if (requestId !== readmeRequestId.value) return;
+
     readmeContent.value = data.content;
     readmePath.value = data.path ?? null;
   } catch {
-    readmeContent.value = null;
-    readmePath.value = null;
+    if (requestId === readmeRequestId.value) {
+      readmeContent.value = null;
+      readmePath.value = null;
+    }
   } finally {
-    loadingReadme.value = false;
+    if (requestId === readmeRequestId.value) {
+      loadingReadme.value = false;
+    }
   }
 };
 
 const fetchLicense = async () => {
+  const requestId = licenseRequestId.value + 1;
+  licenseRequestId.value = requestId;
+  licenseInfo.value = null;
   loadingLicense.value = true;
   try {
-    const data = await apiFetch<{ name: string | null; spdxId: string | null; url: string | null }>(
-      `/api/repos/${props.owner}/${props.repo}/license`
+    const data = await apiFetch<LicenseInfo>(
+      `/api/repos/${props.owner}/${props.repo}/license${buildRefQuery()}`
     );
+    if (requestId !== licenseRequestId.value) return;
+
     licenseInfo.value = data;
   } catch {
-    licenseInfo.value = null;
+    if (requestId === licenseRequestId.value) {
+      licenseInfo.value = null;
+    }
   } finally {
-    loadingLicense.value = false;
+    if (requestId === licenseRequestId.value) {
+      loadingLicense.value = false;
+    }
   }
 };
 
 onMounted(() => {
   fetchStarState();
   fetchWatchState();
-  fetchReadme();
-  fetchLicense();
 });
+
+watch(
+  () => [props.owner, props.repo, repoCurrentBranch.value],
+  () => {
+    if (!repoCurrentBranch.value) return;
+
+    fetchReadme();
+    fetchLicense();
+  },
+  { immediate: true }
+);
 
 // Close dropdown on outside click
 const handleClickOutside = (e: MouseEvent) => {
@@ -438,6 +527,14 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside));
                   </button>
                 </div>
               </div>
+
+              <BranchSelector
+                :branches="branches"
+                :current-branch="repoCurrentBranch"
+                :default-branch="repoDefaultBranch"
+                :loading="loadingFiles"
+                @select="navigateToBranch"
+              />
             </div>
           </div>
 
@@ -475,8 +572,16 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside));
               <div v-for="item in aboutItems" :key="item.label" class="repo-about__item">
                 <component :is="item.icon" :size="14" class="repo-about__item-icon" />
                 <span class="repo-about__item-label">{{ item.label }}:</span>
+                <NuxtLinkLocale
+                  v-if="item.to"
+                  :to="item.to"
+                  class="repo-about__item-value repo-about__item-value--link"
+                  @click="item.onClick?.()"
+                >
+                  {{ item.value }}
+                </NuxtLinkLocale>
                 <a
-                  v-if="item.href"
+                  v-else-if="item.href"
                   :href="item.href"
                   target="_blank"
                   rel="noopener noreferrer"
@@ -492,7 +597,15 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside));
 
           <hr class="mr-4" />
 
-          <RepoFileTree :owner="owner" :repo="repo" />
+          <RepoFileTree
+            :owner="owner"
+            :repo="repo"
+            :items="directoryContents"
+            :loading="loadingFiles"
+            :error="filesError"
+            :current-branch="repoCurrentBranch"
+            :default-branch="repoDefaultBranch"
+          />
 
           <div class="repo-readme">
             <h2 class="title is-5 repo-readme__title">
@@ -508,7 +621,7 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside));
                 :repo-owner="owner"
                 :repo-name="repo"
                 :base-path="readmePath ?? undefined"
-                :branch="repository.default_branch || undefined"
+                :branch="repoCurrentBranch || undefined"
               />
             </div>
             <div v-else class="repo-readme__empty">

@@ -64,6 +64,10 @@ const buildQuery = (query: LocationQueryRaw) => {
   return nextQuery;
 };
 
+const buildBranchQueryValue = (branch: string, defaultBranch: string) => {
+  return branch && branch !== defaultBranch ? branch : undefined;
+};
+
 const encodeContentPath = (path: string) => {
   const normalizedPath = normalizePath(path);
   if (!normalizedPath) return '';
@@ -86,6 +90,10 @@ const getRequestErrorMessage = (error: unknown, fallback: string) => {
   }
 
   return error instanceof Error && error.message ? error.message : fallback;
+};
+
+const getBranchNotFoundMessage = (branch: string) => {
+  return branch ? `Branch "${branch}" was not found.` : 'Repository branch was not found.';
 };
 
 export function useRepoFiles() {
@@ -120,6 +128,7 @@ export function useRepoFiles() {
 
   const activePath = computed(() => normalizePath(getQueryParamValue(route.query.path)));
   const activeBranch = computed(() => getQueryParamValue(route.query.branch) || '');
+  const hasActivePathQuery = computed(() => Object.hasOwn(route.query, 'path'));
 
   const isDirectory = computed(() => !fileContent.value);
   const isFile = computed(() => Boolean(fileContent.value));
@@ -139,6 +148,12 @@ export function useRepoFiles() {
 
   const pushRepoFilesQuery = async (query: LocationQueryRaw) => {
     await router.push({
+      query: buildQuery(query),
+    });
+  };
+
+  const replaceRepoFilesQuery = async (query: LocationQueryRaw) => {
+    await router.replace({
       query: buildQuery(query),
     });
   };
@@ -231,6 +246,45 @@ export function useRepoFiles() {
       return;
     }
 
+    if (branch && !branches.value.some((repoBranch) => repoBranch.name === branch)) {
+      contentRequestId.value += 1;
+      currentPath.value = path;
+      currentBranch.value = branch;
+      directoryContents.value = [];
+      fileContent.value = null;
+      error.value = getBranchNotFoundMessage(branch);
+      loading.value = false;
+      return;
+    }
+
+    if (branch === loadedDefaultBranch) {
+      const canonicalizingTarget = { ...target };
+      const canonicalizingPath = path;
+      const canonicalizingBranch = branch;
+      const canonicalizingHasPathQuery = hasActivePathQuery.value;
+
+      await loadContent(target.owner, target.repo, path, loadedDefaultBranch);
+
+      const currentTarget = activeRepoTarget.value;
+      if (
+        !currentTarget ||
+        currentTarget.owner !== canonicalizingTarget.owner ||
+        currentTarget.repo !== canonicalizingTarget.repo ||
+        activePath.value !== canonicalizingPath ||
+        activeBranch.value !== canonicalizingBranch ||
+        hasActivePathQuery.value !== canonicalizingHasPathQuery
+      ) {
+        return;
+      }
+
+      await replaceRepoFilesQuery({
+        ...route.query,
+        branch: undefined,
+        path: hasActivePathQuery.value ? path : undefined,
+      });
+      return;
+    }
+
     await loadContent(target.owner, target.repo, path, branch || loadedDefaultBranch);
   };
 
@@ -245,7 +299,7 @@ export function useRepoFiles() {
     await pushRepoFilesQuery({
       ...route.query,
       path: normalizePath(path),
-      branch: currentBranch.value || undefined,
+      branch: buildBranchQueryValue(currentBranch.value, defaultBranch.value),
       view: undefined,
     });
   };
@@ -253,8 +307,8 @@ export function useRepoFiles() {
   const navigateToBranch = async (branch: string) => {
     await pushRepoFilesQuery({
       ...route.query,
-      branch: branch || undefined,
-      path: currentPath.value,
+      branch: buildBranchQueryValue(branch, defaultBranch.value),
+      path: hasActivePathQuery.value ? currentPath.value : undefined,
     });
   };
 

@@ -1,5 +1,10 @@
 import { hasGitHubErrorStatus } from '#server/utils/github-auth-utils';
 
+function getStringQueryParam(value: unknown) {
+  const rawValue = Array.isArray(value) ? value[0] : value;
+  return typeof rawValue === 'string' && rawValue ? rawValue : undefined;
+}
+
 export default defineEventHandler(async (event) => {
   try {
     const { owner, repo } = event.context.params as {
@@ -7,10 +12,13 @@ export default defineEventHandler(async (event) => {
       repo: string;
     };
 
+    const query = getQuery(event);
+    const ref = getStringQueryParam(query.ref);
     const octokit = await getGitHubClient(event);
     const { data } = await octokit.request('GET /repos/{owner}/{repo}/license', {
       owner,
       repo,
+      ref,
     });
 
     return {
@@ -19,10 +27,11 @@ export default defineEventHandler(async (event) => {
       spdxId: data.license?.spdx_id || null,
       url: data.license?.url || null,
       htmlUrl: data.html_url,
+      path: data.path,
     };
   } catch (error: unknown) {
     if (hasGitHubErrorStatus(error, 404)) {
-      return { name: null, key: null, spdxId: null, url: null, htmlUrl: null };
+      return { name: null, key: null, spdxId: null, url: null, htmlUrl: null, path: null };
     }
     throwGitHubRouteError(error, 'Failed to fetch license');
   }

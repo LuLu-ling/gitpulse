@@ -1,67 +1,55 @@
 <script setup lang="ts">
 import { FileIcon, FolderIcon, Loader2Icon } from 'lucide-vue-next';
-import { computed, onMounted, ref } from 'vue';
+import { computed } from 'vue';
+import type { LocationQueryRaw } from 'vue-router';
 
 import type { RepoContentItem } from '~/composables/useRepoFiles';
 
 const props = defineProps<{
   owner: string;
   repo: string;
+  items: RepoContentItem[];
+  loading: boolean;
+  error: string;
+  currentBranch: string;
+  defaultBranch: string;
 }>();
 
 const { t } = useI18n();
 const localePath = useLocalePath();
-const apiFetch = useGitPulseApiFetch();
 const router = useRouter();
 const { navigateToFile } = useNavigationHistory();
 
-const items = ref<RepoContentItem[]>([]);
-const loading = ref(false);
-const error = ref('');
-
 const sortedItems = computed(() => {
-  const dirs = items.value
+  const dirs = props.items
     .filter((item) => item.type === 'dir')
     .sort((a, b) => a.name.localeCompare(b.name));
 
-  const files = items.value
+  const files = props.items
     .filter((item) => item.type === 'file')
     .sort((a, b) => a.name.localeCompare(b.name));
 
   return [...dirs, ...files];
 });
 
-const fetchContents = async () => {
-  loading.value = true;
-  error.value = '';
+const currentBranchQueryValue = computed(() => {
+  return props.currentBranch && props.currentBranch !== props.defaultBranch
+    ? props.currentBranch
+    : undefined;
+});
+const canonicalBranch = computed(() => props.currentBranch || props.defaultBranch || undefined);
 
-  try {
-    const response = await apiFetch<RepoContentItem[]>(
-      `/api/repos/${props.owner}/${props.repo}/contents`
-    );
-    items.value = Array.isArray(response) ? response : [];
-  } catch {
-    error.value = t('repoDetail.filesLoadError');
-    items.value = [];
-  } finally {
-    loading.value = false;
-  }
-};
+const navigateToItem = async (item: RepoContentItem) => {
+  navigateToFile(props.owner, props.repo, item.path, canonicalBranch.value);
 
-const navigateToItem = (item: RepoContentItem) => {
-  navigateToFile(props.owner, props.repo, item.path);
-
-  const query: Record<string, string> = {
+  const query: LocationQueryRaw = {
     repo: `${props.owner}/${props.repo}`,
     path: item.path,
+    branch: currentBranchQueryValue.value,
   };
 
-  router.push({ path: localePath('/dashboard'), query });
+  await router.push({ path: localePath('/dashboard'), query });
 };
-
-onMounted(() => {
-  fetchContents();
-});
 </script>
 
 <template>

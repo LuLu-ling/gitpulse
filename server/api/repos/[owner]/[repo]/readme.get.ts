@@ -2,6 +2,11 @@ import { Buffer } from 'node:buffer';
 
 import { hasGitHubErrorStatus } from '#server/utils/github-auth-utils';
 
+function getStringQueryParam(value: unknown) {
+  const rawValue = Array.isArray(value) ? value[0] : value;
+  return typeof rawValue === 'string' && rawValue ? rawValue : undefined;
+}
+
 export default defineEventHandler(async (event) => {
   try {
     const { owner, repo } = event.context.params as {
@@ -9,10 +14,13 @@ export default defineEventHandler(async (event) => {
       repo: string;
     };
 
+    const query = getQuery(event);
+    const ref = getStringQueryParam(query.ref);
     const octokit = await getGitHubClient(event);
     const { data } = await octokit.request('GET /repos/{owner}/{repo}/readme', {
       owner,
       repo,
+      ref,
     });
 
     const content = Buffer.from(data.content || '', 'base64').toString('utf-8');
