@@ -25,6 +25,7 @@ const DIFF_ROW_ESTIMATED_HEIGHT = 26;
 const HUNK_ROW_ESTIMATED_HEIGHT = 28;
 const INLINE_COMMENT_ESTIMATED_HEIGHT = 180;
 const REVIEW_COMMENT_ESTIMATED_HEIGHT = 112;
+const CODE_LINE_TOKEN_CACHE_LIMIT = 2048;
 
 interface VirtualRow {
   row: PRReviewDiffRow;
@@ -34,9 +35,11 @@ interface VirtualRow {
   height: number;
 }
 
+type CodeLineTokens = ReturnType<typeof tokenizeCodeLine>;
+
 interface RenderedVirtualRow extends VirtualRow {
-  oldTokens: ReturnType<typeof tokenizeCodeLine>;
-  newTokens: ReturnType<typeof tokenizeCodeLine>;
+  oldTokens: CodeLineTokens;
+  newTokens: CodeLineTokens;
   reviewThreads: PRReviewCommentThread[];
   hasActiveDraftTarget: boolean;
 }
@@ -74,6 +77,7 @@ let updateFrame: number | undefined;
 let measurementFrame: number | undefined;
 let scrollListenerTarget: HTMLElement | null = null;
 const pendingMeasuredHeights = new Map<string, number>();
+const codeLineTokenCache = new Map<string, CodeLineTokens>();
 
 const threadsByLine = computed(() => {
   const threads = new Map<number, PRReviewCommentThread[]>();
@@ -118,6 +122,33 @@ const isActiveDraftTarget = (line: number | null) =>
 
 const getReviewThreadsForLine = (line: number | null) =>
   line ? (threadsByLine.value.get(line) ?? []) : [];
+
+const getCodeLineTokenCacheKey = (content: string, filename: string) =>
+  `${filename.length}:${filename}${content}`;
+
+const getCachedCodeLineTokens = (content: string, filename: string) => {
+  const cacheKey = getCodeLineTokenCacheKey(content, filename);
+  const cachedTokens = codeLineTokenCache.get(cacheKey);
+
+  if (cachedTokens) {
+    codeLineTokenCache.delete(cacheKey);
+    codeLineTokenCache.set(cacheKey, cachedTokens);
+    return cachedTokens;
+  }
+
+  const tokens = tokenizeCodeLine(content, filename);
+  codeLineTokenCache.set(cacheKey, tokens);
+
+  if (codeLineTokenCache.size > CODE_LINE_TOKEN_CACHE_LIMIT) {
+    const oldestCacheKey = codeLineTokenCache.keys().next().value;
+
+    if (oldestCacheKey !== undefined) {
+      codeLineTokenCache.delete(oldestCacheKey);
+    }
+  }
+
+  return tokens;
+};
 
 const getEstimatedRowHeight = (row: PRReviewDiffRow) => {
   if (row.type === 'hunk') {
@@ -202,8 +233,8 @@ const renderedVisibleRows = computed<RenderedVirtualRow[]>(() =>
 
     return {
       ...virtualRow,
-      oldTokens: tokenizeCodeLine(getSideContent(row, 'old'), props.filename),
-      newTokens: tokenizeCodeLine(getSideContent(row, 'new'), props.filename),
+      oldTokens: getCachedCodeLineTokens(getSideContent(row, 'old'), props.filename),
+      newTokens: getCachedCodeLineTokens(getSideContent(row, 'new'), props.filename),
       reviewThreads: getReviewThreadsForLine(row.newLineNumber),
       hasActiveDraftTarget,
     };
@@ -417,6 +448,7 @@ const setRowElement = (rowKey: string, element: Element | ComponentPublicInstanc
 
 const resetMeasurements = () => {
   pendingMeasuredHeights.clear();
+  codeLineTokenCache.clear();
   measuredRowHeights.value = new Map();
   setVisibleRange(0, 0);
   scheduleVisibleRowsSync();
