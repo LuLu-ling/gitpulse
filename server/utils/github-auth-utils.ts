@@ -41,6 +41,34 @@ export async function getGitHubClient(event: H3Event): Promise<Octokit> {
   return createGitHubClient(accessToken);
 }
 
+export async function getGitHubSessionContext(event: H3Event): Promise<{
+  octokit: Octokit;
+  userLogin: string;
+}> {
+  const session = await getUserSession(event);
+  const accessToken = session.secure?.access_token;
+  const userLogin = session.user?.login?.trim();
+
+  if (!accessToken) {
+    throw createError({
+      statusCode: 401,
+      statusMessage: 'Access token not found in session',
+    });
+  }
+
+  if (!userLogin) {
+    throw createError({
+      statusCode: 401,
+      statusMessage: 'GitHub user login not found in session',
+    });
+  }
+
+  return {
+    octokit: createGitHubClient(accessToken),
+    userLogin,
+  };
+}
+
 export function hasGitHubErrorStatus(error: unknown, statusCode: number): boolean {
   return getGitHubErrorStatusCode(error) === statusCode;
 }

@@ -46,7 +46,7 @@ const getGitHubErrorHeader = (error: unknown, headerName: string) => {
 
 export default defineEventHandler(async (event) => {
   try {
-    const octokit = await getGitHubClient(event);
+    const { octokit, userLogin } = await getGitHubSessionContext(event);
     const query = getQuery(event);
     const page = parsePaginationNumber(query.page, 1);
     const perPage = parsePaginationNumber(query.per_page, 20, 100);
@@ -73,7 +73,6 @@ export default defineEventHandler(async (event) => {
     const head = getQueryValue(query.head);
     const sort = normalizeIssueSearchSort(getQueryValue(query.sort));
     const order = normalizeIssueSearchOrder(getQueryValue(query.order));
-    const { data: user } = await octokit.request('GET /user');
 
     const customQuery: CustomTabQuery = {
       text,
@@ -106,7 +105,7 @@ export default defineEventHandler(async (event) => {
 
     const searchParts = buildIssueSearchParts(customQuery, {
       createdAfter: createdDate,
-      fallbackInvolves: user.login,
+      fallbackInvolves: userLogin,
     });
 
     const requestParams: {

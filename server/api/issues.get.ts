@@ -4,18 +4,17 @@ const SEARCH_TOTAL_COUNT_LIMIT = 1000;
 
 export default defineEventHandler(async (event) => {
   try {
-    const octokit = await getGitHubClient(event);
+    const { octokit, userLogin } = await getGitHubSessionContext(event);
     const createdDate = getOneYearAgoDate();
     const page = parsePaginationNumber(getQuery(event).page, 1);
     const perPage = parsePaginationNumber(getQuery(event).per_page, 20, 100);
-    const { data: user } = await octokit.request('GET /user');
 
     const q = [
       'is:issue',
       'is:open',
       'archived:false',
       `created:>=${createdDate}`,
-      `involves:${user.login}`,
+      `involves:${userLogin}`,
       'sort:updated-desc',
     ].join(' ');
 
