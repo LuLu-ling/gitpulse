@@ -4,24 +4,22 @@ import {
   computed,
   nextTick,
   onBeforeUnmount,
-  ref,
   shallowRef,
+  ref,
   useTemplateRef,
   watch,
   type ComponentPublicInstance,
 } from 'vue';
 
-import PRReviewInlineComment from '~/components/dashboard/pr/PRReviewInlineComment.vue';
-import MarkdownRenderer from '~/components/ui/MarkdownRenderer.vue';
-import RoundImg from '~/components/ui/RoundImg.vue';
+import PRReviewVirtualDiffRows from '~/components/dashboard/pr/PRReviewVirtualDiffRows.vue';
 import type {
   PRReviewDiffSection,
-  PRReviewDiffRow,
   PRReviewDraftComment,
   PRReviewCommentThread,
 } from '~/composables/usePRReview';
-import formatDurationFromNow from '~/utils/formatDurationFromNow';
-import tokenizeCodeLine from '~/utils/tokenizeCodeLine';
+
+const EMPTY_DRAFT_COMMENTS: PRReviewDraftComment[] = [];
+const EMPTY_REVIEW_COMMENT_THREADS: PRReviewCommentThread[] = [];
 
 const props = defineProps<{
   repoOwner: string;
@@ -43,8 +41,32 @@ const emit = defineEmits<{
 }>();
 
 const collapsedFiles = ref(new Set<string>());
-const { t, locale } = useI18n();
-const localeCode = computed(() => locale.value);
+const inlineDraftBodies = shallowRef(new Map<string, string>());
+const { t } = useI18n();
+
+const draftsByFile = computed(() => {
+  const grouped = new Map<string, PRReviewDraftComment[]>();
+
+  for (const comment of props.draftComments) {
+    const comments = grouped.get(comment.path) ?? [];
+    comments.push(comment);
+    grouped.set(comment.path, comments);
+  }
+
+  return grouped;
+});
+
+const reviewThreadsByFile = computed(() => {
+  const grouped = new Map<string, PRReviewCommentThread[]>();
+
+  for (const thread of props.reviewCommentThreads) {
+    const threads = grouped.get(thread.path) ?? [];
+    threads.push(thread);
+    grouped.set(thread.path, threads);
+  }
+
+  return grouped;
+});
 
 const toggleFileCollapse = (filename: string) => {
   const updated = new Set(collapsedFiles.value);
@@ -61,6 +83,7 @@ const sectionElements = new Map<string, HTMLElement>();
 const isProgrammaticScroll = shallowRef(false);
 const lastScrollSyncedFilename = shallowRef<string | null>(null);
 let programmaticScrollTimer: number | undefined;
+let scrollSyncFrame: number | undefined;
 
 const setFileSectionElement = (
   filename: string,
@@ -74,62 +97,83 @@ const setFileSectionElement = (
 };
 
 const getDraftsForFile = (filename: string) =>
-  props.draftComments.filter((comment) => comment.path === filename);
+  draftsByFile.value.get(filename) ?? EMPTY_DRAFT_COMMENTS;
 
-const getDraftForLine = (path: string, line: number | null) => {
-  if (!line) {
-    return undefined;
-  }
+const getReviewThreadsForFile = (filename: string) =>
+  reviewThreadsByFile.value.get(filename) ?? EMPTY_REVIEW_COMMENT_THREADS;
 
-  return props.draftComments.find((comment) => comment.path === path && comment.line === line);
-};
+const getDraftKey = (path: string, line: number) => `${path}:${line}`;
 
-const getReviewThreadsForLine = (path: string, line: number | null) => {
-  if (!line) {
-    return [];
-  }
+const getSavedDraftBody = (path: string, line: number) =>
+  getDraftsForFile(path).find((comment) => comment.line === line)?.body ?? '';
 
-  return props.reviewCommentThreads.filter(
-    (thread) => thread.path === path && thread.line === line
-  );
-};
+const ensureInlineDraftBody = (path: string, line: number) => {
+  const key = getDraftKey(path, line);
 
-const isActiveDraftTarget = (path: string, line: number | null) =>
-  Boolean(line && props.activeDraftTarget?.path === path && props.activeDraftTarget.line === line);
-
-const handleSaveDraft = (rows: PRReviewDiffRow[], path: string, line: number, body: string) => {
-  const row = rows.find((diffRow) => diffRow.newLineNumber === line);
-
-  if (!row?.position) {
+  if (inlineDraftBodies.value.has(key)) {
     return;
   }
 
-  emit('save-draft-comment', path, line, row.position, body);
+  const nextBodies = new Map(inlineDraftBodies.value);
+  nextBodies.set(key, getSavedDraftBody(path, line));
+  inlineDraftBodies.value = nextBodies;
 };
 
-const getRowSideClass = (row: PRReviewDiffRow, side: 'old' | 'new') => [
-  'pr-review-diff-viewer__pane',
-  `pr-review-diff-viewer__pane--${side}`,
-  `pr-review-diff-viewer__pane--${
-    row.type === 'replace' ? (side === 'old' ? 'delete' : 'add') : row.type
-  }`,
-  {
-    'pr-review-diff-viewer__pane--replace': row.type === 'replace',
-  },
-  {
-    'pr-review-diff-viewer__pane--empty':
-      (side === 'old' && row.type === 'add') || (side === 'new' && row.type === 'delete'),
-    'pr-review-diff-viewer__pane--commentable': side === 'new' && row.isCommentable,
-  },
-];
+const getInlineDraftBodyForFile = (filename: string) => {
+  const target = props.activeDraftTarget;
 
-const getSideContent = (row: PRReviewDiffRow, side: 'old' | 'new') => {
-  if (row.type === 'replace') {
-    return (side === 'old' ? row.oldContent : row.newContent) || ' ';
+  if (!target || target.path !== filename) {
+    return '';
   }
-  if (side === 'old' && row.type === 'add') return '';
-  if (side === 'new' && row.type === 'delete') return '';
-  return row.content || ' ';
+
+  return (
+    inlineDraftBodies.value.get(getDraftKey(target.path, target.line)) ??
+    getSavedDraftBody(target.path, target.line)
+  );
+};
+
+const setInlineDraftBodyForFile = (filename: string, body: string) => {
+  const target = props.activeDraftTarget;
+
+  if (!target || target.path !== filename) {
+    return;
+  }
+
+  const nextBodies = new Map(inlineDraftBodies.value);
+  nextBodies.set(getDraftKey(target.path, target.line), body);
+  inlineDraftBodies.value = nextBodies;
+};
+
+const clearInlineDraftBody = (target = props.activeDraftTarget) => {
+  if (!target) {
+    return;
+  }
+
+  const nextBodies = new Map(inlineDraftBodies.value);
+  nextBodies.delete(getDraftKey(target.path, target.line));
+  inlineDraftBodies.value = nextBodies;
+};
+
+const handleOpenDraftEditor = (path: string, line: number) => {
+  ensureInlineDraftBody(path, line);
+  emit('open-draft-editor', path, line);
+};
+
+const handleCloseDraftEditor = () => {
+  clearInlineDraftBody();
+  emit('close-draft-editor');
+};
+
+const handleSaveDraftComment = (path: string, line: number, position: number, body: string) => {
+  clearInlineDraftBody({ path, line });
+  emit('save-draft-comment', path, line, position, body);
+};
+
+const handleRemoveDraftComment = (id: string) => {
+  const nextBodies = new Map(inlineDraftBodies.value);
+  nextBodies.delete(id);
+  inlineDraftBodies.value = nextBodies;
+  emit('remove-draft-comment', id);
 };
 
 const scrollToActiveFile = async () => {
@@ -156,7 +200,7 @@ const scrollToActiveFile = async () => {
   }, 80);
 };
 
-const handleScroll = () => {
+const syncVisibleFile = () => {
   const container = scrollContainer.value;
 
   if (!container || isProgrammaticScroll.value) {
@@ -181,6 +225,17 @@ const handleScroll = () => {
   }
 };
 
+const handleScroll = () => {
+  if (isProgrammaticScroll.value || scrollSyncFrame) {
+    return;
+  }
+
+  scrollSyncFrame = window.requestAnimationFrame(() => {
+    scrollSyncFrame = undefined;
+    syncVisibleFile();
+  });
+};
+
 watch(
   () => props.activeFilename,
   (activeFilename) => {
@@ -193,8 +248,21 @@ watch(
   }
 );
 
+watch(
+  () => props.activeDraftTarget,
+  (target) => {
+    if (target) {
+      ensureInlineDraftBody(target.path, target.line);
+    }
+  },
+  { immediate: true }
+);
+
 onBeforeUnmount(() => {
   window.clearTimeout(programmaticScrollTimer);
+  if (scrollSyncFrame) {
+    window.cancelAnimationFrame(scrollSyncFrame);
+  }
 });
 </script>
 
@@ -264,156 +332,23 @@ onBeforeUnmount(() => {
           </div>
 
           <template v-else>
-            <template v-for="row in section.rows" :key="`${section.file.filename}:${row.key}`">
-              <div v-if="row.type === 'hunk'" class="pr-review-diff-viewer__hunk">
-                <code>{{ row.content }}</code>
-              </div>
-
-              <div v-else class="pr-review-diff-viewer__split-row">
-                <div :class="getRowSideClass(row, 'old')">
-                  <span class="pr-review-diff-viewer__line-number">{{
-                    row.oldLineNumber ?? ''
-                  }}</span>
-                  <code class="pr-review-diff-viewer__code">
-                    <span
-                      v-for="token in tokenizeCodeLine(
-                        getSideContent(row, 'old'),
-                        section.file.filename
-                      )"
-                      :key="token.key"
-                      class="pr-review-diff-viewer__token"
-                      :class="`pr-review-diff-viewer__token--${token.kind}`"
-                      >{{ token.text }}</span
-                    >
-                  </code>
-                </div>
-
-                <span class="pr-review-diff-viewer__split-divider" aria-hidden="true"></span>
-
-                <div :class="getRowSideClass(row, 'new')">
-                  <span class="pr-review-diff-viewer__line-number">
-                    <span class="pr-review-diff-viewer__line-num">{{
-                      row.newLineNumber ?? ''
-                    }}</span>
-                    <button
-                      class="pr-review-diff-viewer__comment-button"
-                      type="button"
-                      :aria-label="
-                        row.newLineNumber
-                          ? t('prReview.addLineCommentForLine', { line: row.newLineNumber })
-                          : t('prReview.addLineComment')
-                      "
-                      :disabled="!row.isCommentable || !row.newLineNumber || submitting"
-                      :title="
-                        row.isCommentable
-                          ? t('prReview.addLineComment')
-                          : t('prReview.lineNotCommentable')
-                      "
-                      @click="
-                        row.newLineNumber
-                          ? emit('open-draft-editor', section.file.filename, row.newLineNumber)
-                          : undefined
-                      "
-                    >
-                      +
-                    </button>
-                  </span>
-                  <div class="pr-review-diff-viewer__new-line">
-                    <code class="pr-review-diff-viewer__code">
-                      <span
-                        v-for="token in tokenizeCodeLine(
-                          getSideContent(row, 'new'),
-                          section.file.filename
-                        )"
-                        :key="token.key"
-                        class="pr-review-diff-viewer__token"
-                        :class="`pr-review-diff-viewer__token--${token.kind}`"
-                        >{{ token.text }}</span
-                      >
-                    </code>
-                    <div
-                      v-if="
-                        getReviewThreadsForLine(section.file.filename, row.newLineNumber).length
-                      "
-                      class="pr-review-diff-viewer__new-line-threads"
-                    >
-                      <div
-                        v-for="thread in getReviewThreadsForLine(
-                          section.file.filename,
-                          row.newLineNumber
-                        )"
-                        :key="thread.id"
-                        class="pr-review-diff-viewer__review-thread"
-                      >
-                        <article
-                          v-for="comment in thread.comments"
-                          :key="comment.id"
-                          class="pr-review-diff-viewer__review-comment"
-                        >
-                          <div class="pr-review-diff-viewer__review-comment-header">
-                            <RoundImg
-                              width="24"
-                              height="24"
-                              :src="comment.author?.avatarUrl || ''"
-                              :alt="comment.author?.login || ''"
-                            />
-                            <div class="pr-review-diff-viewer__review-comment-meta">
-                              <a
-                                v-if="comment.author?.url"
-                                :href="comment.author.url"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                class="has-text-link has-text-weight-semibold"
-                              >
-                                {{ comment.author.login }}
-                              </a>
-                              <strong v-else>{{
-                                comment.author?.login || t('prReview.unknownReviewAuthor')
-                              }}</strong>
-                              <a
-                                v-if="comment.url"
-                                :href="comment.url"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                class="has-text-grey"
-                              >
-                                {{ formatDurationFromNow(comment.createdAt || '', localeCode) }}
-                              </a>
-                              <span v-else-if="comment.createdAt" class="has-text-grey">
-                                {{ formatDurationFromNow(comment.createdAt, localeCode) }}
-                              </span>
-                            </div>
-                          </div>
-                          <div class="pr-review-diff-viewer__review-comment-body content">
-                            <MarkdownRenderer
-                              v-if="comment.body"
-                              :value="comment.body"
-                              :repo-owner="repoOwner"
-                              :repo-name="repoName"
-                            />
-                            <p v-else class="has-text-grey mb-0">
-                              {{ t('prReview.noReviewCommentBody') }}
-                            </p>
-                          </div>
-                        </article>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <PRReviewInlineComment
-                v-if="
-                  row.newLineNumber && isActiveDraftTarget(section.file.filename, row.newLineNumber)
-                "
-                :path="section.file.filename"
-                :line="row.newLineNumber"
-                :existing-body="getDraftForLine(section.file.filename, row.newLineNumber)?.body"
-                :submitting="submitting"
-                @save="(path, line, body) => handleSaveDraft(section.rows, path, line, body)"
-                @cancel="emit('close-draft-editor')"
-              />
-            </template>
+            <PRReviewVirtualDiffRows
+              :rows="section.rows"
+              :filename="section.file.filename"
+              :repo-owner="repoOwner"
+              :repo-name="repoName"
+              :review-comment-threads="getReviewThreadsForFile(section.file.filename)"
+              :active-draft-target="activeDraftTarget"
+              :active-draft-body="getInlineDraftBodyForFile(section.file.filename)"
+              :submitting="submitting"
+              :scroll-container="scrollContainer"
+              @open-draft-editor="handleOpenDraftEditor"
+              @close-draft-editor="handleCloseDraftEditor"
+              @update-active-draft-body="
+                (body) => setInlineDraftBodyForFile(section.file.filename, body)
+              "
+              @save-draft-comment="handleSaveDraftComment"
+            />
           </template>
 
           <div
@@ -437,7 +372,7 @@ onBeforeUnmount(() => {
                 type="button"
                 :aria-label="t('prReview.removeDraft')"
                 :disabled="submitting"
-                @click="emit('remove-draft-comment', comment.id)"
+                @click="handleRemoveDraftComment(comment.id)"
               ></button>
             </div>
           </div>
@@ -516,75 +451,20 @@ onBeforeUnmount(() => {
   height: 100%;
   min-height: 0;
   max-height: 100%;
+  -ms-overflow-style: none;
   overscroll-behavior: contain;
   font-size: 12px;
   line-height: 1.45;
+  scrollbar-width: none;
+}
+
+.pr-review-diff-viewer__body::-webkit-scrollbar {
+  display: none;
 }
 
 .pr-review-diff-viewer__file-section {
   min-width: 100%;
   border-bottom: 1px solid var(--gitpulse-border);
-}
-
-.pr-review-diff-viewer__split-row {
-  min-width: 100%;
-  min-height: 1.55rem;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 2px minmax(0, 1fr);
-  border-bottom: 1px solid var(--gitpulse-border);
-}
-
-.pr-review-diff-viewer__hunk {
-  min-width: 100%;
-  padding: 0.22rem 0.75rem;
-  border-top: 1px solid color-mix(in srgb, var(--gitpulse-info) 24%, transparent);
-  border-bottom: 1px solid color-mix(in srgb, var(--gitpulse-info) 24%, transparent);
-  background: var(--gitpulse-diff-hunk-bg);
-  color: var(--gitpulse-info);
-  font-weight: 600;
-}
-
-.pr-review-diff-viewer__hunk code,
-.pr-review-diff-viewer__code {
-  font-family:
-    ui-monospace,
-    SFMono-Regular,
-    SF Mono,
-    Menlo,
-    Consolas,
-    Liberation Mono,
-    monospace;
-}
-
-.pr-review-diff-viewer__split-divider {
-  background: var(--gitpulse-border);
-}
-
-.pr-review-diff-viewer__pane {
-  min-width: 0;
-  display: grid;
-  grid-template-columns: 3.5rem minmax(0, 1fr);
-}
-
-.pr-review-diff-viewer__pane--new {
-  border-right: 0;
-}
-
-.pr-review-diff-viewer__pane--add {
-  background: var(--gitpulse-diff-add-bg);
-}
-
-.pr-review-diff-viewer__pane--delete {
-  background: var(--gitpulse-diff-delete-bg);
-}
-
-.pr-review-diff-viewer__pane--context {
-  background: var(--gitpulse-surface);
-}
-
-.pr-review-diff-viewer__pane--empty {
-  background: var(--gitpulse-diff-empty-bg);
-  color: transparent;
 }
 
 .pr-review-diff-viewer__status-tag--added {
@@ -605,147 +485,6 @@ onBeforeUnmount(() => {
 .pr-review-diff-viewer__status-tag--renamed {
   background: var(--gitpulse-surface-muted);
   color: var(--gitpulse-text-muted);
-}
-
-.pr-review-diff-viewer__line-number {
-  padding: 0.2rem 0.3rem;
-  border-right: 1px solid var(--gitpulse-border);
-  color: var(--gitpulse-text-muted);
-  text-align: center;
-  user-select: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0;
-}
-
-.pr-review-diff-viewer__line-num {
-  display: inline-block;
-  min-width: 2.2rem;
-  text-align: center;
-}
-
-.pr-review-diff-viewer__comment-button {
-  width: 0;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: transparent;
-  cursor: pointer;
-  font-size: 0;
-  line-height: 1;
-  transition: none;
-  overflow: hidden;
-}
-
-.pr-review-diff-viewer__pane--commentable:hover
-  .pr-review-diff-viewer__comment-button:not(:disabled),
-.pr-review-diff-viewer__pane--commentable:focus-within
-  .pr-review-diff-viewer__comment-button:not(:disabled) {
-  width: 1rem;
-  font-size: 11px;
-  color: var(--gitpulse-info);
-  font-weight: 700;
-}
-
-.pr-review-diff-viewer__comment-button:disabled {
-  cursor: default;
-}
-
-.pr-review-diff-viewer__code {
-  min-width: 0;
-  padding: 0.2rem 0.65rem;
-  background: transparent;
-  color: var(--bulma-text-strong, var(--gitpulse-text-strong));
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-  overflow: hidden;
-}
-
-.pr-review-diff-viewer__pane--empty .pr-review-diff-viewer__code {
-  color: transparent;
-}
-
-.pr-review-diff-viewer__new-line {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.pr-review-diff-viewer__new-line > .pr-review-diff-viewer__code {
-  display: block;
-}
-
-.pr-review-diff-viewer__new-line-threads {
-  margin-top: 0.35rem;
-  padding-left: 0.9rem;
-  border-left: 2px solid color-mix(in srgb, var(--gitpulse-border-strong) 75%, transparent);
-}
-
-.pr-review-diff-viewer__review-thread {
-  margin: 0 0 0.5rem;
-}
-
-.pr-review-diff-viewer__review-comment {
-  padding: 0.65rem 0.75rem;
-  border: 1px solid var(--gitpulse-border);
-  border-radius: 6px;
-  background: var(--gitpulse-surface);
-}
-
-.pr-review-diff-viewer__review-comment + .pr-review-diff-viewer__review-comment {
-  margin-top: 0.5rem;
-}
-
-.pr-review-diff-viewer__review-comment-header {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.5rem;
-}
-
-.pr-review-diff-viewer__review-comment-meta {
-  min-width: 0;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem 0.5rem;
-  align-items: center;
-}
-
-.pr-review-diff-viewer__review-comment-body {
-  margin-top: 0.55rem;
-  margin-bottom: 0;
-}
-
-.pr-review-diff-viewer__review-comment-body :deep(.markdown-body) {
-  font-size: 12px;
-}
-
-.pr-review-diff-viewer__token--keyword {
-  color: var(--gitpulse-danger);
-}
-
-.pr-review-diff-viewer__token--string {
-  color: var(--gitpulse-success);
-}
-
-.pr-review-diff-viewer__token--number {
-  color: var(--gitpulse-info);
-}
-
-.pr-review-diff-viewer__token--comment {
-  color: var(--gitpulse-text-muted);
-}
-
-.pr-review-diff-viewer__token--operator {
-  color: var(--gitpulse-text-muted);
-}
-
-.pr-review-diff-viewer__token--function {
-  color: var(--gitpulse-purple);
-}
-
-.pr-review-diff-viewer__token--property {
-  color: var(--gitpulse-warning);
 }
 
 .pr-review-diff-viewer__empty {

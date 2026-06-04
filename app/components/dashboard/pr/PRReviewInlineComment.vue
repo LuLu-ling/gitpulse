@@ -1,28 +1,25 @@
 <script setup lang="ts">
-import { computed, shallowRef, watch } from 'vue';
+import { computed } from 'vue';
 
 const props = defineProps<{
   path: string;
   line: number;
-  existingBody?: string;
+  body: string;
   submitting: boolean;
 }>();
 
 const emit = defineEmits<{
+  (e: 'update:body', body: string): void;
   (e: 'save', path: string, line: number, body: string): void;
   (e: 'cancel'): void;
 }>();
 
 const { t } = useI18n();
-const draft = shallowRef(props.existingBody ?? '');
+const draft = computed({
+  get: () => props.body,
+  set: (body: string) => emit('update:body', body),
+});
 const trimmedDraft = computed(() => draft.value.trim());
-
-watch(
-  () => [props.path, props.line, props.existingBody],
-  () => {
-    draft.value = props.existingBody ?? '';
-  }
-);
 </script>
 
 <template>
