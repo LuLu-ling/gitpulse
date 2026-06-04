@@ -46,6 +46,16 @@
               {{ t('auth.tokenHelpLink') }}
             </a>
           </p>
+
+          <div
+            class="auth-gateway__gh-auth-tip"
+            v-html="
+              t('auth.tokenTipGhAuth').replace(
+                /`([^`]+)`/g,
+                '<code class=&quot;auth-gateway__code&quot;>$1</code>'
+              )
+            "
+          />
         </div>
 
         <div v-if="tokenError" class="notification is-danger is-light auth-gateway__error">
@@ -226,5 +236,27 @@ const handlePatSubmit = async () => {
 
 .auth-gateway__error {
   margin: 0;
+}
+
+.auth-gateway__gh-auth-tip {
+  margin-top: 0.25rem;
+  padding: 0.5rem 0.65rem;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: var(--gitpulse-text-muted);
+  background: var(--gitpulse-accent-soft);
+  border: 1px solid color-mix(in srgb, var(--gitpulse-accent) 18%, transparent);
+  border-radius: var(--gitpulse-radius-md);
+}
+
+.auth-gateway__gh-auth-tip :deep(.auth-gateway__code) {
+  padding: 0.15em 0.4em;
+  font-size: 0.92em;
+  font-weight: 600;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  background: var(--gitpulse-code-bg);
+  border: 1px solid color-mix(in srgb, var(--gitpulse-accent) 15%, transparent);
+  border-radius: 4px;
+  color: var(--gitpulse-text-strong);
 }
 </style>

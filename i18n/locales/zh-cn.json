@@ -70,6 +70,7 @@
     "tokenPlaceholder": "ghp_xxxxxxxxxxxxxxxxxxxx",
     "tokenHelp": "请使用能访问 GitPulse 所需 GitHub 数据的 Token。",
     "tokenHelpLink": "在 GitHub 设置中创建或检查 Token。",
+    "tokenTipGhAuth": "推荐：使用 `gh auth token` 命令获取具有适当权限的 Token。",
     "tokenRequired": "请输入 GitHub Token。",
     "tokenInvalid": "这个 GitHub Token 无效，或已经不可用。",
     "tokenLoginFailed": "当前无法使用这个 GitHub Token 登录。",

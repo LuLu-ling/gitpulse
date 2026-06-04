@@ -70,6 +70,7 @@
     "tokenPlaceholder": "ghp_xxxxxxxxxxxxxxxxxxxx",
     "tokenHelp": "Use a token with access to the GitHub data you want GitPulse to load.",
     "tokenHelpLink": "Create or review tokens in GitHub settings.",
+    "tokenTipGhAuth": "Recommended: Use `gh auth token` to get a token with appropriate permissions.",
     "tokenRequired": "Please enter a GitHub token.",
     "tokenInvalid": "That GitHub token is invalid or no longer usable.",
     "tokenLoginFailed": "Unable to sign in with this GitHub token right now.",
