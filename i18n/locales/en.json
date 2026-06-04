@@ -428,6 +428,37 @@
     "noDescription": "No description provided",
     "reviewers": "Reviewers",
     "noReviewers": "No reviewers assigned",
+    "status": {
+      "requested": "Requested",
+      "approved": "Approved",
+      "changesRequested": "Changes requested",
+      "commented": "Commented",
+      "dismissed": "Dismissed",
+      "pending": "Pending",
+      "unknown": "Unknown"
+    },
+    "reviewerPicker": {
+      "close": "Close reviewer picker",
+      "search": "Search reviewers",
+      "placeholder": "Filter reviewers...",
+      "loading": "Loading reviewers...",
+      "empty": "No reviewer candidates found",
+      "requestReviewers": "Request reviewers",
+      "requestSelected": "Request selected reviewers",
+      "removeReviewer": "Remove reviewer request",
+      "rerequestReviewer": "Re-request review",
+      "selectCandidate": "Select {name}",
+      "loadFailed": "Failed to load pull request reviewer candidates.",
+      "requestFailed": "Failed to request pull request reviewers.",
+      "removeFailed": "Failed to remove pull request reviewer.",
+      "summaryLoadFailed": "Failed to load pull request reviewer summary.",
+      "cancel": "Cancel",
+      "clearSearch": "Clear search",
+      "kind": {
+        "user": "User",
+        "team": "Team"
+      }
+    },
     "details": "Details",
     "created": "Created",
     "updated": "Updated",
