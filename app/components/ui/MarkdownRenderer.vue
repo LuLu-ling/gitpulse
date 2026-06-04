@@ -1,12 +1,10 @@
 <script setup lang="ts">
-import githubDark from '@shikijs/themes/github-dark';
-import githubLight from '@shikijs/themes/github-light';
 import { parse } from 'comark';
 import type { ComarkNode, ComarkTree } from 'comark';
-import { highlightCodeBlocks } from 'comark/plugins/highlight';
+import type { highlightCodeBlocks } from 'comark/plugins/highlight';
 import security from 'comark/plugins/security';
-import type { LanguageRegistration } from 'shiki';
-import { bundledLanguages, type BundledLanguage } from 'shiki/langs';
+import type { LanguageRegistration, ThemeRegistration } from 'shiki';
+import type { BundledLanguage } from 'shiki/langs';
 import type { DefineComponent } from 'vue';
 import { computed, provide, shallowRef } from 'vue';
 
@@ -50,16 +48,36 @@ function createMarkdownPlugins() {
 }
 
 const languageRegistrationPromises = new Map<string, Promise<LanguageRegistration[]>>();
+let markdownHighlighterRuntimePromise: Promise<MarkdownHighlighterRuntime> | null = null;
 let highlightQueue: Promise<void> = Promise.resolve();
 
-async function highlightMarkdownCodeBlocks(tree: ComarkTree): Promise<ComarkTree> {
-  const languages = await loadMarkdownLanguages(tree);
+interface MarkdownCodeBlockInfo {
+  hasCodeBlocks: boolean;
+  languages: Set<string>;
+}
+
+interface MarkdownHighlighterRuntime {
+  highlightCodeBlocks: typeof highlightCodeBlocks;
+  githubLight: ThemeRegistration;
+  githubDark: ThemeRegistration;
+}
+
+type BundledLanguages = (typeof import('shiki/langs'))['bundledLanguages'];
+
+async function highlightMarkdownCodeBlocks(
+  tree: ComarkTree,
+  languageNames: Set<string>
+): Promise<ComarkTree> {
+  const [languages, highlighterRuntime] = await Promise.all([
+    loadMarkdownLanguages(languageNames),
+    loadMarkdownHighlighterRuntime(),
+  ]);
 
   const highlightedTree = highlightQueue.then(() =>
-    highlightCodeBlocks(tree, {
+    highlighterRuntime.highlightCodeBlocks(tree, {
       themes: {
-        light: githubLight,
-        dark: githubDark,
+        light: highlighterRuntime.githubLight,
+        dark: highlighterRuntime.githubDark,
       },
       registerDefaultLanguages: false,
       registerDefaultThemes: false,
@@ -78,37 +96,66 @@ async function highlightMarkdownCodeBlocks(tree: ComarkTree): Promise<ComarkTree
   return highlightedTree;
 }
 
-async function loadMarkdownLanguages(tree: ComarkTree): Promise<LanguageRegistration[]> {
-  const languages = extractCodeBlockLanguages(tree);
-  const modules = await Promise.all([...languages].map((language) => loadLanguage(language)));
+function loadMarkdownHighlighterRuntime(): Promise<MarkdownHighlighterRuntime> {
+  if (!markdownHighlighterRuntimePromise) {
+    markdownHighlighterRuntimePromise = Promise.all([
+      import('comark/plugins/highlight'),
+      import('@shikijs/themes/github-light'),
+      import('@shikijs/themes/github-dark'),
+    ]).then(([highlightModule, githubLightModule, githubDarkModule]) => ({
+      highlightCodeBlocks: highlightModule.highlightCodeBlocks,
+      githubLight: githubLightModule.default,
+      githubDark: githubDarkModule.default,
+    }));
+    markdownHighlighterRuntimePromise.catch(() => {
+      markdownHighlighterRuntimePromise = null;
+    });
+  }
+
+  return markdownHighlighterRuntimePromise;
+}
+
+async function loadMarkdownLanguages(languages: Set<string>): Promise<LanguageRegistration[]> {
+  if (languages.size === 0) {
+    return [];
+  }
+
+  const { bundledLanguages } = await import('shiki/langs');
+  const modules = await Promise.all(
+    [...languages].map((language) => loadLanguage(language, bundledLanguages))
+  );
 
   return modules.flat();
 }
 
-function extractCodeBlockLanguages(tree: ComarkTree): Set<string> {
-  const languages = new Set<string>();
+function inspectMarkdownCodeBlocks(tree: ComarkTree): MarkdownCodeBlockInfo {
+  const codeBlockInfo: MarkdownCodeBlockInfo = {
+    hasCodeBlocks: false,
+    languages: new Set<string>(),
+  };
 
   for (const node of tree.nodes) {
-    collectCodeBlockLanguages(node, languages);
+    collectCodeBlockInfo(node, codeBlockInfo);
   }
 
-  return languages;
+  return codeBlockInfo;
 }
 
-function collectCodeBlockLanguages(node: ComarkNode, languages: Set<string>) {
+function collectCodeBlockInfo(node: ComarkNode, codeBlockInfo: MarkdownCodeBlockInfo) {
   if (!Array.isArray(node)) {
     return;
   }
 
-  if (node[0] === 'pre') {
+  if (node[0] === 'pre' && Array.isArray(node[2]) && node[2][0] === 'code') {
+    codeBlockInfo.hasCodeBlocks = true;
     const language = normalizeLanguage(node[1].language);
-    if (language && language in bundledLanguages) {
-      languages.add(language);
+    if (language) {
+      codeBlockInfo.languages.add(language);
     }
   }
 
   for (const child of node.slice(2)) {
-    collectCodeBlockLanguages(child, languages);
+    collectCodeBlockInfo(child, codeBlockInfo);
   }
 }
 
@@ -116,7 +163,10 @@ function normalizeLanguage(value: unknown): string | null {
   return typeof value === 'string' ? value.trim().toLowerCase() || null : null;
 }
 
-async function loadLanguage(language: string): Promise<LanguageRegistration[]> {
+async function loadLanguage(
+  language: string,
+  bundledLanguages: BundledLanguages
+): Promise<LanguageRegistration[]> {
   const loadBundledLanguage = bundledLanguages[language as BundledLanguage];
   if (!loadBundledLanguage) {
     return [];
@@ -160,9 +210,12 @@ watch(
     const parsedMarkdown = await parse(value, {
       plugins: markdownPlugins,
     });
-    const highlightedMarkdown = await highlightMarkdownCodeBlocks(parsedMarkdown);
+    const codeBlockInfo = inspectMarkdownCodeBlocks(parsedMarkdown);
+    const renderedMarkdown = codeBlockInfo.hasCodeBlocks
+      ? await highlightMarkdownCodeBlocks(parsedMarkdown, codeBlockInfo.languages)
+      : parsedMarkdown;
 
-    await applyGitHubAutolinks(highlightedMarkdown, {
+    await applyGitHubAutolinks(renderedMarkdown, {
       repoOwner,
       repoName,
     });
@@ -171,7 +224,7 @@ watch(
       return;
     }
 
-    ast.value = highlightedMarkdown;
+    ast.value = renderedMarkdown;
   },
   { immediate: true }
 );
