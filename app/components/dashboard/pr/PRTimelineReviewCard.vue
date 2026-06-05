@@ -111,59 +111,64 @@
                   :aria-label="t('prReview.reviewDiffLabel', { filename: group.path })"
                 />
                 <div class="review-item__comment-meta">
-                  <RoundImg
-                    width="20"
-                    height="20"
-                    :src="comment.author?.avatarUrl || ''"
-                    :alt="comment.author?.login || ''"
-                  />
-                  <a
-                    :href="comment.author?.url"
-                    target="_blank"
-                    rel="noopener"
-                    class="has-text-link"
-                  >
-                    {{ comment.author?.login }}
-                  </a>
-                  <a
-                    v-if="comment.url"
-                    :href="comment.url"
-                    target="_blank"
-                    rel="noopener"
-                    class="review-item__path-tag"
-                  >
-                    {{ commentLineLabel(comment) }}
-                  </a>
-                  <span v-if="comment.createdAt" class="has-text-grey">
-                    {{ formatDurationFromNow(comment.createdAt, localeCode) }}
-                  </span>
-                  <span
-                    v-if="comment.isOutdated"
-                    class="tag is-warning is-light review-item__outdated-tag"
-                  >
-                    {{ t('prReview.threadOutdated') }}
-                  </span>
-                  <button
-                    v-if="comment.threadId"
-                    class="button is-small review-item__thread-action"
-                    type="button"
-                    :class="[
-                      reviewThreadStateClass(comment),
-                      { 'is-loading': isReviewThreadResolving(comment) },
-                    ]"
-                    :disabled="isReviewThreadResolving(comment)"
-                    :aria-label="reviewThreadActionLabel(comment)"
-                    :title="reviewThreadActionLabel(comment)"
-                    @click="toggleReviewThread(comment)"
-                  >
-                    <component
-                      :is="comment.isResolved ? XIcon : CheckIcon"
-                      :size="13"
-                      :stroke-width="2.5"
-                      aria-hidden="true"
+                  <div class="review-item__comment-meta-left">
+                    <RoundImg
+                      width="20"
+                      height="20"
+                      :src="comment.author?.avatarUrl || ''"
+                      :alt="comment.author?.login || ''"
                     />
-                    <span>{{ reviewThreadStateLabel(comment) }}</span>
-                  </button>
+                    <a
+                      :href="comment.author?.url"
+                      target="_blank"
+                      rel="noopener"
+                      class="has-text-link"
+                    >
+                      {{ comment.author?.login }}
+                    </a>
+                    <a
+                      v-if="comment.url"
+                      :href="comment.url"
+                      target="_blank"
+                      rel="noopener"
+                      class="review-item__path-tag"
+                    >
+                      {{ commentLineLabel(comment) }}
+                    </a>
+                    <span v-if="comment.createdAt" class="has-text-grey">
+                      {{ formatDurationFromNow(comment.createdAt, localeCode) }}
+                    </span>
+                    <span
+                      v-if="comment.isOutdated"
+                      class="tag is-warning is-light review-item__outdated-tag"
+                    >
+                      {{ t('prReview.threadOutdated') }}
+                    </span>
+                  </div>
+                  <div v-if="comment.threadId" class="review-item__thread-status">
+                    <button
+                      class="review-item__thread-toggle"
+                      type="button"
+                      :class="{
+                        'is-resolved': comment.isResolved,
+                        'is-loading': isReviewThreadResolving(comment),
+                      }"
+                      :disabled="isReviewThreadResolving(comment)"
+                      :aria-label="reviewThreadActionLabel(comment)"
+                      :title="reviewThreadActionLabel(comment)"
+                      @click="toggleReviewThread(comment)"
+                    >
+                      <component
+                        :is="comment.isResolved ? CheckIcon : CircleIcon"
+                        :size="14"
+                        :stroke-width="2.5"
+                        aria-hidden="true"
+                      />
+                    </button>
+                    <span class="review-item__thread-label">
+                      {{ reviewThreadStateLabel(comment) }}
+                    </span>
+                  </div>
                 </div>
                 <div class="review-item__comment-body content">
                   <template v-if="comment.body">
@@ -200,6 +205,7 @@
 import {
   CheckIcon,
   ChevronRightIcon,
+  CircleIcon,
   ClockIcon,
   MessageSquareIcon,
   SlashIcon,
@@ -774,9 +780,18 @@ const buildSuggestionDiffLines = (
   display: flex;
   flex-wrap: wrap;
   align-items: center;
+  justify-content: space-between;
   gap: 0.4rem;
   font-size: 0.8rem;
   color: var(--gitpulse-text-muted);
+}
+
+.review-item__comment-meta-left {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
 }
 
 .review-item__dismissal-message {
@@ -886,71 +901,71 @@ const buildSuggestionDiffLines = (
   font-weight: 700;
 }
 
-.review-item__thread-action {
+.review-item__thread-status {
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
-  min-height: 1.6rem;
-  padding: 0 0.55rem;
-  font-size: 0.7rem;
-  font-weight: 600;
-  border-radius: 999px;
-  border: 1px solid transparent;
-  transition:
-    background-color 0.15s ease,
-    border-color 0.15s ease,
-    color 0.15s ease,
-    box-shadow 0.15s ease;
-  cursor: pointer;
-  white-space: nowrap;
-
-  &:disabled {
-    cursor: not-allowed;
-    opacity: 0.55;
-  }
 }
 
-.review-item__thread-action--resolved {
-  background-color: var(--gitpulse-success-soft);
-  color: var(--gitpulse-success);
-  border-color: color-mix(in srgb, var(--gitpulse-success) 22%, transparent);
-
-  &:hover:not(:disabled) {
-    background-color: color-mix(in srgb, var(--gitpulse-success) 18%, transparent);
-    border-color: color-mix(in srgb, var(--gitpulse-success) 36%, transparent);
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--gitpulse-success);
-    outline-offset: 1px;
-  }
-}
-
-.review-item__thread-action--unresolved {
-  background-color: var(--gitpulse-surface-muted);
+.review-item__thread-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  border: 1.5px solid var(--gitpulse-border-strong);
+  background: var(--gitpulse-surface);
   color: var(--gitpulse-text-muted);
-  border-color: var(--gitpulse-border);
+  cursor: pointer;
+  transition: all 0.15s ease;
 
   &:hover:not(:disabled) {
-    background-color: var(--gitpulse-surface-hover);
-    border-color: var(--gitpulse-border-strong);
-    color: var(--gitpulse-text-strong);
+    border-color: var(--gitpulse-success);
+    color: var(--gitpulse-success);
+    background: var(--gitpulse-success-soft);
   }
 
   &:focus-visible {
     outline: 2px solid var(--gitpulse-focus-ring);
-    outline-offset: 1px;
+    outline-offset: 2px;
+  }
+
+  &.is-resolved {
+    border-color: var(--gitpulse-success);
+    background: var(--gitpulse-success);
+    color: #fff;
+  }
+
+  &.is-loading {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
   }
 }
 
-// Dark mode: soften the resolved green slightly
-html.dark .review-item__thread-action--resolved {
-  background-color: color-mix(in srgb, var(--gitpulse-success) 16%, transparent);
-  border-color: color-mix(in srgb, var(--gitpulse-success) 26%, transparent);
+.review-item__thread-label {
+  font-size: 0.7rem;
+  color: var(--gitpulse-text-muted);
+  white-space: nowrap;
+}
 
+// Dark mode adjustments
+html.dark .review-item__thread-toggle {
   &:hover:not(:disabled) {
-    background-color: color-mix(in srgb, var(--gitpulse-success) 22%, transparent);
-    border-color: color-mix(in srgb, var(--gitpulse-success) 40%, transparent);
+    border-color: var(--gitpulse-success);
+    color: var(--gitpulse-success);
+    background: color-mix(in srgb, var(--gitpulse-success) 16%, transparent);
+  }
+
+  &.is-resolved {
+    border-color: var(--gitpulse-success);
+    background: color-mix(in srgb, var(--gitpulse-success) 85%, transparent);
+    color: #fff;
   }
 }
 
