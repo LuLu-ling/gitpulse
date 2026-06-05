@@ -710,8 +710,13 @@ onBeforeUnmount(() => {
                 :key="thread.id"
                 class="pr-review-diff-viewer__review-thread"
               >
-                <div v-if="thread.threadId" class="pr-review-diff-viewer__review-thread-header">
+                <article
+                  v-for="(comment, commentIndex) in thread.comments"
+                  :key="comment.id"
+                  class="pr-review-diff-viewer__review-comment"
+                >
                   <button
+                    v-if="thread.threadId && commentIndex === 0"
                     class="button is-small pr-review-diff-viewer__thread-action"
                     type="button"
                     :class="[
@@ -731,12 +736,6 @@ onBeforeUnmount(() => {
                     />
                     <span>{{ reviewThreadStateLabel(thread) }}</span>
                   </button>
-                </div>
-                <article
-                  v-for="comment in thread.comments"
-                  :key="comment.id"
-                  class="pr-review-diff-viewer__review-comment"
-                >
                   <div class="pr-review-diff-viewer__review-comment-header">
                     <RoundImg
                       width="24"
@@ -949,7 +948,7 @@ onBeforeUnmount(() => {
 
 .pr-review-diff-viewer__new-line-threads {
   margin-top: 0.35rem;
-  padding-left: 0.9rem;
+  padding: 0 0.75rem 0 0.9rem;
   border-left: 2px solid color-mix(in srgb, var(--gitpulse-border-strong) 75%, transparent);
 }
 
@@ -957,13 +956,11 @@ onBeforeUnmount(() => {
   margin: 0 0 0.5rem;
 }
 
-.pr-review-diff-viewer__review-thread-header {
-  margin-bottom: 0.4rem;
-  display: flex;
-  justify-content: flex-end;
-}
-
 .pr-review-diff-viewer__thread-action {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  z-index: 1;
   gap: 0.25rem;
   height: 1.5rem;
   padding: 0.15rem 0.45rem;
@@ -985,6 +982,7 @@ onBeforeUnmount(() => {
 }
 
 .pr-review-diff-viewer__review-comment {
+  position: relative;
   padding: 0.65rem 0.75rem;
   border: 1px solid var(--gitpulse-border);
   border-radius: 6px;

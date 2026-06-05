@@ -361,11 +361,6 @@ const reviewThreadActionLabel = (comment: TimelineReviewComment) =>
 const reviewThreadStateLabel = (comment: TimelineReviewComment) =>
   comment.isResolved ? t('prReview.threadResolved') : t('prReview.threadUnresolved');
 
-const reviewThreadStateClass = (comment: TimelineReviewComment) =>
-  comment.isResolved
-    ? 'review-item__thread-action--resolved'
-    : 'review-item__thread-action--unresolved';
-
 const toggleReviewThread = (comment: TimelineReviewComment) => {
   if (!comment.threadId || isReviewThreadResolving(comment)) {
     return;
