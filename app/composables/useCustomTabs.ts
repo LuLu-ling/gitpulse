@@ -1,13 +1,5 @@
-import { watch } from 'vue';
-
 import type {
   CustomTab,
-  CustomTabQuery,
-  CustomTabSearchScope,
-  CustomTabSource,
-} from '#shared/types/custom-search';
-
-export type {
   CustomTabArchived,
   CustomTabDraft,
   CustomTabOrder,
@@ -20,8 +12,22 @@ export type {
   CustomTabState,
   CustomTabVisibility,
 } from '#shared/types/custom-search';
+import { cloneCustomTabs, normalizeCustomTabs } from '#shared/utils/user-settings';
 
-export type { CustomTab } from '#shared/types/custom-search';
+export type {
+  CustomTab,
+  CustomTabArchived,
+  CustomTabDraft,
+  CustomTabOrder,
+  CustomTabQuery,
+  CustomTabReview,
+  CustomTabSearchScope,
+  CustomTabSearchType,
+  CustomTabSort,
+  CustomTabSource,
+  CustomTabState,
+  CustomTabVisibility,
+} from '#shared/types/custom-search';
 
 export interface CreateCustomTabInput {
   id?: string;
@@ -40,193 +46,43 @@ export interface UpdateCustomTabInput {
   query?: CustomTabQuery;
 }
 
-const buildStorageKey = (login: string): string => {
+const buildLegacyStorageKey = (login: string): string => {
   return `gitpulse:dashboard:custom-tabs:${login}`;
 };
 
 const DEFAULT_CUSTOM_TABS: CustomTab[] = [];
 
-let hydratedTabsLogin: string | null = null;
+let migratedLegacyTabsLogin: string | null = null;
 
-const cloneQuery = (query: CustomTabQuery = {}) => {
-  return {
-    ...query,
-    labels: query.labels ? [...query.labels] : undefined,
-    scopes: query.scopes ? [...query.scopes] : undefined,
-  };
-};
-
-const normalizeString = (value: unknown) => {
+const normalizeOptionalString = (value: unknown) => {
   return typeof value === 'string' && value.trim().length > 0 ? value.trim() : undefined;
 };
 
-const normalizeStringList = (values: unknown) => {
-  if (!Array.isArray(values)) {
-    return undefined;
-  }
-
-  return values.flatMap((value) => {
-    if (typeof value !== 'string') {
-      return [];
-    }
-
-    const normalized = value.trim();
-    return normalized ? [normalized] : [];
-  });
-};
-
-const cloneTab = (tab: CustomTab): CustomTab => {
-  return {
-    ...tab,
-    query: cloneQuery(tab.query),
-  };
-};
-
-const cloneTabs = (tabs: CustomTab[]) => {
-  return tabs.map((tab) => cloneTab(tab));
-};
-
-const normalizeQuery = (query: unknown): CustomTabQuery => {
-  if (!query || typeof query !== 'object' || Array.isArray(query)) {
-    return {};
-  }
-
-  const candidate = query as Partial<CustomTabQuery>;
-  const state = candidate.state;
-  const normalizedState =
-    state === 'open' || state === 'closed' || state === 'all' ? state : undefined;
-  const type = candidate.type;
-  const normalizedType = type === 'issues' || type === 'pulls' || type === 'all' ? type : undefined;
-  const sort = candidate.sort;
-  const normalizedSort =
-    sort === 'best-match' ||
-    sort === 'comments' ||
-    sort === 'reactions' ||
-    sort === 'interactions' ||
-    sort === 'created' ||
-    sort === 'updated'
-      ? sort
-      : undefined;
-  const order = candidate.order;
-  const normalizedOrder = order === 'asc' || order === 'desc' ? order : undefined;
-  const visibility = candidate.visibility;
-  const normalizedVisibility =
-    visibility === 'any' || visibility === 'public' || visibility === 'private'
-      ? visibility
-      : undefined;
-  const archived = candidate.archived;
-  const normalizedArchived =
-    archived === 'exclude' || archived === 'include' || archived === 'only' ? archived : undefined;
-  const draft = candidate.draft;
-  const normalizedDraft =
-    draft === 'any' || draft === 'draft' || draft === 'ready' ? draft : undefined;
-  const review = candidate.review;
-  const normalizedReview =
-    review === 'any' ||
-    review === 'none' ||
-    review === 'required' ||
-    review === 'approved' ||
-    review === 'changes_requested'
-      ? review
-      : undefined;
-
-  const labels = normalizeStringList(candidate.labels);
-  const scopes = Array.isArray(candidate.scopes)
-    ? candidate.scopes.filter(
-        (scope): scope is CustomTabSearchScope =>
-          scope === 'title' || scope === 'body' || scope === 'comments'
-      )
-    : undefined;
-  const perPage =
-    typeof candidate.perPage === 'number' && Number.isFinite(candidate.perPage)
-      ? Math.min(Math.max(Math.trunc(candidate.perPage), 1), 100)
-      : undefined;
-
-  return {
-    text: normalizeString(candidate.text),
-    type: normalizedType,
-    repo: normalizeString(candidate.repo),
-    org: normalizeString(candidate.org),
-    user: normalizeString(candidate.user),
-    labels,
-    author: normalizeString(candidate.author),
-    assignee: normalizeString(candidate.assignee),
-    mentions: normalizeString(candidate.mentions),
-    commenter: normalizeString(candidate.commenter),
-    involves: normalizeString(candidate.involves),
-    milestone: normalizeString(candidate.milestone),
-    state: normalizedState,
-    scopes,
-    visibility: normalizedVisibility,
-    archived: normalizedArchived,
-    draft: normalizedDraft,
-    review: normalizedReview,
-    base: normalizeString(candidate.base),
-    head: normalizeString(candidate.head),
-    sort: normalizedSort,
-    order: normalizedOrder,
-    perPage,
-  };
-};
-
-const normalizeTab = (tab: unknown): CustomTab | null => {
-  if (!tab || typeof tab !== 'object') {
+const readLegacyStoredTabs = (login: string): CustomTab[] | null => {
+  if (!import.meta.client) {
     return null;
   }
 
-  const candidate = tab as Partial<CustomTab>;
-  if (typeof candidate.id !== 'string' || candidate.id.length === 0) {
-    return null;
-  }
-
-  if (typeof candidate.groupId !== 'string' || candidate.groupId.length === 0) {
-    return null;
-  }
-
-  if (typeof candidate.name !== 'string' || candidate.name.length === 0) {
-    return null;
-  }
-
-  return {
-    id: candidate.id,
-    groupId: candidate.groupId,
-    name: candidate.name,
-    subtitle: normalizeString(candidate.subtitle),
-    source: candidate.source === 'github-search' ? candidate.source : 'github-search',
-    query: normalizeQuery(candidate.query),
-  };
-};
-
-const readStoredTabs = (login: string): CustomTab[] | null => {
-  if (typeof window === 'undefined') {
-    return null;
-  }
-
-  const raw = window.localStorage.getItem(buildStorageKey(login));
+  const raw = window.localStorage.getItem(buildLegacyStorageKey(login));
   if (!raw) {
     return null;
   }
 
   try {
     const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) {
-      return null;
-    }
-
-    return parsed
-      .map((entry) => normalizeTab(entry))
-      .filter((entry): entry is CustomTab => entry !== null);
+    const tabs = normalizeCustomTabs(parsed);
+    return tabs.length > 0 ? tabs : null;
   } catch {
     return null;
   }
 };
 
-const writeStoredTabs = (login: string, tabs: CustomTab[]) => {
-  if (typeof window === 'undefined') {
+const removeLegacyStoredTabs = (login: string) => {
+  if (!import.meta.client) {
     return;
   }
 
-  window.localStorage.setItem(buildStorageKey(login), JSON.stringify(tabs));
+  window.localStorage.removeItem(buildLegacyStorageKey(login));
 };
 
 const createTabId = () => {
@@ -236,28 +92,51 @@ const createTabId = () => {
 export function useCustomTabs(initialTabs: CustomTab[] = DEFAULT_CUSTOM_TABS) {
   const { user } = useUserSession();
   const login = computed(() => user.value?.login ?? 'anonymous');
+  const { settings, loaded, loadSettings, updateSettings } = useUserSettings();
 
-  const customTabs = useState<CustomTab[]>('gitpulse-custom-tabs', () => cloneTabs(initialTabs));
+  if (import.meta.client) {
+    void loadSettings();
+  }
 
-  const hydrateStoredTabs = (nextLogin: string) => {
-    if (!import.meta.client || hydratedTabsLogin === nextLogin) {
+  const fallbackTabs = computed(() => normalizeCustomTabs(initialTabs));
+  const customTabs = computed<CustomTab[]>({
+    get() {
+      return settings.value.customTabs.length > 0
+        ? settings.value.customTabs
+        : cloneCustomTabs(fallbackTabs.value);
+    },
+    set(nextTabs) {
+      void setCustomTabs(nextTabs);
+    },
+  });
+
+  const setCustomTabs = async (nextTabs: CustomTab[]) => {
+    const normalizedTabs = normalizeCustomTabs(nextTabs, fallbackTabs.value);
+    await updateSettings({ customTabs: normalizedTabs });
+    return normalizedTabs;
+  };
+
+  const migrateLegacyTabs = (nextLogin: string) => {
+    if (
+      !import.meta.client ||
+      !loaded.value ||
+      nextLogin === 'anonymous' ||
+      migratedLegacyTabsLogin === nextLogin ||
+      settings.value.customTabs.length > 0
+    ) {
       return;
     }
 
-    const storedTabs = readStoredTabs(nextLogin);
-    customTabs.value = storedTabs ?? cloneTabs(initialTabs);
-    hydratedTabsLogin = nextLogin;
+    migratedLegacyTabsLogin = nextLogin;
+    const legacyTabs = readLegacyStoredTabs(nextLogin);
+    if (!legacyTabs) {
+      return;
+    }
+
+    void setCustomTabs(legacyTabs).then(() => removeLegacyStoredTabs(nextLogin));
   };
 
-  watch(login, hydrateStoredTabs, { immediate: true });
-
-  watch(
-    customTabs,
-    (nextTabs) => {
-      writeStoredTabs(login.value, nextTabs);
-    },
-    { deep: true }
-  );
+  watch([login, loaded], ([nextLogin]) => migrateLegacyTabs(nextLogin), { immediate: true });
 
   const getCustomTabById = (tabId: string) => {
     return customTabs.value.find((tab) => tab.id === tabId);
@@ -277,12 +156,12 @@ export function useCustomTabs(initialTabs: CustomTab[] = DEFAULT_CUSTOM_TABS) {
       id,
       groupId: input.groupId,
       name: input.name,
-      subtitle: normalizeString(input.subtitle),
+      subtitle: normalizeOptionalString(input.subtitle),
       source: input.source ?? 'github-search',
-      query: normalizeQuery(input.query),
+      query: input.query ?? {},
     };
 
-    customTabs.value = [...customTabs.value, tab];
+    void setCustomTabs([...customTabs.value, tab]);
     return tab;
   };
 
@@ -295,16 +174,22 @@ export function useCustomTabs(initialTabs: CustomTab[] = DEFAULT_CUSTOM_TABS) {
     const updatedTab: CustomTab = {
       ...target,
       ...updates,
-      query: updates.query ? normalizeQuery(updates.query) : target.query,
+      subtitle:
+        updates.subtitle === undefined
+          ? target.subtitle
+          : normalizeOptionalString(updates.subtitle),
+      query: updates.query ?? target.query,
     };
 
-    customTabs.value = customTabs.value.map((tab) => {
-      if (tab.id !== tabId) {
-        return tab;
-      }
+    void setCustomTabs(
+      customTabs.value.map((tab) => {
+        if (tab.id !== tabId) {
+          return tab;
+        }
 
-      return updatedTab;
-    });
+        return updatedTab;
+      })
+    );
 
     return updatedTab;
   };
@@ -315,13 +200,14 @@ export function useCustomTabs(initialTabs: CustomTab[] = DEFAULT_CUSTOM_TABS) {
       return false;
     }
 
-    customTabs.value = customTabs.value.filter((tab) => tab.id !== tabId);
+    void setCustomTabs(customTabs.value.filter((tab) => tab.id !== tabId));
     return true;
   };
 
   const resetCustomTabs = () => {
-    customTabs.value = cloneTabs(initialTabs);
-    return customTabs.value;
+    const nextTabs = cloneCustomTabs(fallbackTabs.value);
+    void setCustomTabs(nextTabs);
+    return nextTabs;
   };
 
   return {

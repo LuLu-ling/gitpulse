@@ -1,17 +1,15 @@
-import { watch } from 'vue';
+import type { TabGroup, TabGroupSource } from '#shared/types/tab-groups';
+import { BUILTIN_TAB_GROUP_ID } from '#shared/types/tab-groups';
+import {
+  cloneTabGroups,
+  createDefaultTabGroups,
+  ensureRequiredTabGroups,
+  isDefaultTabGroups,
+  normalizeTabGroups,
+} from '#shared/utils/user-settings';
 
-export interface TabGroup {
-  id: string;
-  name: string;
-  parentId?: string | null;
-  collapsed?: boolean;
-  source?: TabGroupSource;
-}
-
-export type TabGroupSource = 'system' | 'github-search';
-
-export const BUILTIN_TAB_GROUP_ID = 'built-in';
-export const DEFAULT_CUSTOM_TAB_GROUP_ID = 'default';
+export type { TabGroup, TabGroupSource } from '#shared/types/tab-groups';
+export { BUILTIN_TAB_GROUP_ID, DEFAULT_CUSTOM_TAB_GROUP_ID } from '#shared/types/tab-groups';
 
 export interface CreateTabGroupInput {
   id?: string;
@@ -28,165 +26,93 @@ export interface UpdateTabGroupInput {
   source?: TabGroupSource;
 }
 
-const buildStorageKey = (login: string): string => {
+const buildLegacyStorageKey = (login: string): string => {
   return `gitpulse:dashboard:tab-groups:${login}`;
 };
 
-let hydratedGroupsLogin: string | null = null;
+let migratedLegacyGroupsLogin: string | null = null;
 
-const DEFAULT_TAB_GROUPS: TabGroup[] = [
-  {
-    id: BUILTIN_TAB_GROUP_ID,
-    name: 'Built-in Views',
-    parentId: null,
-    collapsed: false,
-    source: 'system',
-  },
-  {
-    id: DEFAULT_CUSTOM_TAB_GROUP_ID,
-    name: 'General',
-    parentId: null,
-    collapsed: false,
-    source: 'github-search',
-  },
-];
-
-const REQUIRED_BUILTIN_GROUP: TabGroup = {
-  id: BUILTIN_TAB_GROUP_ID,
-  name: 'Built-in Views',
-  parentId: null,
-  collapsed: false,
-  source: 'system',
-};
-
-const cloneGroups = (groups: TabGroup[]) => {
-  return groups.map((group) => ({ ...group }));
-};
-
-const normalizeGroup = (group: unknown): TabGroup | null => {
-  if (!group || typeof group !== 'object') {
+const readLegacyStoredGroups = (login: string): TabGroup[] | null => {
+  if (!import.meta.client) {
     return null;
   }
 
-  const candidate = group as Partial<TabGroup>;
-
-  if (typeof candidate.id !== 'string' || candidate.id.length === 0) {
-    return null;
-  }
-
-  if (typeof candidate.name !== 'string' || candidate.name.length === 0) {
-    return null;
-  }
-
-  return {
-    id: candidate.id,
-    name: candidate.name,
-    parentId:
-      typeof candidate.parentId === 'string' && candidate.parentId.length > 0
-        ? candidate.parentId
-        : null,
-    collapsed: typeof candidate.collapsed === 'boolean' ? candidate.collapsed : false,
-    source:
-      candidate.source === 'system' || candidate.source === 'github-search'
-        ? candidate.source
-        : 'github-search',
-  };
-};
-
-const ensureRequiredGroups = (groups: TabGroup[]) => {
-  const groupMap = new Map(groups.map((group) => [group.id, group]));
-  const builtinGroup = groupMap.get(BUILTIN_TAB_GROUP_ID);
-
-  if (builtinGroup) {
-    groupMap.delete(BUILTIN_TAB_GROUP_ID);
-  }
-
-  const resolvedBuiltin = {
-    ...(builtinGroup ?? REQUIRED_BUILTIN_GROUP),
-    id: BUILTIN_TAB_GROUP_ID,
-    name: REQUIRED_BUILTIN_GROUP.name,
-    parentId: null,
-    source: 'system' as const,
-  };
-
-  return [resolvedBuiltin, ...groupMap.values()];
-};
-
-const readStoredGroups = (login: string): TabGroup[] | null => {
-  if (typeof window === 'undefined') {
-    return null;
-  }
-
-  const raw = window.localStorage.getItem(buildStorageKey(login));
+  const raw = window.localStorage.getItem(buildLegacyStorageKey(login));
   if (!raw) {
     return null;
   }
 
   try {
     const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) {
-      return null;
-    }
-
-    const groups = parsed
-      .map((entry) => normalizeGroup(entry))
-      .filter((entry): entry is TabGroup => entry !== null);
-
-    if (groups.length === 0) {
-      return null;
-    }
-
-    return groups;
+    const groups = normalizeTabGroups(parsed, []);
+    return groups.length > 0 ? groups : null;
   } catch {
     return null;
   }
 };
 
-const writeStoredGroups = (login: string, groups: TabGroup[]) => {
-  if (typeof window === 'undefined') {
+const removeLegacyStoredGroups = (login: string) => {
+  if (!import.meta.client) {
     return;
   }
 
-  window.localStorage.setItem(buildStorageKey(login), JSON.stringify(groups));
+  window.localStorage.removeItem(buildLegacyStorageKey(login));
 };
 
 const createGroupId = () => {
   return `group-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 };
 
-export function useTabGroups(initialGroups: TabGroup[] = DEFAULT_TAB_GROUPS) {
+export function useTabGroups(initialGroups: TabGroup[] = createDefaultTabGroups()) {
   const { user } = useUserSession();
   const login = computed(() => user.value?.login ?? 'anonymous');
+  const { settings, loaded, loadSettings, updateSettings } = useUserSettings();
 
-  const groups = useState<TabGroup[]>('gitpulse-tab-groups', () => cloneGroups(initialGroups));
-
-  if (import.meta.client && groups.value.length === 0) {
-    groups.value = cloneGroups(initialGroups);
+  if (import.meta.client) {
+    void loadSettings();
   }
 
-  const hydrateStoredGroups = (nextLogin: string) => {
-    if (!import.meta.client || hydratedGroupsLogin === nextLogin) {
+  const fallbackGroups = computed(() => normalizeTabGroups(initialGroups));
+  const groups = computed<TabGroup[]>({
+    get() {
+      return settings.value.tabGroups.length > 0
+        ? settings.value.tabGroups
+        : cloneTabGroups(fallbackGroups.value);
+    },
+    set(nextGroups) {
+      void setGroups(nextGroups);
+    },
+  });
+
+  const setGroups = async (nextGroups: TabGroup[]) => {
+    const normalizedGroups = ensureRequiredTabGroups(
+      normalizeTabGroups(nextGroups, fallbackGroups.value)
+    );
+    await updateSettings({ tabGroups: normalizedGroups });
+    return normalizedGroups;
+  };
+
+  const migrateLegacyGroups = (nextLogin: string) => {
+    if (
+      !import.meta.client ||
+      !loaded.value ||
+      nextLogin === 'anonymous' ||
+      migratedLegacyGroupsLogin === nextLogin ||
+      !isDefaultTabGroups(settings.value.tabGroups)
+    ) {
       return;
     }
 
-    const storedGroups = readStoredGroups(nextLogin);
-    if (storedGroups) {
-      groups.value = ensureRequiredGroups(storedGroups);
-    } else {
-      groups.value = ensureRequiredGroups(cloneGroups(initialGroups));
+    migratedLegacyGroupsLogin = nextLogin;
+    const legacyGroups = readLegacyStoredGroups(nextLogin);
+    if (!legacyGroups) {
+      return;
     }
-    hydratedGroupsLogin = nextLogin;
+
+    void setGroups(legacyGroups).then(() => removeLegacyStoredGroups(nextLogin));
   };
 
-  watch(login, hydrateStoredGroups, { immediate: true });
-
-  watch(
-    groups,
-    (nextGroups) => {
-      writeStoredGroups(login.value, nextGroups);
-    },
-    { deep: true }
-  );
+  watch([login, loaded], ([nextLogin]) => migrateLegacyGroups(nextLogin), { immediate: true });
 
   const getGroupById = (groupId: string) => {
     return groups.value.find((group) => group.id === groupId);
@@ -207,7 +133,7 @@ export function useTabGroups(initialGroups: TabGroup[] = DEFAULT_TAB_GROUPS) {
       source: input.source ?? 'github-search',
     };
 
-    groups.value = [...groups.value, group];
+    void setGroups([...groups.value, group]);
     return group;
   };
 
@@ -226,13 +152,15 @@ export function useTabGroups(initialGroups: TabGroup[] = DEFAULT_TAB_GROUPS) {
       ...updates,
     };
 
-    groups.value = groups.value.map((group) => {
-      if (group.id !== groupId) {
-        return group;
-      }
+    void setGroups(
+      groups.value.map((group) => {
+        if (group.id !== groupId) {
+          return group;
+        }
 
-      return updatedGroup;
-    });
+        return updatedGroup;
+      })
+    );
 
     return updatedGroup;
   };
@@ -243,7 +171,7 @@ export function useTabGroups(initialGroups: TabGroup[] = DEFAULT_TAB_GROUPS) {
       return false;
     }
 
-    groups.value = groups.value.filter((group) => group.id !== groupId);
+    void setGroups(groups.value.filter((group) => group.id !== groupId));
     return true;
   };
 
@@ -261,8 +189,9 @@ export function useTabGroups(initialGroups: TabGroup[] = DEFAULT_TAB_GROUPS) {
   };
 
   const sortGroups = (compareFn: (a: TabGroup, b: TabGroup) => number) => {
-    groups.value = [...groups.value].sort(compareFn);
-    return groups.value;
+    const sortedGroups = [...groups.value].sort(compareFn);
+    void setGroups(sortedGroups);
+    return sortedGroups;
   };
 
   const reorderGroups = (orderedGroupIds: string[]) => {
@@ -272,8 +201,9 @@ export function useTabGroups(initialGroups: TabGroup[] = DEFAULT_TAB_GROUPS) {
       .filter((group): group is TabGroup => Boolean(group));
 
     const leftovers = groups.value.filter((group) => !orderedGroupIds.includes(group.id));
-    groups.value = [...reordered, ...leftovers];
-    return groups.value;
+    const nextGroups = [...reordered, ...leftovers];
+    void setGroups(nextGroups);
+    return nextGroups;
   };
 
   const moveGroup = (fromIndex: number, toIndex: number) => {
@@ -292,13 +222,14 @@ export function useTabGroups(initialGroups: TabGroup[] = DEFAULT_TAB_GROUPS) {
     }
 
     next.splice(toIndex, 0, moved);
-    groups.value = next;
+    void setGroups(next);
     return true;
   };
 
   const resetGroups = () => {
-    groups.value = cloneGroups(initialGroups);
-    return groups.value;
+    const nextGroups = cloneTabGroups(fallbackGroups.value);
+    void setGroups(nextGroups);
+    return nextGroups;
   };
 
   return {
