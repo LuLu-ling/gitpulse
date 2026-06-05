@@ -137,6 +137,27 @@
                   <span v-if="comment.createdAt" class="has-text-grey">
                     {{ formatDurationFromNow(comment.createdAt, localeCode) }}
                   </span>
+                  <button
+                    v-if="comment.threadId"
+                    class="button is-small review-item__thread-action"
+                    type="button"
+                    :class="[
+                      reviewThreadStateClass(comment),
+                      { 'is-loading': isReviewThreadResolving(comment) },
+                    ]"
+                    :disabled="isReviewThreadResolving(comment)"
+                    :aria-label="reviewThreadActionLabel(comment)"
+                    :title="reviewThreadActionLabel(comment)"
+                    @click="toggleReviewThread(comment)"
+                  >
+                    <component
+                      :is="comment.isResolved ? XIcon : CheckIcon"
+                      :size="13"
+                      :stroke-width="2.5"
+                      aria-hidden="true"
+                    />
+                    <span>{{ reviewThreadStateLabel(comment) }}</span>
+                  </button>
                 </div>
                 <div class="review-item__comment-body content">
                   <template v-if="comment.body">
@@ -193,6 +214,11 @@ const props = defineProps<{
   item: PRTimelineItem;
   repoOwner: string;
   repoName: string;
+  resolvingReviewThreadId?: string | null;
+}>();
+
+const emit = defineEmits<{
+  (e: 'toggle-review-thread', payload: { threadId: string; resolved: boolean }): void;
 }>();
 
 const { t, locale } = useI18n();
@@ -312,6 +338,31 @@ const toggleFile = (path: string) => {
     updated.add(path);
   }
   expandedFiles.value = updated;
+};
+
+const isReviewThreadResolving = (comment: TimelineReviewComment) =>
+  Boolean(comment.threadId && props.resolvingReviewThreadId === comment.threadId);
+
+const reviewThreadActionLabel = (comment: TimelineReviewComment) =>
+  comment.isResolved ? t('prReview.unresolveThread') : t('prReview.resolveThread');
+
+const reviewThreadStateLabel = (comment: TimelineReviewComment) =>
+  comment.isResolved ? t('prReview.threadResolved') : t('prReview.threadUnresolved');
+
+const reviewThreadStateClass = (comment: TimelineReviewComment) =>
+  comment.isResolved
+    ? 'review-item__thread-action--resolved'
+    : 'review-item__thread-action--unresolved';
+
+const toggleReviewThread = (comment: TimelineReviewComment) => {
+  if (!comment.threadId || isReviewThreadResolving(comment)) {
+    return;
+  }
+
+  emit('toggle-review-thread', {
+    threadId: comment.threadId,
+    resolved: !Boolean(comment.isResolved),
+  });
 };
 
 const splitSuggestionBody = (body: string): CommentBodyPart[] => {
@@ -822,6 +873,74 @@ const buildSuggestionDiffLines = (
   border: 1px solid color-mix(in srgb, var(--gitpulse-info) 20%, transparent);
   max-width: 100%;
   overflow-wrap: anywhere;
+}
+
+.review-item__thread-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  min-height: 1.6rem;
+  padding: 0 0.55rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease,
+    box-shadow 0.15s ease;
+  cursor: pointer;
+  white-space: nowrap;
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+  }
+}
+
+.review-item__thread-action--resolved {
+  background-color: var(--gitpulse-success-soft);
+  color: var(--gitpulse-success);
+  border-color: color-mix(in srgb, var(--gitpulse-success) 22%, transparent);
+
+  &:hover:not(:disabled) {
+    background-color: color-mix(in srgb, var(--gitpulse-success) 18%, transparent);
+    border-color: color-mix(in srgb, var(--gitpulse-success) 36%, transparent);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--gitpulse-success);
+    outline-offset: 1px;
+  }
+}
+
+.review-item__thread-action--unresolved {
+  background-color: var(--gitpulse-surface-muted);
+  color: var(--gitpulse-text-muted);
+  border-color: var(--gitpulse-border);
+
+  &:hover:not(:disabled) {
+    background-color: var(--gitpulse-surface-hover);
+    border-color: var(--gitpulse-border-strong);
+    color: var(--gitpulse-text-strong);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--gitpulse-focus-ring);
+    outline-offset: 1px;
+  }
+}
+
+// Dark mode: soften the resolved green slightly
+html.dark .review-item__thread-action--resolved {
+  background-color: color-mix(in srgb, var(--gitpulse-success) 16%, transparent);
+  border-color: color-mix(in srgb, var(--gitpulse-success) 26%, transparent);
+
+  &:hover:not(:disabled) {
+    background-color: color-mix(in srgb, var(--gitpulse-success) 22%, transparent);
+    border-color: color-mix(in srgb, var(--gitpulse-success) 40%, transparent);
+  }
 }
 
 .review-item__comment {

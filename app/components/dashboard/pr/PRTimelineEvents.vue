@@ -25,6 +25,8 @@
           :item="item"
           :repo-owner="repoOwner"
           :repo-name="repoName"
+          :resolving-review-thread-id="resolvingReviewThreadId"
+          @toggle-review-thread="emit('toggle-review-thread', $event.threadId, $event.resolved)"
         />
 
         <PRTimelineCommitCard
@@ -106,6 +108,7 @@ const props = defineProps<{
   pullNumber: number;
   hasNextPage?: boolean;
   loadingMore?: boolean;
+  resolvingReviewThreadId?: string | null;
 }>();
 
 const emit = defineEmits<{
@@ -113,6 +116,7 @@ const emit = defineEmits<{
   (e: 'switch-pull-request', owner: string, repo: string, pullNumber: number): void;
   (e: 'comment-created', item: PRTimelineItem): void;
   (e: 'load-more'): void;
+  (e: 'toggle-review-thread', threadId: string, resolved: boolean): void;
 }>();
 
 const { t } = useI18n();

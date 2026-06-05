@@ -33,10 +33,12 @@
             :pull-number="currentPullRequest?.number || 0"
             :has-next-page="hasNextTimelinePage"
             :loading-more="loadingMoreTimeline"
+            :resolving-review-thread-id="resolvingReviewThreadId"
             @switch-issue="switchToIssue"
             @switch-pull-request="switchToPullRequest"
             @comment-created="addTimelineEvent"
             @load-more="loadMoreTimeline"
+            @toggle-review-thread="toggleReviewThreadResolved"
           />
         </div>
       </div>
@@ -168,6 +170,7 @@ const loadingReviewerCandidates = shallowRef(false);
 const submittingReviewerRequest = shallowRef(false);
 const reviewerRequestsAvailable = shallowRef<boolean | null>(null);
 const reviewerPickerError = shallowRef('');
+const resolvingReviewThreadId = shallowRef<string | null>(null);
 const reviewerCandidates = ref<PRReviewerCandidate[]>([]);
 const reviewerCandidateWarnings = ref<PRReviewerCandidateWarning[]>([]);
 const { t } = useI18n();
@@ -482,6 +485,7 @@ const resetPullRequestScopedState = (pullRequest: any) => {
   isReviewerPickerOpen.value = false;
   loadingReviewerCandidates.value = false;
   submittingReviewerRequest.value = false;
+  resolvingReviewThreadId.value = null;
   reviewerRequestsAvailable.value = null;
   reviewerPickerError.value = '';
   reviewerCandidates.value = [];
@@ -568,6 +572,45 @@ const loadMoreTimeline = async () => {
   } finally {
     if (requestId === timelineRequestId.value) {
       loadingMoreTimeline.value = false;
+    }
+  }
+};
+
+const toggleReviewThreadResolved = async (threadId: string, resolved: boolean) => {
+  if (!repoInfo.value || !currentPullRequest.value?.number || resolvingReviewThreadId.value) {
+    return;
+  }
+
+  const pullRequestIdentity = getPullRequestIdentity();
+  resolvingReviewThreadId.value = threadId;
+  detailError.value = '';
+
+  try {
+    const { owner, repo } = repoInfo.value;
+    const pullNumber = currentPullRequest.value.number;
+
+    await apiFetch(
+      `/api/repos/${owner}/${repo}/pulls/${pullNumber}/review-threads/${encodeURIComponent(threadId)}/resolve`,
+      {
+        method: 'POST',
+        body: { resolved },
+      }
+    );
+
+    if (pullRequestIdentity === getPullRequestIdentity()) {
+      await fetchTimeline();
+    }
+  } catch (err: unknown) {
+    console.error('Error updating pull request review thread:', err);
+    if (pullRequestIdentity === getPullRequestIdentity()) {
+      detailError.value = getFetchErrorMessage(
+        err,
+        resolved ? t('prReview.resolveThreadFailed') : t('prReview.unresolveThreadFailed')
+      );
+    }
+  } finally {
+    if (pullRequestIdentity === getPullRequestIdentity()) {
+      resolvingReviewThreadId.value = null;
     }
   }
 };

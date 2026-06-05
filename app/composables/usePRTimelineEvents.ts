@@ -48,6 +48,7 @@ export interface TimelineCommit {
 
 export interface TimelineReviewComment {
   id?: string;
+  threadId?: string;
   author?: TimelineActor;
   body?: string;
   createdAt?: string;
@@ -64,6 +65,9 @@ export interface TimelineReviewComment {
   originalLine?: number;
   startSide?: string;
   side?: string;
+  isResolved?: boolean;
+  isOutdated?: boolean;
+  resolvedBy?: TimelineActor;
 }
 
 export interface TimelineReviewDismissal {
@@ -141,6 +145,7 @@ export interface PRTimelineItem {
     dismissalCommitId?: string;
   };
   reviewId?: string;
+  threadId?: string;
   commitId?: string;
   reviewComments?: TimelineReviewComment[];
   dismissal?: TimelineReviewDismissal;
