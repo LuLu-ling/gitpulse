@@ -45,6 +45,7 @@ interface TimelineCommitPayload {
 
 interface TimelineReviewCommentPayload {
   id?: string;
+  threadId?: string;
   author?: ReturnType<typeof mapActor>;
   body?: string;
   createdAt?: string;
@@ -61,6 +62,30 @@ interface TimelineReviewCommentPayload {
   originalLine?: number;
   startSide?: string;
   side?: string;
+  isResolved?: boolean;
+  isOutdated?: boolean;
+  resolvedBy?: ReturnType<typeof mapActor>;
+}
+
+interface TimelineReviewThreadCommentPayload {
+  id?: string;
+  databaseId?: number | null;
+}
+
+export interface TimelineReviewThreadPayload {
+  id?: string;
+  isResolved?: boolean;
+  isOutdated?: boolean;
+  resolvedBy?: ReturnType<typeof mapActor>;
+  comments?: {
+    nodes?: TimelineReviewThreadCommentPayload[];
+  };
+}
+
+export interface TimelineReviewThreadMutationResult {
+  id: string;
+  isResolved: boolean;
+  resolvedBy?: ReturnType<typeof mapActor>;
 }
 
 interface SortableTimelineItem {
@@ -97,7 +122,9 @@ type BaseTimelineItem = Omit<SortableTimelineItem, 'kind'>;
 interface RestUserLike {
   login?: string;
   avatar_url?: string;
+  avatarUrl?: string;
   html_url?: string;
+  htmlUrl?: string;
   url?: string;
   name?: string;
   slug?: string;
@@ -151,6 +178,19 @@ export function buildPRTimelineCapabilities(): TimelineCapabilities {
     supportsReviewThreads: 'partial',
     supportsReferenceSubjects: 'partial',
   };
+}
+
+export function validateReviewThreadId(value: unknown): string {
+  const threadId = typeof value === 'string' ? value.trim() : '';
+
+  if (!threadId) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'Review thread id is required',
+    });
+  }
+
+  return threadId;
 }
 
 export function createUnsupportedWarnings(scope: 'issue' | 'pull'): TimelineWarning[] {
@@ -246,6 +286,179 @@ export async function fetchTimelinePage<T>(
   const hasNextPage = getResponseHasNextPage(response);
 
   return { items, hasNextPage };
+}
+
+const PR_REVIEW_THREADS_QUERY = `
+  query PullRequestReviewThreads(
+    $owner: String!
+    $repo: String!
+    $pullNumber: Int!
+    $cursor: String
+  ) {
+    repository(owner: $owner, name: $repo) {
+      pullRequest(number: $pullNumber) {
+        reviewThreads(first: 100, after: $cursor) {
+          nodes {
+            id
+            isResolved
+            isOutdated
+            resolvedBy {
+              login
+              avatarUrl
+              url
+            }
+            comments(first: 100) {
+              nodes {
+                id
+                databaseId
+              }
+            }
+          }
+          pageInfo {
+            hasNextPage
+            endCursor
+          }
+        }
+      }
+    }
+  }
+`;
+
+interface PRReviewThreadsGraphQLResponse {
+  repository?: {
+    pullRequest?: {
+      reviewThreads?: {
+        nodes?: (TimelineReviewThreadPayload | null)[] | null;
+        pageInfo?: {
+          hasNextPage?: boolean;
+          endCursor?: string | null;
+        } | null;
+      } | null;
+    } | null;
+  } | null;
+}
+
+export async function fetchPRReviewThreads(
+  octokit: GitHubClient,
+  owner: string,
+  repo: string,
+  pullNumber: number
+): Promise<TimelineReviewThreadPayload[]> {
+  const threads: TimelineReviewThreadPayload[] = [];
+  let cursor: string | null = null;
+
+  while (true) {
+    const response = await octokit.graphql<PRReviewThreadsGraphQLResponse>(
+      PR_REVIEW_THREADS_QUERY,
+      {
+        owner,
+        repo,
+        pullNumber,
+        cursor,
+      }
+    );
+    const reviewThreads = response.repository?.pullRequest?.reviewThreads;
+
+    for (const thread of reviewThreads?.nodes ?? []) {
+      if (thread?.id) {
+        threads.push(thread);
+      }
+    }
+
+    if (!reviewThreads?.pageInfo?.hasNextPage || !reviewThreads.pageInfo.endCursor) {
+      return threads;
+    }
+
+    cursor = reviewThreads.pageInfo.endCursor;
+  }
+}
+
+const RESOLVE_REVIEW_THREAD_MUTATION = `
+  mutation ResolveReviewThread($threadId: ID!) {
+    resolveReviewThread(input: { threadId: $threadId }) {
+      thread {
+        id
+        isResolved
+        resolvedBy {
+          login
+          avatarUrl
+          url
+        }
+      }
+    }
+  }
+`;
+
+const UNRESOLVE_REVIEW_THREAD_MUTATION = `
+  mutation UnresolveReviewThread($threadId: ID!) {
+    unresolveReviewThread(input: { threadId: $threadId }) {
+      thread {
+        id
+        isResolved
+        resolvedBy {
+          login
+          avatarUrl
+          url
+        }
+      }
+    }
+  }
+`;
+
+interface ResolveReviewThreadGraphQLResponse {
+  resolveReviewThread?: {
+    thread?: TimelineReviewThreadPayload | null;
+  } | null;
+}
+
+interface UnresolveReviewThreadGraphQLResponse {
+  unresolveReviewThread?: {
+    thread?: TimelineReviewThreadPayload | null;
+  } | null;
+}
+
+function normalizeReviewThreadMutationResult(
+  thread: TimelineReviewThreadPayload | null | undefined,
+  fallbackThreadId: string,
+  fallbackResolved: boolean
+): TimelineReviewThreadMutationResult {
+  const threadId = validateReviewThreadId(thread?.id ?? fallbackThreadId);
+
+  return {
+    id: threadId,
+    isResolved: typeof thread?.isResolved === 'boolean' ? thread.isResolved : fallbackResolved,
+    resolvedBy: mapActor(thread?.resolvedBy),
+  };
+}
+
+export async function setPullRequestReviewThreadResolved(
+  octokit: GitHubClient,
+  threadId: string,
+  resolved: boolean
+): Promise<TimelineReviewThreadMutationResult> {
+  if (resolved) {
+    const response = await octokit.graphql<ResolveReviewThreadGraphQLResponse>(
+      RESOLVE_REVIEW_THREAD_MUTATION,
+      { threadId }
+    );
+
+    return normalizeReviewThreadMutationResult(
+      response.resolveReviewThread?.thread,
+      threadId,
+      true
+    );
+  }
+
+  const response = await octokit.graphql<UnresolveReviewThreadGraphQLResponse>(
+    UNRESOLVE_REVIEW_THREAD_MUTATION,
+    { threadId }
+  );
+
+  return normalizeReviewThreadMutationResult(
+    response.unresolveReviewThread?.thread,
+    threadId,
+    false
+  );
 }
 
 export function sortTimelineItems<T extends SortableTimelineItem>(timeline: T[]): T[] {
@@ -791,13 +1004,22 @@ function normalizePRCommitCommentEvents(rawEvent: Record<string, any>): Sortable
 export function enrichPRTimelineWithReviewData(
   timeline: SortableTimelineItem[],
   reviews: Record<string, any>[],
-  reviewComments: Record<string, any>[]
+  reviewComments: Record<string, any>[],
+  reviewThreads: TimelineReviewThreadPayload[] = []
 ): SortableTimelineItem[] {
-  const commentsByReviewId = buildReviewCommentsByReviewId(reviewComments);
+  const reviewThreadsByCommentId = buildReviewThreadsByCommentId(reviewThreads);
+  const commentsByReviewId = buildReviewCommentsByReviewId(
+    reviewComments,
+    reviewThreadsByCommentId
+  );
   const reviewsById = buildReviewsById(reviews);
   const dismissalsByReviewId = buildDismissalsByReviewId(timeline);
 
   const enriched = timeline.map((item) => {
+    if (item.kind === 'review-comment') {
+      return mergeReviewThreadState(item, reviewThreadsByCommentId);
+    }
+
     if (item.kind !== 'review') {
       return item;
     }
@@ -851,7 +1073,10 @@ export function enrichPRTimelineWithReviewData(
   });
 }
 
-function buildReviewCommentsByReviewId(comments: Record<string, any>[]) {
+function buildReviewCommentsByReviewId(
+  comments: Record<string, any>[],
+  reviewThreadsByCommentId: Map<string, TimelineReviewThreadPayload>
+) {
   const commentsByReviewId = new Map<string, TimelineReviewCommentPayload[]>();
 
   for (const comment of comments) {
@@ -864,7 +1089,7 @@ function buildReviewCommentsByReviewId(comments: Record<string, any>[]) {
       continue;
     }
 
-    const normalizedComment = normalizeReviewCommentForReview(comment);
+    const normalizedComment = normalizeReviewCommentForReview(comment, reviewThreadsByCommentId);
     const existing = commentsByReviewId.get(reviewId) ?? [];
     existing.push(normalizedComment);
     commentsByReviewId.set(reviewId, existing);
@@ -879,6 +1104,77 @@ function buildReviewCommentsByReviewId(comments: Record<string, any>[]) {
   }
 
   return commentsByReviewId;
+}
+
+function buildReviewThreadsByCommentId(reviewThreads: TimelineReviewThreadPayload[]) {
+  const reviewThreadsByCommentId = new Map<string, TimelineReviewThreadPayload>();
+
+  for (const thread of reviewThreads) {
+    for (const comment of thread.comments?.nodes ?? []) {
+      const ids = [comment?.id, stringifyId(comment?.databaseId)].filter((id): id is string =>
+        Boolean(id)
+      );
+
+      for (const id of ids) {
+        reviewThreadsByCommentId.set(id, thread);
+      }
+    }
+  }
+
+  return reviewThreadsByCommentId;
+}
+
+function getReviewThreadForComment(
+  comment: Record<string, any>,
+  reviewThreadsByCommentId: Map<string, TimelineReviewThreadPayload>
+) {
+  const ids = [
+    stringifyId(comment.id),
+    stringifyId(comment.node_id),
+    stringifyId(comment.databaseId),
+  ].filter((id): id is string => Boolean(id));
+
+  for (const id of ids) {
+    const thread = reviewThreadsByCommentId.get(id);
+    if (thread) {
+      return thread;
+    }
+  }
+
+  return undefined;
+}
+
+function buildReviewThreadStatePayload(
+  thread?: TimelineReviewThreadPayload
+): Pick<TimelineReviewCommentPayload, 'threadId' | 'isResolved' | 'isOutdated' | 'resolvedBy'> {
+  if (!thread?.id) {
+    return {};
+  }
+
+  return {
+    threadId: thread.id,
+    isResolved: Boolean(thread.isResolved),
+    isOutdated: Boolean(thread.isOutdated),
+    resolvedBy: mapActor(thread.resolvedBy),
+  };
+}
+
+function mergeReviewThreadState(
+  item: SortableTimelineItem,
+  reviewThreadsByCommentId: Map<string, TimelineReviewThreadPayload>
+): SortableTimelineItem {
+  const threadState = buildReviewThreadStatePayload(
+    getReviewThreadForComment(item, reviewThreadsByCommentId)
+  );
+
+  if (!threadState.threadId) {
+    return item;
+  }
+
+  return {
+    ...item,
+    ...threadState,
+  };
 }
 
 function buildReviewsById(reviews: Record<string, any>[]) {
@@ -929,10 +1225,14 @@ function buildDismissalsByReviewId(timeline: SortableTimelineItem[]) {
 }
 
 function normalizeReviewCommentForReview(
-  comment: Record<string, any>
+  comment: Record<string, any>,
+  reviewThreadsByCommentId: Map<string, TimelineReviewThreadPayload>
 ): TimelineReviewCommentPayload {
+  const thread = getReviewThreadForComment(comment, reviewThreadsByCommentId);
+
   return {
     id: stringifyId(comment.id ?? comment.node_id),
+    ...buildReviewThreadStatePayload(thread),
     author: mapActor(comment.user),
     body: comment.body ?? '',
     createdAt: comment.created_at,
@@ -1000,8 +1300,8 @@ function mapActor(user: RestUserLike | undefined | null) {
   return {
     resourceType: user.type,
     login: user.login,
-    avatarUrl: user.avatar_url,
-    url: user.html_url ?? user.url,
+    avatarUrl: user.avatar_url ?? user.avatarUrl,
+    url: user.html_url ?? user.htmlUrl ?? user.url,
     name: user.name,
     slug: user.slug,
   };

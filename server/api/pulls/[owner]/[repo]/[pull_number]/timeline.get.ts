@@ -3,6 +3,7 @@ import {
   createUnsupportedWarnings,
   enrichPRTimelineWithReviewData,
   fetchPaginatedArray,
+  fetchPRReviewThreads,
   fetchTimelinePage,
   normalizePRTimelineEvent,
   sortTimelineItems,
@@ -56,6 +57,20 @@ function enrichTimelineEventWithPullCommit(
   };
 }
 
+async function fetchPRReviewThreadsForTimeline(
+  octokit: Parameters<typeof fetchPRReviewThreads>[0],
+  owner: string,
+  repo: string,
+  pullNumber: number
+) {
+  try {
+    return await fetchPRReviewThreads(octokit, owner, repo, pullNumber);
+  } catch (error: unknown) {
+    console.warn('Failed to fetch pull request review threads:', error);
+    return [];
+  }
+}
+
 export default defineEventHandler(async (event) => {
   try {
     const { owner, repo, pull_number } = event.context.params as {
@@ -77,45 +92,47 @@ export default defineEventHandler(async (event) => {
 
     const octokit = await getGitHubClient(event);
 
-    const [timelinePage, pullCommits, pullReviews, pullReviewComments] = await Promise.all([
-      fetchTimelinePage<Record<string, any>>(
-        octokit,
-        'GET /repos/{owner}/{repo}/issues/{issue_number}/timeline',
-        {
-          owner,
-          repo,
-          issue_number: pullNumber,
-        },
-        page
-      ),
-      fetchPaginatedArray<Record<string, any>>(
-        octokit,
-        'GET /repos/{owner}/{repo}/pulls/{pull_number}/commits',
-        {
-          owner,
-          repo,
-          pull_number: pullNumber,
-        }
-      ),
-      fetchPaginatedArray<Record<string, any>>(
-        octokit,
-        'GET /repos/{owner}/{repo}/pulls/{pull_number}/reviews',
-        {
-          owner,
-          repo,
-          pull_number: pullNumber,
-        }
-      ),
-      fetchPaginatedArray<Record<string, any>>(
-        octokit,
-        'GET /repos/{owner}/{repo}/pulls/{pull_number}/comments',
-        {
-          owner,
-          repo,
-          pull_number: pullNumber,
-        }
-      ),
-    ]);
+    const [timelinePage, pullCommits, pullReviews, pullReviewComments, pullReviewThreads] =
+      await Promise.all([
+        fetchTimelinePage<Record<string, any>>(
+          octokit,
+          'GET /repos/{owner}/{repo}/issues/{issue_number}/timeline',
+          {
+            owner,
+            repo,
+            issue_number: pullNumber,
+          },
+          page
+        ),
+        fetchPaginatedArray<Record<string, any>>(
+          octokit,
+          'GET /repos/{owner}/{repo}/pulls/{pull_number}/commits',
+          {
+            owner,
+            repo,
+            pull_number: pullNumber,
+          }
+        ),
+        fetchPaginatedArray<Record<string, any>>(
+          octokit,
+          'GET /repos/{owner}/{repo}/pulls/{pull_number}/reviews',
+          {
+            owner,
+            repo,
+            pull_number: pullNumber,
+          }
+        ),
+        fetchPaginatedArray<Record<string, any>>(
+          octokit,
+          'GET /repos/{owner}/{repo}/pulls/{pull_number}/comments',
+          {
+            owner,
+            repo,
+            pull_number: pullNumber,
+          }
+        ),
+        fetchPRReviewThreadsForTimeline(octokit, owner, repo, pullNumber),
+      ]);
 
     const pullCommitsBySha = buildPullCommitLookup(pullCommits);
     const enrichedTimeline = timelinePage.items.map((rawEvent) =>
@@ -128,7 +145,8 @@ export default defineEventHandler(async (event) => {
     const timeline = enrichPRTimelineWithReviewData(
       normalizedTimeline,
       pullReviews,
-      pullReviewComments
+      pullReviewComments,
+      pullReviewThreads
     );
 
     return {
