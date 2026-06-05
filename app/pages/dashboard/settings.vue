@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { PaletteIcon, SearchIcon, TypeIcon } from 'lucide-vue-next';
+import { computed, nextTick, onMounted, shallowRef, useTemplateRef } from 'vue';
 
 import type { AppFontId, CodeFontId } from '#shared/types/user-settings';
 import { normalizeSystemFontFamily } from '#shared/utils/user-settings';
@@ -25,6 +26,10 @@ const editingAppFont = shallowRef(false);
 const editingCodeFont = shallowRef(false);
 const appFontInput = shallowRef('');
 const codeFontInput = shallowRef('');
+const appFontInputInitial = shallowRef('');
+const codeFontInputInitial = shallowRef('');
+const appFontInputRef = useTemplateRef<HTMLInputElement>('appFontInput');
+const codeFontInputRef = useTemplateRef<HTMLInputElement>('codeFontInput');
 
 // Bundled-only options passed to the modal; the modal loads system fonts on demand
 const bundledAppFontOptions = builtinAppFontOptions.map((f) => ({
@@ -88,19 +93,42 @@ const applyCodeFontFromModal = (fontId: string) => {
 };
 
 // Manual input handlers
+const focusEditableFontInput = (input: HTMLInputElement | null) => {
+  if (!input) return;
+
+  input.focus({ preventScroll: true });
+  const cursorPosition = input.value.length;
+  input.setSelectionRange(cursorPosition, cursorPosition);
+};
+
+const getChangedSystemFontInput = (value: string, initialValue: string) => {
+  const systemFont = normalizeSystemFontFamily(value);
+  if (!systemFont || systemFont === normalizeSystemFontFamily(initialValue)) {
+    return undefined;
+  }
+
+  return systemFont;
+};
+
 const startEditingAppFont = () => {
-  appFontInput.value = currentAppFontName.value;
+  const currentName = currentAppFontName.value;
+  appFontInput.value = currentName;
+  appFontInputInitial.value = currentName;
   editingAppFont.value = true;
+  void nextTick(() => focusEditableFontInput(appFontInputRef.value));
 };
 
 const startEditingCodeFont = () => {
-  codeFontInput.value = currentCodeFontName.value;
+  const currentName = currentCodeFontName.value;
+  codeFontInput.value = currentName;
+  codeFontInputInitial.value = currentName;
   editingCodeFont.value = true;
+  void nextTick(() => focusEditableFontInput(codeFontInputRef.value));
 };
 
 const applyAppFontFromInput = () => {
   editingAppFont.value = false;
-  const appSystemFont = normalizeSystemFontFamily(appFontInput.value);
+  const appSystemFont = getChangedSystemFontInput(appFontInput.value, appFontInputInitial.value);
   if (appSystemFont) {
     void updateFonts({ appFont: 'system', appSystemFont });
   }
@@ -108,7 +136,7 @@ const applyAppFontFromInput = () => {
 
 const applyCodeFontFromInput = () => {
   editingCodeFont.value = false;
-  const codeSystemFont = normalizeSystemFontFamily(codeFontInput.value);
+  const codeSystemFont = getChangedSystemFontInput(codeFontInput.value, codeFontInputInitial.value);
   if (codeSystemFont) {
     void updateFonts({ codeFont: 'system', codeSystemFont });
   }
@@ -187,10 +215,10 @@ onMounted(() => {
                 <div class="settings__font-input-row">
                   <input
                     v-if="editingAppFont"
+                    ref="appFontInput"
                     v-model="appFontInput"
                     class="settings__font-input"
                     type="text"
-                    autofocus
                     @blur="applyAppFontFromInput"
                     @keydown="handleAppFontInputKeydown"
                   />
@@ -219,10 +247,10 @@ onMounted(() => {
                 <div class="settings__font-input-row">
                   <input
                     v-if="editingCodeFont"
+                    ref="codeFontInput"
                     v-model="codeFontInput"
                     class="settings__font-input"
                     type="text"
-                    autofocus
                     @blur="applyCodeFontFromInput"
                     @keydown="handleCodeFontInputKeydown"
                   />
