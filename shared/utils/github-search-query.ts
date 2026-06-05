@@ -18,6 +18,59 @@ const ISSUE_SEARCH_SORTS: readonly GitHubIssueSearchSort[] = [
 
 const SEARCH_SCOPES: readonly CustomTabSearchScope[] = ['title', 'body', 'comments'];
 
+const TRIMMED_QUERY_PARAM_FIELDS = [
+  'text',
+  'repo',
+  'org',
+  'user',
+  'author',
+  'assignee',
+  'mentions',
+  'commenter',
+  'involves',
+  'milestone',
+  'base',
+  'head',
+] as const satisfies readonly (keyof CustomTabQuery)[];
+
+const SIMPLE_QUERY_PARAM_FIELDS = [
+  'type',
+  'state',
+  'visibility',
+  'archived',
+  'draft',
+  'review',
+  'order',
+] as const satisfies readonly (keyof CustomTabQuery)[];
+
+const SEARCH_QUALIFIER_FIELDS = [
+  'repo',
+  'org',
+  'user',
+  'author',
+  'assignee',
+  'mentions',
+  'commenter',
+  'involves',
+  'milestone',
+] as const satisfies readonly (keyof CustomTabQuery)[];
+
+const PULL_SEARCH_QUALIFIER_FIELDS = [
+  'base',
+  'head',
+] as const satisfies readonly (keyof CustomTabQuery)[];
+
+const FALLBACK_INVOLVES_BLOCKING_FIELDS = [
+  'repo',
+  'org',
+  'user',
+  'author',
+  'assignee',
+  'mentions',
+  'commenter',
+  'involves',
+] as const satisfies readonly (keyof CustomTabQuery)[];
+
 export const getOneYearAgoSearchDate = () => {
   const today = new Date();
   const oneYearAgo = new Date(today.getFullYear() - 1, today.getMonth(), today.getDate());
@@ -60,18 +113,9 @@ const appendTrimmedParam = (params: URLSearchParams, key: string, value: string 
 };
 
 export const appendCustomTabQueryParams = (params: URLSearchParams, query: CustomTabQuery) => {
-  appendTrimmedParam(params, 'text', query.text);
-  appendTrimmedParam(params, 'repo', query.repo);
-  appendTrimmedParam(params, 'org', query.org);
-  appendTrimmedParam(params, 'user', query.user);
-  appendTrimmedParam(params, 'author', query.author);
-  appendTrimmedParam(params, 'assignee', query.assignee);
-  appendTrimmedParam(params, 'mentions', query.mentions);
-  appendTrimmedParam(params, 'commenter', query.commenter);
-  appendTrimmedParam(params, 'involves', query.involves);
-  appendTrimmedParam(params, 'milestone', query.milestone);
-  appendTrimmedParam(params, 'base', query.base);
-  appendTrimmedParam(params, 'head', query.head);
+  for (const field of TRIMMED_QUERY_PARAM_FIELDS) {
+    appendTrimmedParam(params, field, query[field]);
+  }
 
   const labels = cleanList(query.labels);
   if (labels.length > 0) {
@@ -83,14 +127,12 @@ export const appendCustomTabQueryParams = (params: URLSearchParams, query: Custo
     params.set('scopes', scopes.join(','));
   }
 
-  if (query.type) params.set('type', query.type);
-  if (query.state) params.set('state', query.state);
-  if (query.visibility) params.set('visibility', query.visibility);
-  if (query.archived) params.set('archived', query.archived);
-  if (query.draft) params.set('draft', query.draft);
-  if (query.review) params.set('review', query.review);
+  for (const field of SIMPLE_QUERY_PARAM_FIELDS) {
+    const value = query[field];
+    if (value) params.set(field, value);
+  }
+
   if (query.sort && query.sort !== 'best-match') params.set('sort', query.sort);
-  if (query.order) params.set('order', query.order);
 };
 
 const appendSearchQualifier = (parts: string[], qualifier: string, value: string | undefined) => {
@@ -136,15 +178,9 @@ export const buildIssueSearchParts = (
     parts.push(`is:${query.visibility}`);
   }
 
-  appendSearchQualifier(parts, 'repo', query.repo);
-  appendSearchQualifier(parts, 'org', query.org);
-  appendSearchQualifier(parts, 'user', query.user);
-  appendSearchQualifier(parts, 'author', query.author);
-  appendSearchQualifier(parts, 'assignee', query.assignee);
-  appendSearchQualifier(parts, 'mentions', query.mentions);
-  appendSearchQualifier(parts, 'commenter', query.commenter);
-  appendSearchQualifier(parts, 'involves', query.involves);
-  appendSearchQualifier(parts, 'milestone', query.milestone);
+  for (const field of SEARCH_QUALIFIER_FIELDS) {
+    appendSearchQualifier(parts, field, query[field]);
+  }
 
   for (const label of cleanList(query.labels)) {
     parts.push(`label:${quoteSearchValue(label)}`);
@@ -166,20 +202,14 @@ export const buildIssueSearchParts = (
       parts.push(`review:${query.review}`);
     }
 
-    appendSearchQualifier(parts, 'base', query.base);
-    appendSearchQualifier(parts, 'head', query.head);
+    for (const field of PULL_SEARCH_QUALIFIER_FIELDS) {
+      appendSearchQualifier(parts, field, query[field]);
+    }
   }
 
   if (
     options.fallbackInvolves &&
-    !query.repo &&
-    !query.org &&
-    !query.user &&
-    !query.author &&
-    !query.assignee &&
-    !query.mentions &&
-    !query.commenter &&
-    !query.involves
+    !FALLBACK_INVOLVES_BLOCKING_FIELDS.some((field) => query[field])
   ) {
     parts.push(`involves:${options.fallbackInvolves}`);
   }
