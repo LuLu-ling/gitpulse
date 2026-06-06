@@ -17,16 +17,16 @@
           class="tab-sidebar__group"
           :class="{
             'tab-sidebar__group--nested': group.depth > 0,
-            'tab-sidebar__group--collapsed': group.collapsed,
+            'tab-sidebar__group--collapsed': isGroupCollapsed(group),
           }"
           :style="getDepthStyle(group.depth)"
           type="button"
           role="treeitem"
-          :aria-expanded="group.source === 'system' ? undefined : !group.collapsed"
+          :aria-expanded="group.source === 'system' ? undefined : !isGroupCollapsed(group)"
           @click="group.source !== 'system' && emit('group-toggle', group.id)"
         >
           <span class="tab-sidebar__group-toggle" aria-hidden="true">
-            <PlusIcon v-if="group.collapsed" :size="13" />
+            <PlusIcon v-if="isGroupCollapsed(group)" :size="13" />
             <MinusIcon v-else :size="13" />
           </span>
           <span class="tab-sidebar__group-label">{{ group.name }}</span>
@@ -37,7 +37,7 @@
 
         <!-- Group children (tabs) -->
         <div
-          v-if="!group.collapsed"
+          v-if="!isGroupCollapsed(group)"
           class="tab-sidebar__children"
           :style="getDepthStyle(group.depth)"
         >
@@ -64,7 +64,11 @@
 
           <!-- Empty group state -->
           <span
-            v-if="group.source !== 'system' && !group.collapsed && getGroupTabCount(group.id) === 0"
+            v-if="
+              group.source !== 'system' &&
+              !isGroupCollapsed(group) &&
+              getGroupTabCount(group.id) === 0
+            "
             class="tab-sidebar__empty-inline"
           >
             {{ t('dashboard.sidebar.emptyGroup') }}
@@ -78,7 +82,7 @@
 <script setup lang="ts">
 import { PlusIcon, MinusIcon, SlidersHorizontalIcon } from 'lucide-vue-next';
 import type { Component, CSSProperties } from 'vue';
-import { computed } from 'vue';
+import { computed, onMounted, shallowRef } from 'vue';
 
 import { DEFAULT_CUSTOM_TAB_GROUP_ID } from '~/composables/useTabGroups';
 
@@ -129,6 +133,14 @@ const emit = defineEmits<{
   (e: 'manage-tabs'): void;
 }>();
 
+const hasHydrated = shallowRef(false);
+
+onMounted(() => {
+  hasHydrated.value = true;
+});
+
+const isGroupCollapsed = (group: TabSidebarGroup) => hasHydrated.value && Boolean(group.collapsed);
+
 const getTabsForGroup = (groupId: string) => props.tabs.filter((tab) => tab.groupId === groupId);
 const getGroupTabCount = (groupId: string) => getTabsForGroup(groupId).length;
 
@@ -158,7 +170,7 @@ const displayGroups = computed<DisplayTabSidebarGroup[]>(() => {
       if (!ancestorCollapsed) {
         rows.push({ ...group, depth });
       }
-      visit(group.id, depth + 1, ancestorCollapsed || Boolean(group.collapsed));
+      visit(group.id, depth + 1, ancestorCollapsed || isGroupCollapsed(group));
     }
   };
 
