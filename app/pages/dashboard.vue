@@ -148,6 +148,7 @@
     :is-issue-visible="isIssueDetailVisible"
     :is-pull-request-visible="isPRDetailVisible"
     :is-repository-visible="isRepoDetailVisible"
+    :is-pull-request-review-route="isPRReviewRoute"
     :issue-detail-key="issueDetailKey"
     :pull-request-detail-key="prDetailKey"
     :repository-detail-key="repoDetailKey"
@@ -158,6 +159,8 @@
     @home="handleActiveDetailHome"
     @switch-issue="handleSwitchIssue"
     @switch-pull-request="handleSwitchPR"
+    @open-pull-request-review="handlePRReviewOpen"
+    @close-pull-request-review="handlePRReviewClose"
   />
 </template>
 
@@ -201,6 +204,8 @@ const localePath = useLocalePath();
 const route = useRoute();
 const router = useRouter();
 const { currentEntry, navigateToFile } = useNavigationHistory();
+const { resolveDashboardUrlTarget, getDashboardUrlRoute, trackDashboardUrlNavigation } =
+  useDashboardUrlNavigation();
 
 const dashboardTabs: DashboardTab[] = ['notifications', 'issues', 'pulls', 'repos'];
 const quickFiltersStorageKey = 'gitpulse:dashboard:quick-filters';
@@ -225,6 +230,33 @@ const hasFileBrowsingPath = computed(() => Object.hasOwn(route.query, 'path'));
 const showFileBrowsingView = computed(() => {
   return Boolean(fileBrowsingRepo.value && hasFileBrowsingPath.value);
 });
+
+const normalizeUrlQuery = async () => {
+  const rawUrl = getQueryParamValue(route.query.url);
+  if (!rawUrl) {
+    return;
+  }
+
+  const target = resolveDashboardUrlTarget(rawUrl);
+  if (!target) {
+    return;
+  }
+
+  trackDashboardUrlNavigation(target);
+  await router.replace(getDashboardUrlRoute(target));
+};
+
+watch(
+  () => route.query.url,
+  () => {
+    if (!import.meta.client) {
+      return;
+    }
+
+    void normalizeUrlQuery();
+  },
+  { immediate: true }
+);
 
 watch(
   () => [route.query.repo, route.query.path, route.query.branch, showFileBrowsingView.value],
@@ -615,6 +647,9 @@ const {
   handleRepoDetailHome,
   handleSwitchIssue,
   handleSwitchPR,
+  handlePRReviewOpen,
+  handlePRReviewClose,
+  isPRReviewRoute,
   repoDetailKey,
   prDetailKey,
 } = useDashboardDetails(currentRouteTabId);
@@ -715,6 +750,10 @@ const switchTabSafely = async (tabId: string) => {
         issue: undefined,
         pr: undefined,
         repo: undefined,
+        path: undefined,
+        branch: undefined,
+        prView: undefined,
+        url: undefined,
       }),
     });
   } catch (error) {
