@@ -830,16 +830,6 @@ onActivated(() => {
             </button>
           </div>
 
-          <div class="repo-file-view__sidebar-branch">
-            <BranchSelector
-              :branches="branches"
-              :current-branch="currentBranch"
-              :default-branch="defaultBranch"
-              :loading="loading && branches.length === 0"
-              @select="navigateToBranch"
-            />
-          </div>
-
           <div v-if="treeLoading" class="repo-file-view__tree-loading">
             <Loader2Icon :size="16" class="spin-animation" />
             <span>{{ t('repoFileView.loadingTree') }}</span>
@@ -1284,17 +1274,6 @@ onActivated(() => {
   color: var(--bulma-text-strong, var(--gitpulse-text-strong));
   font-size: 0.82rem;
   font-weight: 700;
-}
-
-.repo-file-view__sidebar-branch {
-  padding: 0.3rem 0.6rem;
-  border-bottom: 1px solid var(--gitpulse-border);
-}
-
-.repo-file-view__sidebar-branch .branch-selector__trigger {
-  width: 100%;
-  max-width: none;
-  justify-content: flex-start;
 }
 
 .repo-file-view__collapse-button {
