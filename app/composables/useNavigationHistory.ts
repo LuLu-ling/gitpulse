@@ -1,5 +1,7 @@
 import { computed } from 'vue';
 
+import type { PullRequestDashboardView } from '~/utils/dashboard-url-navigation-utils';
+
 export type PageType =
   | 'dashboard'
   | 'issue'
@@ -17,6 +19,7 @@ export interface NavigationEntry {
     tab?: string;
     path?: string;
     branch?: string;
+    view?: PullRequestDashboardView;
   };
 }
 
@@ -28,7 +31,8 @@ const isSameEntry = (left: NavigationEntry | null, right: NavigationEntry) => {
     left.data?.number === right.data?.number &&
     left.data?.tab === right.data?.tab &&
     left.data?.path === right.data?.path &&
-    left.data?.branch === right.data?.branch
+    left.data?.branch === right.data?.branch &&
+    left.data?.view === right.data?.view
   );
 };
 
@@ -90,10 +94,16 @@ export function useNavigationHistory() {
     pushEntry(entry);
   };
 
-  const navigateToPullRequest = (owner: string, repo: string, number: number, tab?: string) => {
+  const navigateToPullRequest = (
+    owner: string,
+    repo: string,
+    number: number,
+    tab?: string,
+    view?: PullRequestDashboardView
+  ) => {
     const entry: NavigationEntry = {
       type: 'pull-request',
-      data: { owner, repo, number, tab },
+      data: { owner, repo, number, tab, view },
     };
     pushEntry(entry);
   };
