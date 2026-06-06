@@ -34,7 +34,11 @@
           <span class="is-size-7 has-text-grey">
             {{
               t('prReview.committedAt', {
-                time: formatDurationFromNow(item.commit?.committedDate || '', localeCode),
+                time: formatDurationFromNow(
+                  item.commit?.committedDate || '',
+                  localeCode,
+                  relativeTimeNow
+                ),
               })
             }}
           </span>
@@ -75,6 +79,7 @@ defineProps<{
 
 const { t, locale } = useI18n();
 const localeCode = computed(() => locale.value);
+const relativeTimeNow = useRelativeTimeNow();
 </script>
 
 <style scoped lang="scss">

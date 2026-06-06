@@ -30,7 +30,7 @@
     </template>
 
     <span class="ml-2 has-text-grey">
-      {{ formatDurationFromNow(item.createdAt || '', localeCode) }}
+      {{ formatDurationFromNow(item.createdAt || '', localeCode, relativeTimeNow) }}
     </span>
   </span>
 </template>
@@ -57,6 +57,7 @@ const emit = defineEmits<{
 
 const { locale } = useI18n();
 const localeCode = computed(() => locale.value);
+const relativeTimeNow = useRelativeTimeNow();
 
 const referenceEventTypes = new Set([
   'connected',

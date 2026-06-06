@@ -94,6 +94,7 @@ import RoundImg from '~/components/ui/RoundImg.vue';
 
 const { locale, t } = useI18n();
 const localeCode = computed(() => locale.value);
+const relativeTimeNow = useRelativeTimeNow();
 
 interface PullRequestHeaderPullRequest {
   title?: string;
@@ -124,13 +125,13 @@ const displayState = computed(() => {
 
 const updatedAtLabel = computed(() => {
   return props.pullRequest?.updated_at
-    ? formatDurationFromNow(props.pullRequest.updated_at, localeCode.value)
+    ? formatDurationFromNow(props.pullRequest.updated_at, localeCode.value, relativeTimeNow.value)
     : '-';
 });
 
 const createdAtLabel = computed(() => {
   return props.pullRequest?.created_at
-    ? formatDurationFromNow(props.pullRequest.created_at, localeCode.value)
+    ? formatDurationFromNow(props.pullRequest.created_at, localeCode.value, relativeTimeNow.value)
     : '-';
 });
 

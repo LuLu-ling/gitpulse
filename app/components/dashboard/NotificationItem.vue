@@ -41,7 +41,9 @@
 
               <p class="subtitle is-7 has-text-grey mb-0 dashboard-list-card__meta">
                 {{ currentNotification.repository.full_name }} &middot;
-                {{ formatDurationFromNow(currentNotification.updated_at, localeCode) }}
+                {{
+                  formatDurationFromNow(currentNotification.updated_at, localeCode, relativeTimeNow)
+                }}
               </p>
             </div>
             <div class="notification-card__actions ml-3">
@@ -99,6 +101,7 @@ const props = defineProps<{
 
 const { locale } = useI18n();
 const localeCode = computed(() => locale.value);
+const relativeTimeNow = useRelativeTimeNow();
 const markingAsRead = ref(false);
 const isLocallyRead = ref(false);
 

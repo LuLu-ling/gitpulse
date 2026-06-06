@@ -17,7 +17,7 @@
         {{ issue?.state }}
       </span>
       <span class="ml-4 has-text-grey has-text-weight-medium">
-        {{ formatDurationFromNow(issue?.updated_at, localeCode) }}
+        {{ formatDurationFromNow(issue?.updated_at, localeCode, relativeTimeNow) }}
       </span>
     </div>
 
@@ -46,7 +46,7 @@
             {{ issue?.user?.login }}
           </a>
           <span class="is-size-7 has-text-grey">
-            {{ formatDurationFromNow(issue?.created_at, localeCode) }}
+            {{ formatDurationFromNow(issue?.created_at, localeCode, relativeTimeNow) }}
           </span>
         </div>
       </div>
@@ -74,6 +74,7 @@ import RoundImg from '~/components/ui/RoundImg.vue';
 
 const { locale, t } = useI18n();
 const localeCode = computed(() => locale.value);
+const relativeTimeNow = useRelativeTimeNow();
 
 interface IssueHeaderIssue {
   title?: string;

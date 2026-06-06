@@ -31,7 +31,7 @@
         </div>
 
         <span class="is-size-7 has-text-grey mt-1">
-          {{ formatDurationFromNow(item.createdAt || '', localeCode) }}
+          {{ formatDurationFromNow(item.createdAt || '', localeCode, relativeTimeNow) }}
         </span>
       </div>
 
@@ -69,6 +69,7 @@ defineProps<{
 
 const { locale } = useI18n();
 const localeCode = computed(() => locale.value);
+const relativeTimeNow = useRelativeTimeNow();
 </script>
 
 <style scoped lang="scss">

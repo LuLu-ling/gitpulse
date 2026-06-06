@@ -24,7 +24,9 @@
 
     <template v-else> {{ item.displayText || `${item.eventType || item.kind} this PR` }} </template>
 
-    <span class="ml-2 has-text-grey">{{ formatDurationFromNow(eventDate, localeCode) }}</span>
+    <span class="ml-2 has-text-grey">
+      {{ formatDurationFromNow(eventDate, localeCode, relativeTimeNow) }}
+    </span>
   </span>
 </template>
 
@@ -50,6 +52,7 @@ const emit = defineEmits<{
 
 const { locale } = useI18n();
 const localeCode = computed(() => locale.value);
+const relativeTimeNow = useRelativeTimeNow();
 const repoFullName = computed(() => `${props.repoOwner}/${props.repoName}`);
 const eventDate = computed(() => props.item.createdAt || props.item.commit?.committedDate || '');
 

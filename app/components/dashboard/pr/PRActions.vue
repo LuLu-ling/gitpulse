@@ -192,6 +192,7 @@ import type {
 } from '~/composables/usePRReviewers';
 
 const { t, locale } = useI18n();
+const relativeTimeNow = useRelativeTimeNow();
 
 interface PullRequestUserSummary {
   id?: number | string;
@@ -330,7 +331,7 @@ const getReviewerStatusIcon = (status: PRReviewerStatus) => {
 
 const formatRelativeTime = (dateString: string | undefined) => {
   if (!dateString) return '';
-  return formatDurationFromNow(dateString, locale.value);
+  return formatDurationFromNow(dateString, locale.value, relativeTimeNow.value);
 };
 </script>
 

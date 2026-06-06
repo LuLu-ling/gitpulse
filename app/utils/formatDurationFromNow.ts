@@ -6,6 +6,18 @@ import relativeTime from 'dayjs/plugin/relativeTime.js';
 dayjs.extend(duration);
 dayjs.extend(relativeTime);
 
-export default function (date: string, locale: string = 'en'): string {
-  return dayjs(date).locale(locale).fromNow();
+type RelativeTimeDate = string | number | Date | null | undefined;
+
+export default function (
+  date: RelativeTimeDate,
+  locale: string = 'en',
+  baseDate?: RelativeTimeDate
+): string {
+  const value = dayjs(date).locale(locale);
+
+  if (baseDate === undefined) {
+    return value.fromNow();
+  }
+
+  return value.from(dayjs(baseDate));
 }

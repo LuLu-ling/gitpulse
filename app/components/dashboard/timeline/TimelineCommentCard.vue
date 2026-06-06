@@ -20,7 +20,7 @@
           </a>
           <slot name="meta">
             <span class="is-size-7 has-text-grey">
-              {{ formatDurationFromNow(item.createdAt || '', localeCode) }}
+              {{ formatDurationFromNow(item.createdAt || '', localeCode, relativeTimeNow) }}
             </span>
           </slot>
         </div>
@@ -65,6 +65,7 @@ defineProps<{
 
 const { locale, t } = useI18n();
 const localeCode = computed(() => locale.value);
+const relativeTimeNow = useRelativeTimeNow();
 </script>
 
 <style scoped lang="scss">

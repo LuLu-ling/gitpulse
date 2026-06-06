@@ -83,6 +83,7 @@ import { formatDurationFromNow, getRepoName } from '#imports';
 import getTextColorFromBackground from '~/utils/getTextColorFromBackground';
 
 const { locale } = useI18n();
+const relativeTimeNow = useRelativeTimeNow();
 
 interface SearchResultItem {
   id?: number;
@@ -110,7 +111,7 @@ const props = defineProps<{
 }>();
 
 const formatTime = (dateStr: string) => {
-  return formatDurationFromNow(dateStr, locale.value);
+  return formatDurationFromNow(dateStr, locale.value, relativeTimeNow.value);
 };
 
 const labelStyle = (label: { color?: string; name: string }) => {

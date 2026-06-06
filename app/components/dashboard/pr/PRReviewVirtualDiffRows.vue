@@ -68,6 +68,7 @@ const emit = defineEmits<{
 
 const { t, locale } = useI18n();
 const localeCode = computed(() => locale.value);
+const relativeTimeNow = useRelativeTimeNow();
 const rowsRoot = useTemplateRef<HTMLElement>('rowsRoot');
 const isRowsNearViewport = shallowRef(false);
 const visibleRange = shallowRef({ start: 0, end: 0 });
@@ -763,10 +764,16 @@ onBeforeUnmount(() => {
                         rel="noopener noreferrer"
                         class="has-text-grey"
                       >
-                        {{ formatDurationFromNow(comment.createdAt || '', localeCode) }}
+                        {{
+                          formatDurationFromNow(
+                            comment.createdAt || '',
+                            localeCode,
+                            relativeTimeNow
+                          )
+                        }}
                       </a>
                       <span v-else-if="comment.createdAt" class="has-text-grey">
-                        {{ formatDurationFromNow(comment.createdAt, localeCode) }}
+                        {{ formatDurationFromNow(comment.createdAt, localeCode, relativeTimeNow) }}
                       </span>
                     </div>
                   </div>

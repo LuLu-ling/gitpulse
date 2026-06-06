@@ -37,7 +37,7 @@
             {{ t('prReview.timelineDismissedNote') }}
           </span>
           <span class="review-item__time has-text-grey">
-            {{ formatDurationFromNow(item.createdAt || '', localeCode) }}
+            {{ formatDurationFromNow(item.createdAt || '', localeCode, relativeTimeNow) }}
           </span>
         </div>
         <div v-if="item.body" class="review-item__body content">
@@ -61,7 +61,7 @@
               </template>
             </span>
             <span v-if="item.dismissal.createdAt" class="has-text-grey">
-              {{ formatDurationFromNow(item.dismissal.createdAt, localeCode) }}
+              {{ formatDurationFromNow(item.dismissal.createdAt, localeCode, relativeTimeNow) }}
             </span>
           </div>
           <MarkdownRenderer
@@ -136,7 +136,7 @@
                       {{ commentLineLabel(comment) }}
                     </a>
                     <span v-if="comment.createdAt" class="has-text-grey">
-                      {{ formatDurationFromNow(comment.createdAt, localeCode) }}
+                      {{ formatDurationFromNow(comment.createdAt, localeCode, relativeTimeNow) }}
                     </span>
                     <span
                       v-if="comment.isOutdated"
@@ -235,6 +235,7 @@ const emit = defineEmits<{
 
 const { t, locale } = useI18n();
 const localeCode = computed(() => locale.value);
+const relativeTimeNow = useRelativeTimeNow();
 const hasReviewComments = computed(() => Boolean(props.item.reviewComments?.length));
 const expandedFiles = ref(new Set<string>());
 

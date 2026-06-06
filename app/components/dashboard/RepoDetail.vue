@@ -130,6 +130,7 @@ const copy = computed(() => {
 });
 
 const localeCode = computed(() => locale.value);
+const relativeTimeNow = useRelativeTimeNow();
 
 const isStarred = ref(false);
 const loadingStar = ref(false);
@@ -277,7 +278,7 @@ const stats = computed(() => [
 
 const formatDate = (value?: string | null) => {
   if (!value) return '-';
-  return formatDurationFromNow(value, localeCode.value);
+  return formatDurationFromNow(value, localeCode.value, relativeTimeNow.value);
 };
 
 const toggleStar = async () => {

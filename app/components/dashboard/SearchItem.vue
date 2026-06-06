@@ -13,7 +13,9 @@
               <span class="dashboard-list-card__repo">{{ getRepoName(issue.repository_url) }}</span>
               <span class="tag is-small dashboard-list-card__number">#{{ issue.number }}</span>
               <span class="dashboard-list-card__separator">&middot;</span>
-              <span>{{ formatDurationFromNow(issue.updated_at, localeCode) }}</span>
+              <span>{{
+                formatDurationFromNow(issue.updated_at, localeCode, relativeTimeNow)
+              }}</span>
             </p>
           </div>
 
@@ -74,6 +76,7 @@ const props = defineProps<{
 
 const { locale } = useI18n();
 const localeCode = computed(() => locale.value);
+const relativeTimeNow = useRelativeTimeNow();
 
 const hasTags = computed(() => {
   return Boolean(props.issue.type?.name || props.issue.labels?.length);
