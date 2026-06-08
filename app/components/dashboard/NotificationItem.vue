@@ -7,13 +7,12 @@
       <div class="dashboard-list-card__main-row notification-card__main-row">
         <div class="dashboard-list-card__icon">
           <figure class="image is-32x32">
-            <NuxtImg
+            <GitHubAvatar
               :src="currentNotification.repository.owner.avatar_url"
               :alt="currentNotification.repository.owner.login"
               width="32"
               height="32"
               loading="lazy"
-              class="is-rounded"
             />
             <span
               v-if="subjectVisual.icon"
@@ -97,6 +96,7 @@ import { ref, computed } from 'vue';
 
 import { formatDurationFromNow } from '#imports';
 import type { DashboardNotification } from '#shared/types/notifications';
+import GitHubAvatar from '~/components/ui/GitHubAvatar.vue';
 import LoadingIcon from '~/components/ui/LoadingIcon.vue';
 import getDashboardSubjectStateVisual from '~/utils/getDashboardSubjectStateVisual';
 

@@ -37,10 +37,11 @@
                 class="reviewer-item__status-icon"
               />
             </div>
-            <img
+            <GitHubAvatar
               v-if="reviewer.avatarUrl"
               :src="reviewer.avatarUrl"
               :alt="reviewer.name"
+              size="20"
               class="reviewer-item__avatar"
             />
             <span v-else class="reviewer-item__avatar reviewer-item__avatar--fallback">
@@ -126,9 +127,7 @@
           <div class="info-item">
             <span class="info-item__label">{{ t('prReview.assignee') }}</span>
             <span v-if="assignee" class="info-item__value">
-              <span class="info-item__avatar">
-                <img :src="assignee.avatar_url || ''" :alt="assignee.login" />
-              </span>
+              <GitHubAvatar :src="assignee.avatar_url" :alt="assignee.login" size="16" />
               {{ assignee.login }}
             </span>
             <span v-else class="info-item__value info-item__value--muted">
@@ -185,6 +184,7 @@ import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { formatDurationFromNow } from '#imports';
+import GitHubAvatar from '~/components/ui/GitHubAvatar.vue';
 import type {
   PRReviewerStatus,
   PRReviewerSummaryItem,
@@ -529,7 +529,6 @@ const formatRelativeTime = (dateString: string | undefined) => {
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  object-fit: cover;
   flex-shrink: 0;
 }
 
@@ -641,20 +640,6 @@ const formatRelativeTime = (dateString: string | undefined) => {
 
 .info-item__value--muted {
   color: var(--gitpulse-text-subtle);
-}
-
-.info-item__avatar {
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  overflow: hidden;
-  flex-shrink: 0;
-
-  img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
 }
 
 .info-stats {

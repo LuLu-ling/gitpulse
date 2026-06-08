@@ -29,7 +29,9 @@
 
     <div>
       <div class="is-flex is-align-items-center mb-4">
-        <RoundImg
+        <GitHubAvatar
+          variant="raised"
+          interactive
           class="mr-4"
           width="32"
           height="32"
@@ -69,8 +71,8 @@ import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { formatDurationFromNow } from '#imports';
+import GitHubAvatar from '~/components/ui/GitHubAvatar.vue';
 import MarkdownRenderer from '~/components/ui/MarkdownRenderer.vue';
-import RoundImg from '~/components/ui/RoundImg.vue';
 
 const { locale, t } = useI18n();
 const localeCode = computed(() => locale.value);

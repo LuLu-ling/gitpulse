@@ -1,7 +1,9 @@
 <template>
   <div class="merge-item px-4 pt-3 pb-3">
     <div class="is-flex is-align-items-center">
-      <RoundImg
+      <GitHubAvatar
+        variant="raised"
+        interactive
         v-if="item.actor?.avatarUrl"
         class="mr-3 merge-avatar"
         width="32"
@@ -57,7 +59,7 @@ import { GitMergeIcon } from 'lucide-vue-next';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-import RoundImg from '~/components/ui/RoundImg.vue';
+import GitHubAvatar from '~/components/ui/GitHubAvatar.vue';
 import type { PRTimelineItem } from '~/composables/usePRTimelineEvents';
 import formatDurationFromNow from '~/utils/formatDurationFromNow';
 

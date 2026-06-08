@@ -2,8 +2,8 @@
 import { computed, nextTick, shallowRef, useTemplateRef } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import GitHubAvatar from '~/components/ui/GitHubAvatar.vue';
 import MarkdownRenderer from '~/components/ui/MarkdownRenderer.vue';
-import RoundImg from '~/components/ui/RoundImg.vue';
 
 type DiscussionSubmitHandler = (body: string) => Promise<void>;
 
@@ -109,7 +109,9 @@ defineExpose({ focus });
       type="button"
       @click="expandComposer"
     >
-      <RoundImg
+      <GitHubAvatar
+        variant="raised"
+        interactive
         width="28"
         height="28"
         :src="currentUserAvatar"
@@ -127,7 +129,9 @@ defineExpose({ focus });
     <!-- Expanded panel -->
     <div v-if="compact || isExpanded" class="discussion-composer__panel">
       <div class="discussion-composer__header">
-        <RoundImg
+        <GitHubAvatar
+          variant="raised"
+          interactive
           width="28"
           height="28"
           :src="currentUserAvatar"

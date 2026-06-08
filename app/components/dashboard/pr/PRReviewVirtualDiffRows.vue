@@ -12,8 +12,8 @@ import {
 } from 'vue';
 
 import PRReviewInlineComment from '~/components/dashboard/pr/PRReviewInlineComment.vue';
+import GitHubAvatar from '~/components/ui/GitHubAvatar.vue';
 import MarkdownRenderer from '~/components/ui/MarkdownRenderer.vue';
-import RoundImg from '~/components/ui/RoundImg.vue';
 import type { PRReviewCommentThread, PRReviewDiffRow } from '~/composables/usePRReview';
 import formatDurationFromNow from '~/utils/formatDurationFromNow';
 import tokenizeCodeLine from '~/utils/tokenizeCodeLine';
@@ -738,7 +738,9 @@ onBeforeUnmount(() => {
                     <span>{{ reviewThreadStateLabel(thread) }}</span>
                   </button>
                   <div class="pr-review-diff-viewer__review-comment-header">
-                    <RoundImg
+                    <GitHubAvatar
+                      variant="raised"
+                      interactive
                       width="24"
                       height="24"
                       :src="comment.author?.avatarUrl || ''"

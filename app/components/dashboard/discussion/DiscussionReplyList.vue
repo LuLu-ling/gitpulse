@@ -3,8 +3,8 @@ import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import type { DiscussionRepliesPayload } from '#shared/types/discussions';
+import GitHubAvatar from '~/components/ui/GitHubAvatar.vue';
 import MarkdownRenderer from '~/components/ui/MarkdownRenderer.vue';
-import RoundImg from '~/components/ui/RoundImg.vue';
 import formatDurationFromNow from '~/utils/formatDurationFromNow';
 
 const props = defineProps<{
@@ -30,7 +30,9 @@ const hasReplies = computed(() => props.replies.items.length > 0);
     <div v-if="hasReplies" class="discussion-replies__list">
       <article v-for="reply in replies.items" :key="reply.id" class="discussion-replies__item">
         <div class="discussion-replies__header">
-          <RoundImg
+          <GitHubAvatar
+            variant="raised"
+            interactive
             width="20"
             height="20"
             :src="reply.author?.avatarUrl || ''"

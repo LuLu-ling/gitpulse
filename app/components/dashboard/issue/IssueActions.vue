@@ -42,9 +42,7 @@
           <div class="info-item">
             <span class="info-item__label">{{ t('issueDetail.assignee') }}</span>
             <span v-if="assignee" class="info-item__value">
-              <span class="info-item__avatar">
-                <img :src="assignee.avatar_url || ''" :alt="assignee.login" />
-              </span>
+              <GitHubAvatar :src="assignee.avatar_url" :alt="assignee.login" size="16" />
               {{ assignee.login }}
             </span>
             <span v-else class="info-item__value info-item__value--muted">
@@ -86,6 +84,7 @@ import {
 import { onUnmounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import GitHubAvatar from '~/components/ui/GitHubAvatar.vue';
 import type { IssueTimelineItem } from '~/composables/useIssueTimelineEvents';
 import getFetchErrorMessage from '~/utils/getFetchErrorMessage';
 
@@ -395,20 +394,6 @@ const formatDate = (dateString: string | undefined) => {
 
 .info-item__value--muted {
   color: var(--gitpulse-text-subtle);
-}
-
-.info-item__avatar {
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  overflow: hidden;
-  flex-shrink: 0;
-
-  img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
 }
 
 .sidebar-link {

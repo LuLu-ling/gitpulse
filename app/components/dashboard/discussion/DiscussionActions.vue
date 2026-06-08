@@ -12,12 +12,11 @@
           <div class="info-item">
             <span class="info-item__label">{{ t('discussionDetail.author') }}</span>
             <span v-if="discussion.author" class="info-item__value">
-              <span class="info-item__avatar">
-                <img
-                  :src="discussion.author.avatarUrl || ''"
-                  :alt="discussion.author.login || t('discussionDetail.authorFallback')"
-                />
-              </span>
+              <GitHubAvatar
+                :src="discussion.author.avatarUrl"
+                :alt="discussion.author.login || t('discussionDetail.authorFallback')"
+                size="16"
+              />
               {{ discussion.author.login }}
             </span>
             <span v-else class="info-item__value info-item__value--muted">
@@ -93,6 +92,7 @@ import { useI18n } from 'vue-i18n';
 
 import { formatDurationFromNow } from '#imports';
 import type { DiscussionDetailPayload } from '#shared/types/discussions';
+import GitHubAvatar from '~/components/ui/GitHubAvatar.vue';
 
 const props = defineProps<{
   discussion: DiscussionDetailPayload;
@@ -185,20 +185,6 @@ const updatedAtLabel = computed(() =>
 
 .info-item__value--muted {
   color: var(--gitpulse-text-subtle);
-}
-
-.info-item__avatar {
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  overflow: hidden;
-  flex-shrink: 0;
-
-  img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
 }
 
 .state-icon--answered {

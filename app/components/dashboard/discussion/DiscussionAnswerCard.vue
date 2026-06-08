@@ -4,8 +4,8 @@ import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import type { DiscussionReply } from '#shared/types/discussions';
+import GitHubAvatar from '~/components/ui/GitHubAvatar.vue';
 import MarkdownRenderer from '~/components/ui/MarkdownRenderer.vue';
-import RoundImg from '~/components/ui/RoundImg.vue';
 import formatDurationFromNow from '~/utils/formatDurationFromNow';
 
 defineProps<{
@@ -27,7 +27,9 @@ const localeCode = computed(() => locale.value);
     </div>
 
     <div class="discussion-answer__header">
-      <RoundImg
+      <GitHubAvatar
+        variant="raised"
+        interactive
         width="28"
         height="28"
         :src="answer.author?.avatarUrl || ''"

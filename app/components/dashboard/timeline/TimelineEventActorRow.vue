@@ -1,6 +1,8 @@
 <template>
   <div class="is-flex is-align-items-center">
-    <RoundImg
+    <GitHubAvatar
+      variant="raised"
+      interactive
       class="mr-4"
       :width="String(avatarSize)"
       :height="String(avatarSize)"
@@ -14,7 +16,7 @@
 </template>
 
 <script setup lang="ts">
-import RoundImg from '~/components/ui/RoundImg.vue';
+import GitHubAvatar from '~/components/ui/GitHubAvatar.vue';
 import type { TimelineActor } from '~/composables/usePRTimelineEvents';
 
 withDefaults(

@@ -109,10 +109,11 @@
                   <div class="reviewer-modal-candidate-check">
                     <CheckIcon :size="10" />
                   </div>
-                  <img
+                  <GitHubAvatar
                     v-if="candidate.avatarUrl && candidate.kind === 'user'"
                     :src="candidate.avatarUrl"
                     :alt="candidate.name"
+                    size="24"
                     class="reviewer-modal-candidate-avatar"
                   />
                   <span
@@ -183,6 +184,7 @@ import { computed, nextTick, ref, shallowRef, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import CollapsibleGroup from '~/components/ui/CollapsibleGroup.vue';
+import GitHubAvatar from '~/components/ui/GitHubAvatar.vue';
 import type {
   PRReviewerCandidate,
   PRReviewerCandidateWarning,
@@ -620,7 +622,6 @@ watch(
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  object-fit: cover;
   flex-shrink: 0;
 }
 

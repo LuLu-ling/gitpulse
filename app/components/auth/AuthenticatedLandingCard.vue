@@ -2,7 +2,14 @@
   <div class="auth-shell auth-shell--signed-in is-flex is-justify-content-center">
     <div class="box auth-shell__box has-text-centered">
       <div class="auth-shell__avatar mb-5">
-        <RoundImg :src="user.avatar_url" :alt="user.name" width="108" height="108" />
+        <GitHubAvatar
+          variant="raised"
+          interactive
+          :src="user.avatar_url"
+          :alt="user.name"
+          width="108"
+          height="108"
+        />
       </div>
 
       <p class="auth-shell__eyebrow mb-3">{{ t('landing.sessionReady') }}</p>
@@ -33,7 +40,7 @@
 import { LayoutDashboardIcon, LogOutIcon } from 'lucide-vue-next';
 
 import Button from '~/components/ui/Button.vue';
-import RoundImg from '~/components/ui/RoundImg.vue';
+import GitHubAvatar from '~/components/ui/GitHubAvatar.vue';
 
 defineEmits<{
   logout: [];

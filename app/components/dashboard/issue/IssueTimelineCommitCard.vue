@@ -1,7 +1,9 @@
 <template>
   <div class="commit-item px-4 pt-3 pb-1">
     <div class="is-flex is-align-items-start mb-2">
-      <RoundImg
+      <GitHubAvatar
+        variant="raised"
+        interactive
         v-if="item.commit?.author?.user?.avatarUrl"
         class="mr-3"
         width="32"
@@ -69,7 +71,7 @@
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-import RoundImg from '~/components/ui/RoundImg.vue';
+import GitHubAvatar from '~/components/ui/GitHubAvatar.vue';
 import type { IssueTimelineItem } from '~/composables/useIssueTimelineEvents';
 import formatDurationFromNow from '~/utils/formatDurationFromNow';
 

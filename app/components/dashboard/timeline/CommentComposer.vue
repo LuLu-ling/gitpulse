@@ -16,7 +16,9 @@
       type="button"
       @click="expandComposer"
     >
-      <RoundImg
+      <GitHubAvatar
+        variant="raised"
+        interactive
         class="mr-3"
         width="28"
         height="28"
@@ -28,7 +30,9 @@
 
     <div v-else class="comment-composer__panel">
       <div class="comment-composer__panel-header is-flex is-align-items-center mb-3">
-        <RoundImg
+        <GitHubAvatar
+          variant="raised"
+          interactive
           class="mr-3"
           width="32"
           height="32"
@@ -108,8 +112,8 @@
 import { computed, nextTick, shallowRef, useTemplateRef } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import GitHubAvatar from '~/components/ui/GitHubAvatar.vue';
 import MarkdownRenderer from '~/components/ui/MarkdownRenderer.vue';
-import RoundImg from '~/components/ui/RoundImg.vue';
 import getFetchErrorMessage from '~/utils/getFetchErrorMessage';
 
 interface CreatedCommentResponse {

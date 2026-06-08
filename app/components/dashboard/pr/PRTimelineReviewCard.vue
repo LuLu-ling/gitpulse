@@ -12,7 +12,9 @@
     :class="[`review-item--${stateModifier}`, { 'review-item--has-dismissal': item.dismissal }]"
   >
     <div class="is-flex is-align-items-flex-start">
-      <RoundImg
+      <GitHubAvatar
+        variant="raised"
+        interactive
         class="mr-3 review-item__avatar"
         width="32"
         height="32"
@@ -112,7 +114,9 @@
                 />
                 <div class="review-item__comment-meta">
                   <div class="review-item__comment-meta-left">
-                    <RoundImg
+                    <GitHubAvatar
+                      variant="raised"
+                      interactive
                       width="20"
                       height="20"
                       :src="comment.author?.avatarUrl || ''"
@@ -216,8 +220,8 @@ import { useI18n } from 'vue-i18n';
 
 import PRTimelineReviewDiff from '~/components/dashboard/pr/PRTimelineReviewDiff.vue';
 import TimelineCommentCard from '~/components/dashboard/timeline/TimelineCommentCard.vue';
+import GitHubAvatar from '~/components/ui/GitHubAvatar.vue';
 import MarkdownRenderer from '~/components/ui/MarkdownRenderer.vue';
-import RoundImg from '~/components/ui/RoundImg.vue';
 import { parsePRReviewPatch } from '~/composables/usePRReview';
 import type { PRTimelineItem, TimelineReviewComment } from '~/composables/usePRTimelineEvents';
 import formatDurationFromNow from '~/utils/formatDurationFromNow';

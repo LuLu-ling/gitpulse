@@ -2,7 +2,9 @@
   <div class="comment-item px-4 pt-4 pb-1">
     <div class="mb-4">
       <div class="is-flex is-align-items-center mb-2">
-        <RoundImg
+        <GitHubAvatar
+          variant="raised"
+          interactive
           class="mr-4"
           width="32"
           height="32"
@@ -45,8 +47,8 @@
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import GitHubAvatar from '~/components/ui/GitHubAvatar.vue';
 import MarkdownRenderer from '~/components/ui/MarkdownRenderer.vue';
-import RoundImg from '~/components/ui/RoundImg.vue';
 import type { TimelineActor } from '~/composables/usePRTimelineEvents';
 import formatDurationFromNow from '~/utils/formatDurationFromNow';
 

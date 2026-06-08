@@ -6,8 +6,8 @@ import { useI18n } from 'vue-i18n';
 import type { DiscussionComment } from '#shared/types/discussions';
 import DiscussionComposer from '~/components/dashboard/discussion/DiscussionComposer.vue';
 import DiscussionReplyList from '~/components/dashboard/discussion/DiscussionReplyList.vue';
+import GitHubAvatar from '~/components/ui/GitHubAvatar.vue';
 import MarkdownRenderer from '~/components/ui/MarkdownRenderer.vue';
-import RoundImg from '~/components/ui/RoundImg.vue';
 import formatDurationFromNow from '~/utils/formatDurationFromNow';
 
 type DiscussionReplySubmitHandler = (comment: DiscussionComment, body: string) => Promise<void>;
@@ -57,7 +57,9 @@ watch(
 
     <div class="discussion-comment__content">
       <div class="discussion-comment__header">
-        <RoundImg
+        <GitHubAvatar
+          variant="raised"
+          interactive
           width="32"
           height="32"
           :src="comment.author?.avatarUrl || ''"
@@ -116,7 +118,7 @@ watch(
           :aria-expanded="showReplies"
           @click="showReplies = !showReplies"
         >
-          ↳ {{ t('discussionDetail.replyCount', { count: comment.replies.totalCount }) }}
+          �?{{ t('discussionDetail.replyCount', { count: comment.replies.totalCount }) }}
         </button>
       </div>
 

@@ -6,15 +6,16 @@
       :title="userName || 'User'"
       @click="$emit('avatar-click')"
     >
-      <img
-        v-if="userAvatar"
+      <GitHubAvatar
         :src="userAvatar"
         :alt="userName || 'User'"
+        size="34"
         class="activity-bar__avatar-img"
-      />
-      <div v-else class="activity-bar__avatar-placeholder">
-        <UserIcon :size="18" />
-      </div>
+      >
+        <template #fallback>
+          <UserIcon :size="18" />
+        </template>
+      </GitHubAvatar>
     </button>
 
     <nav class="activity-bar__groups" aria-label="View groups">
@@ -58,6 +59,8 @@ import {
   SettingsIcon,
   UserIcon,
 } from 'lucide-vue-next';
+
+import GitHubAvatar from '~/components/ui/GitHubAvatar.vue';
 
 interface Group {
   id: string;
@@ -135,18 +138,6 @@ function getGroupIcon(icon?: string) {
     width: 34px;
     height: 34px;
     border-radius: 50%;
-    object-fit: cover;
-  }
-
-  &__avatar-placeholder {
-    width: 34px;
-    height: 34px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: var(--bulma-border, #d1d5db);
-    color: var(--bulma-text-weak, #6b7280);
   }
 
   &__groups {
