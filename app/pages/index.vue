@@ -95,43 +95,45 @@ const pageErrorMessage = computed(() => {
   }
 });
 
-watch(
-  [isPersonalMode, loggedIn],
-  async ([personalMode, isLoggedIn]) => {
-    if (!personalMode || isLoggedIn || autoRestoreAttempted.value || autoRestorePending.value) {
-      return;
-    }
-
-    autoRestoreAttempted.value = true;
-    autoRestorePending.value = true;
-
-    try {
-      try {
-        await $fetch('/auth/unlock', {
-          method: 'POST',
-          body: {},
-        });
-      } catch {
-        // Ignore: missing/invalid remember cookie falls back to manual unlock.
+if (import.meta.client) {
+  watch(
+    [isPersonalMode, loggedIn],
+    async ([personalMode, isLoggedIn]) => {
+      if (!personalMode || isLoggedIn || autoRestoreAttempted.value || autoRestorePending.value) {
         return;
       }
 
-      try {
-        await fetchUserSession();
-        await nextTick();
+      autoRestoreAttempted.value = true;
+      autoRestorePending.value = true;
 
-        if (loggedIn.value) {
-          await navigateTo(localePath('/dashboard'));
+      try {
+        try {
+          await $fetch('/auth/unlock', {
+            method: 'POST',
+            body: {},
+          });
+        } catch {
+          // Ignore: missing/invalid remember cookie falls back to manual unlock.
+          return;
         }
-      } catch (error) {
-        console.error('Auto-restore session refresh failed', error);
+
+        try {
+          await fetchUserSession();
+          await nextTick();
+
+          if (loggedIn.value) {
+            await navigateTo(localePath('/dashboard'));
+          }
+        } catch (error) {
+          console.error('Auto-restore session refresh failed', error);
+        }
+      } finally {
+        autoRestorePending.value = false;
       }
-    } finally {
-      autoRestorePending.value = false;
-    }
-  },
-  { immediate: true }
-);
+    },
+    { immediate: true }
+  );
+}
 
 const handleLogout = async () => {
   await $fetch('/auth/logout', {
