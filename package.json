@@ -11,8 +11,8 @@
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
-    "lint": "bunx oxlint ./ --type-aware",
-    "lint:fix": "bunx oxlint ./ --fix --type-aware",
+    "lint": "bunx oxlint ./ --type-aware --ignore-pattern extension/",
+    "lint:fix": "bunx oxlint ./ --fix --type-aware --ignore-pattern extension/",
     "fmt": "bunx oxfmt ./",
     "fmt:check": "bunx oxfmt --check ./"
   },
