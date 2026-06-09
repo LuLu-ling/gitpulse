@@ -99,7 +99,7 @@
                   class="mb-4 mr-4"
                   @click="openIssue(issue)"
                 >
-                  <AsyncSearchItem :issue="issue" />
+                  <AsyncIssuePrNotificationItem :item="issue" />
                 </div>
               </SimpleBar>
 
@@ -110,7 +110,7 @@
                   class="mb-4 mr-4"
                   @click="openPR(pull)"
                 >
-                  <AsyncSearchItem :issue="pull" />
+                  <AsyncIssuePrNotificationItem :item="pull" />
                 </div>
               </SimpleBar>
 
@@ -201,6 +201,9 @@ import parseGitHubRepoPath from '~/utils/parseGitHubRepoPath';
 
 const AsyncNotificationItem = defineAsyncComponent(
   () => import('~/components/dashboard/NotificationItem.vue')
+);
+const AsyncIssuePrNotificationItem = defineAsyncComponent(
+  () => import('~/components/dashboard/IssuePrNotificationItem.vue')
 );
 const AsyncSearchItem = defineAsyncComponent(() => import('~/components/dashboard/SearchItem.vue'));
 const AsyncRepoItem = defineAsyncComponent(() => import('~/components/dashboard/RepoItem.vue'));
