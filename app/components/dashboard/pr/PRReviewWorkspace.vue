@@ -6,6 +6,7 @@ import PRReviewDiffViewer from '~/components/dashboard/pr/PRReviewDiffViewer.vue
 import PRReviewFileSidebar from '~/components/dashboard/pr/PRReviewFileSidebar.vue';
 import PRReviewSubmitBar from '~/components/dashboard/pr/PRReviewSubmitBar.vue';
 import { buildDashboardQueryFromNavigationEntry } from '~/utils/dashboard-url-navigation-utils';
+import shouldCloseReviewWorkspaceAfterSubmit from '~/utils/prReviewNavigation';
 
 const props = defineProps<{
   owner: string;
@@ -30,6 +31,19 @@ const {
   replaceWithEntry,
 } = useNavigationHistory();
 
+const handleReviewSubmitted = () => {
+  if (
+    shouldCloseReviewWorkspaceAfterSubmit({
+      previousEntry: previousEntry.value,
+      owner: props.owner,
+      repo: props.repo,
+      pullNumber: props.pullNumber,
+    })
+  ) {
+    emit('close');
+  }
+};
+
 const review = usePRReview({
   owner: () => props.owner,
   repo: () => props.repo,
@@ -41,7 +55,7 @@ const review = usePRReview({
     resolveThreadFailed: t('prReview.resolveThreadFailed'),
     unresolveThreadFailed: t('prReview.unresolveThreadFailed'),
   },
-  onSubmitted: () => emit('close'),
+  onSubmitted: handleReviewSubmitted,
 });
 
 const hasFiles = computed(() => review.files.value.length > 0);
@@ -64,18 +78,17 @@ const currentRouteTab = computed(() => {
 
   return typeof tab === 'string' ? tab : undefined;
 });
-const isPreviousEntryCurrentPullRequest = computed(() => {
-  const entry = previousEntry.value;
-  const data = entry?.data;
-
-  return (
-    entry?.type === 'pull-request' &&
-    data?.owner === props.owner &&
-    data.repo === props.repo &&
-    data.number === props.pullNumber
-  );
-});
-const shouldShowPullRequestDetailsButton = computed(() => !isPreviousEntryCurrentPullRequest.value);
+const isPreviousEntryCurrentPullRequestDetails = computed(() =>
+  shouldCloseReviewWorkspaceAfterSubmit({
+    previousEntry: previousEntry.value,
+    owner: props.owner,
+    repo: props.repo,
+    pullNumber: props.pullNumber,
+  })
+);
+const shouldShowPullRequestDetailsButton = computed(
+  () => !isPreviousEntryCurrentPullRequestDetails.value
+);
 
 const navigateToEntryRoute = async (entry: typeof previousEntry.value) => {
   if (!entry || entry.type === 'dashboard' || entry.type === 'notification') {
