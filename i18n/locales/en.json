@@ -80,20 +80,40 @@
     "unlocking": "Unlocking...",
     "invalidPassword": "Invalid password. Please try again."
   },
-  "issueDetail": {
+  "detailOverlay": {
     "back": "Back",
     "home": "Home",
-    "loading": "Loading issue...",
-    "loadingTimelines": "Loading timelines...",
-    "loadingPullRequest": "Loading pull request...",
-    "loadingRepository": "Loading repository...",
-    "issueTypeFallback": "Issue",
-    "saving": "Saving...",
+    "syncing": "Syncing data...",
+    "loading": {
+      "issue": "Loading issue...",
+      "pullRequest": "Loading pull request...",
+      "repository": "Loading repository..."
+    }
+  },
+  "detailTimeline": {
     "activity": "Activity",
+    "loading": "Loading timelines...",
     "loadMore": "Load more",
     "loadingMore": "Loading more...",
     "noActivity": "No activity yet",
-    "noCommentBody": "No comment body",
+    "noCommentBody": "No comment body"
+  },
+  "detailLabels": {
+    "title": "Labels",
+    "edit": "Edit labels",
+    "loading": "Loading issue...",
+    "empty": "No labels",
+    "noneAvailable": "No labels available",
+    "cancel": "Cancel",
+    "save": "Save",
+    "saving": "Saving...",
+    "updateFailed": "Failed to update labels"
+  },
+  "detailActions": {
+    "viewOnGithub": "View on GitHub"
+  },
+  "issueDetail": {
+    "issueTypeFallback": "Issue",
     "noDescription": "No description provided",
     "commitFallbackTitle": "Commit",
     "unknownCommitAuthor": "Unknown",
@@ -103,19 +123,12 @@
     "referenceCommitFallback": "Referenced this issue from a commit",
     "projectFallback": "Project",
     "projectColumnFallback": "column",
-    "labels": "Labels",
-    "editLabels": "Edit labels",
-    "noLabelsAvailable": "No labels available",
     "cancel": "Cancel",
-    "save": "Save",
     "additionalInfo": "Additional Info",
     "created": "Created: {date}",
     "updated": "Updated: {date}",
     "assignee": "Assignee: {assignee}",
     "noAssignee": "Assignee: None",
-    "noLabels": "No labels",
-    "viewOnGithub": "View on GitHub",
-    "syncing": "Syncing data...",
     "lockIssue": "Lock Issue",
     "unlockIssue": "Unlock Issue",
     "lockIssueReason": "Lock Issue Reason",
@@ -130,8 +143,7 @@
     "lockReasonSpam": "Spam",
     "lockReasonSpamDesc": "The issue is spam or contains inappropriate content",
     "failedToLockIssue": "Failed to lock issue",
-    "failedToUnlockIssue": "Failed to unlock issue",
-    "failedToUpdateLabels": "Failed to update labels"
+    "failedToUnlockIssue": "Failed to unlock issue"
   },
   "discussionDetail": {
     "loading": "Loading discussion...",

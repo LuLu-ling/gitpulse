@@ -67,7 +67,7 @@ const activeDetailPane = computed<ActiveDetailPane | null>(() => {
       loading: props.loadingIssue,
       hasData: Boolean(props.issue),
       error: props.issueError,
-      loadingTitle: t('issueDetail.loading'),
+      loadingTitle: t('detailOverlay.loading.issue'),
     };
   }
 
@@ -78,7 +78,7 @@ const activeDetailPane = computed<ActiveDetailPane | null>(() => {
       loading: props.loadingPullRequest,
       hasData: Boolean(props.pullRequest),
       error: '',
-      loadingTitle: t('issueDetail.loadingPullRequest'),
+      loadingTitle: t('detailOverlay.loading.pullRequest'),
     };
   }
 
@@ -100,7 +100,7 @@ const activeDetailPane = computed<ActiveDetailPane | null>(() => {
       loading: props.loadingRepository,
       hasData: Boolean(props.repository),
       error: props.repoError,
-      loadingTitle: t('issueDetail.loadingRepository'),
+      loadingTitle: t('detailOverlay.loading.repository'),
     };
   }
 
@@ -152,10 +152,10 @@ watch(activeDetailKey, () => {
     <DetailOverlay
       v-if="isOverlayVisible"
       :loading="false"
-      :loading-title="activeDetailPane?.loadingTitle || t('issueDetail.loading')"
-      :loading-subtitle="t('issueDetail.syncing')"
-      :back-label="t('issueDetail.back')"
-      :home-label="t('issueDetail.home')"
+      :loading-title="activeDetailPane?.loadingTitle || t('detailOverlay.loading.issue')"
+      :loading-subtitle="t('detailOverlay.syncing')"
+      :back-label="t('detailOverlay.back')"
+      :home-label="t('detailOverlay.home')"
       :show-home-button="shouldShowHomeButton"
       :non-sticky-header="isHeaderNonSticky"
       :hide-header="isPullRequestReviewActive"
@@ -178,9 +178,9 @@ watch(activeDetailKey, () => {
                 />
 
                 <p class="is-size-6 has-text-weight-semibold has-text-grey-dark">
-                  {{ activeDetailPane?.loadingTitle || t('issueDetail.loading') }}
+                  {{ activeDetailPane?.loadingTitle || t('detailOverlay.loading.issue') }}
                 </p>
-                <p class="is-size-7 has-text-grey-light mt-1">{{ t('issueDetail.syncing') }}</p>
+                <p class="is-size-7 has-text-grey-light mt-1">{{ t('detailOverlay.syncing') }}</p>
               </div>
             </div>
 

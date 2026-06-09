@@ -3,13 +3,13 @@
     <div class="sidebar-card__header">
       <div class="sidebar-card__header-left">
         <TagIcon :size="14" class="sidebar-card__icon" />
-        <span class="sidebar-card__title">{{ t('issueDetail.labels') }}</span>
+        <span class="sidebar-card__title">{{ t('detailLabels.title') }}</span>
       </div>
       <button
         @click="toggleLabelEditor"
         class="sidebar-card__action"
         :class="{ 'sidebar-card__action--hidden': !canEditLabels }"
-        :title="t('issueDetail.editLabels')"
+        :title="t('detailLabels.edit')"
         :disabled="!canEditLabels"
       >
         <PencilIcon :size="14" />
@@ -29,7 +29,7 @@
           {{ label.name }}
         </span>
       </div>
-      <p v-else class="sidebar-card__empty">{{ t('issueDetail.noLabels') }}</p>
+      <p v-else class="sidebar-card__empty">{{ t('detailLabels.empty') }}</p>
     </div>
 
     <Teleport to="body">
@@ -41,7 +41,7 @@
         >
           <div class="label-editor-panel">
             <div class="label-editor-header">
-              <h3 class="label-editor-title">{{ t('issueDetail.editLabels') }}</h3>
+              <h3 class="label-editor-title">{{ t('detailLabels.edit') }}</h3>
               <button
                 class="label-editor-close"
                 @click="toggleLabelEditor"
@@ -62,7 +62,7 @@
 
               <div v-if="loadingLabels" class="label-editor-loading">
                 <Loader2Icon class="spin-animation" :size="18" />
-                <span>{{ t('issueDetail.loading') }}</span>
+                <span>{{ t('detailLabels.loading') }}</span>
               </div>
 
               <div v-else class="label-editor-list">
@@ -95,14 +95,14 @@
                 </label>
 
                 <div v-if="repoLabels.length === 0" class="label-editor-empty">
-                  {{ t('issueDetail.noLabelsAvailable') }}
+                  {{ t('detailLabels.noneAvailable') }}
                 </div>
               </div>
             </div>
 
             <div class="label-editor-footer">
               <button class="label-btn-cancel" @click="toggleLabelEditor" :disabled="savingLabels">
-                {{ t('issueDetail.cancel') }}
+                {{ t('detailLabels.cancel') }}
               </button>
               <button
                 class="label-btn-save"
@@ -110,7 +110,7 @@
                 :disabled="loadingLabels || savingLabels"
               >
                 <Loader2Icon v-if="savingLabels" class="spin-animation" :size="14" />
-                <span>{{ savingLabels ? t('issueDetail.saving') : t('issueDetail.save') }}</span>
+                <span>{{ savingLabels ? t('detailLabels.saving') : t('detailLabels.save') }}</span>
               </button>
             </div>
           </div>
@@ -270,7 +270,7 @@ const saveLabels = async () => {
     closeModal();
   } catch (err: unknown) {
     console.error('Error saving labels:', err);
-    labelError.value = getFetchErrorMessage(err, t('issueDetail.failedToUpdateLabels'));
+    labelError.value = getFetchErrorMessage(err, t('detailLabels.updateFailed'));
     scheduleLabelErrorClear();
   } finally {
     savingLabels.value = false;

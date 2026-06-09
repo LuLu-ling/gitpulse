@@ -2,11 +2,11 @@
   <div>
     <div class="mb-4 is-flex is-align-items-center">
       <span class="is-size-5 has-text-weight-semibold ml-2 mr-4">{{
-        t('issueDetail.activity')
+        t('detailTimeline.activity')
       }}</span>
       <div v-if="loading" class="is-flex is-justify-content-center">
         <LoadingIcon class="icon" />
-        <span class="ml-2 is-size-7 has-text-grey">{{ t('issueDetail.loadingTimelines') }}</span>
+        <span class="ml-2 is-size-7 has-text-grey">{{ t('detailTimeline.loading') }}</span>
       </div>
     </div>
 
@@ -15,7 +15,7 @@
         <PRTimelineCommentCard
           v-if="item.kind === 'comment' || item.kind === 'review-comment'"
           :item="item"
-          :empty-text="t('issueDetail.noCommentBody')"
+          :empty-text="t('detailTimeline.noCommentBody')"
           :repo-owner="repoOwner"
           :repo-name="repoName"
         />
@@ -59,7 +59,7 @@
     </div>
 
     <div v-else-if="!loading" class="has-text-grey is-size-7">
-      {{ t('issueDetail.noActivity') }}
+      {{ t('detailTimeline.noActivity') }}
     </div>
 
     <div
@@ -73,7 +73,7 @@
         :disabled="loadingMore"
         @click="emit('load-more')"
       >
-        {{ loadingMore ? t('issueDetail.loadingMore') : t('issueDetail.loadMore') }}
+        {{ loadingMore ? t('detailTimeline.loadingMore') : t('detailTimeline.loadMore') }}
       </button>
     </div>
 

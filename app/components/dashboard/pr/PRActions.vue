@@ -160,7 +160,7 @@
       <div class="sidebar-card__content">
         <a :href="htmlUrl" target="_blank" rel="noopener noreferrer" class="sidebar-link">
           <ExternalLinkIcon :size="14" />
-          <span>{{ t('issueDetail.viewOnGithub') }}</span>
+          <span>{{ t('detailActions.viewOnGithub') }}</span>
         </a>
       </div>
     </div>

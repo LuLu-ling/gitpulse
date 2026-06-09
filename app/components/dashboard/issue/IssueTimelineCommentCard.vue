@@ -1,7 +1,7 @@
 <template>
   <TimelineCommentCard
     :item="item"
-    :empty-text="t('issueDetail.noCommentBody')"
+    :empty-text="t('detailTimeline.noCommentBody')"
     :repo-owner="repoOwner"
     :repo-name="repoName"
   />

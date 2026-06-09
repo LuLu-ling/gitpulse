@@ -80,20 +80,40 @@
     "unlocking": "解锁中...",
     "invalidPassword": "密码无效，请重试。"
   },
-  "issueDetail": {
+  "detailOverlay": {
     "back": "返回",
     "home": "主页",
-    "loading": "加载中...",
-    "loadingTimelines": "加载时间线中...",
-    "loadingPullRequest": "正在加载拉取请求...",
-    "loadingRepository": "正在加载仓库...",
-    "issueTypeFallback": "议题",
-    "saving": "保存中...",
+    "syncing": "同步数据中...",
+    "loading": {
+      "issue": "加载中...",
+      "pullRequest": "正在加载拉取请求...",
+      "repository": "正在加载仓库..."
+    }
+  },
+  "detailTimeline": {
     "activity": "活动",
+    "loading": "加载时间线中...",
     "loadMore": "加载更多",
     "loadingMore": "加载中...",
     "noActivity": "暂无活动",
-    "noCommentBody": "无评论内容",
+    "noCommentBody": "无评论内容"
+  },
+  "detailLabels": {
+    "title": "标签",
+    "edit": "编辑标签",
+    "loading": "加载中...",
+    "empty": "无标签",
+    "noneAvailable": "无可用标签",
+    "cancel": "取消",
+    "save": "保存",
+    "saving": "保存中...",
+    "updateFailed": "更新标签失败"
+  },
+  "detailActions": {
+    "viewOnGithub": "在 GitHub 上查看"
+  },
+  "issueDetail": {
+    "issueTypeFallback": "议题",
     "noDescription": "没有提供描述",
     "commitFallbackTitle": "提交",
     "unknownCommitAuthor": "未知",
@@ -103,19 +123,12 @@
     "referenceCommitFallback": "此议题被一个提交引用",
     "projectFallback": "项目",
     "projectColumnFallback": "列",
-    "labels": "标签",
-    "editLabels": "编辑标签",
-    "noLabelsAvailable": "无可用标签",
     "cancel": "取消",
-    "save": "保存",
     "additionalInfo": "其他信息",
     "created": "创建于 {date}",
     "updated": "更新于 {date}",
     "assignee": "指派给 {assignee}",
     "noAssignee": "未指派",
-    "noLabels": "无标签",
-    "viewOnGithub": "在 GitHub 上查看",
-    "syncing": "同步数据中...",
     "lockIssue": "锁定议题",
     "unlockIssue": "解锁议题",
     "lockIssueReason": "锁定议题原因",
@@ -130,8 +143,7 @@
     "lockReasonSpam": "垃圾内容",
     "lockReasonSpamDesc": "此议题是垃圾内容或包含不适当的内容",
     "failedToLockIssue": "锁定议题失败",
-    "failedToUnlockIssue": "解锁议题失败",
-    "failedToUpdateLabels": "更新标签失败"
+    "failedToUnlockIssue": "解锁议题失败"
   },
   "discussionDetail": {
     "loading": "正在加载讨论...",
