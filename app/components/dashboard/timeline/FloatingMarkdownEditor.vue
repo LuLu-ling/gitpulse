@@ -81,13 +81,13 @@
       <div class="floating-markdown-editor__content-area">
         <textarea
           ref="textareaRef"
-          v-model="draft"
+          :value="draft"
           class="textarea floating-markdown-editor__textarea"
           :class="{ 'floating-markdown-editor__textarea--hidden': activeTab !== 'write' }"
           :rows="compact ? 4 : 6"
           :placeholder="placeholder"
           :disabled="isSubmitting"
-          @input="autoResizeTextarea"
+          @input="handleDraftInput"
         />
 
         <div
@@ -112,7 +112,6 @@
         </p>
         <div class="floating-markdown-editor__footer-actions">
           <button
-            v-if="!compact"
             class="button is-light is-small"
             type="button"
             :disabled="isSubmitting"
@@ -187,6 +186,7 @@ const props = withDefaults(
     placeholder?: string;
     submitLabel?: string;
     submittingLabel?: string;
+    modelValue?: string;
     compact?: boolean;
     autofocus?: boolean;
     // External state (for callback mode)
@@ -198,6 +198,7 @@ const props = withDefaults(
     placeholder: undefined,
     submitLabel: undefined,
     submittingLabel: undefined,
+    modelValue: undefined,
     compact: false,
     autofocus: false,
     submitting: false,
@@ -210,6 +211,7 @@ const emit = defineEmits<{
   (e: 'error', message: string): void;
   (e: 'expanded'): void;
   (e: 'collapsed'): void;
+  (e: 'update:modelValue', value: string): void;
 }>();
 
 const { t } = useI18n();
@@ -220,7 +222,7 @@ const textareaRef = useTemplateRef<HTMLTextAreaElement>('textareaRef');
 const isExpanded = shallowRef(false);
 const internalSubmitting = shallowRef(false);
 const activeTab = shallowRef<'write' | 'preview'>('write');
-const draft = shallowRef('');
+const draft = shallowRef(props.modelValue ?? '');
 const errorMessage = shallowRef('');
 
 const trimmedDraft = computed(() => draft.value.trim());
@@ -259,11 +261,21 @@ const focus = async () => {
   textareaRef.value?.focus();
 };
 
+const setDraft = (value: string) => {
+  draft.value = value;
+  emit('update:modelValue', value);
+};
+
 const autoResizeTextarea = () => {
   const el = textareaRef.value;
   if (!el) return;
   el.style.height = 'auto';
   el.style.height = `${el.scrollHeight}px`;
+};
+
+const handleDraftInput = (event: Event) => {
+  setDraft((event.target as HTMLTextAreaElement).value);
+  autoResizeTextarea();
 };
 
 // Auto-resize textarea when switching to write tab
@@ -273,6 +285,17 @@ watch(activeTab, async (tab) => {
     autoResizeTextarea();
   }
 });
+
+watch(
+  () => props.modelValue,
+  async (value) => {
+    if (value === undefined || value === draft.value) return;
+
+    draft.value = value;
+    await nextTick();
+    autoResizeTextarea();
+  }
+);
 
 const expandComposer = async () => {
   isExpanded.value = true;
@@ -290,7 +313,7 @@ const collapseComposer = () => {
 };
 
 const reset = () => {
-  draft.value = '';
+  setDraft('');
   errorMessage.value = '';
   activeTab.value = 'write';
   // Reset textarea height

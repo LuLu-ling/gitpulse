@@ -17,14 +17,18 @@ defineProps<{
   hasNextPage?: boolean;
   error?: string;
   replyErrors: Map<string, string>;
+  replyDrafts: Map<string, string>;
   loadingReplyIds: Set<string>;
   submittingReplyIds: Set<string>;
   submitReply: DiscussionReplySubmitHandler;
+  activeEditorCommentId?: string | null;
 }>();
 
 const emit = defineEmits<{
   (e: 'load-more-comments'): void;
   (e: 'load-more-replies', comment: DiscussionComment): void;
+  (e: 'reply-draft-updated', commentId: string, draft: string): void;
+  (e: 'reply-editor-toggled', commentId: string, isOpen: boolean): void;
 }>();
 
 const { t } = useI18n();
@@ -64,10 +68,18 @@ const { t } = useI18n();
         :repo-name="repoName"
         :can-reply="canReply"
         :reply-error="replyErrors.get(comment.id)"
+        :reply-draft="replyDrafts.get(comment.id) || ''"
         :loading-more-replies="loadingReplyIds.has(comment.id)"
         :submitting-reply="submittingReplyIds.has(comment.id)"
         :submit-reply="submitReply"
+        :is-editor-active="activeEditorCommentId === comment.id"
         @load-more-replies="emit('load-more-replies', $event)"
+        @reply-draft-updated="
+          (commentId: string, draft: string) => emit('reply-draft-updated', commentId, draft)
+        "
+        @reply-editor-toggled="
+          (commentId: string, isOpen: boolean) => emit('reply-editor-toggled', commentId, isOpen)
+        "
       />
     </div>
 

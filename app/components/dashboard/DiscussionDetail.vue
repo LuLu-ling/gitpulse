@@ -44,9 +44,12 @@ const loadingComments = shallowRef(false);
 const loadingMoreComments = shallowRef(false);
 const commentsError = shallowRef('');
 const submittingComment = shallowRef(false);
+const commentDraft = shallowRef('');
+const replyDrafts = shallowRef(new Map<string, string>());
 const loadingReplyIds = shallowRef(new Set<string>());
 const submittingReplyIds = shallowRef(new Set<string>());
 const replyErrors = shallowRef(new Map<string, string>());
+const activeEditorCommentId = shallowRef<string | null>(null);
 
 const displayDiscussion = computed<DiscussionDetailPayload>(() => ({
   ...discussionState.value,
@@ -76,6 +79,7 @@ const canComment = computed(
   () => !isDiscussionLocked.value && Boolean(discussionWriteApiBase.value)
 );
 const canReply = computed(() => canComment.value);
+const hasOpenReplyEditor = computed(() => activeEditorCommentId.value !== null);
 
 const visibleAnswer = computed(() => {
   const answer = displayDiscussion.value.answer;
@@ -166,6 +170,29 @@ function setReplyError(commentId: string, error: string) {
   replyErrors.value = nextErrors;
 }
 
+function handleReplyEditorToggled(commentId: string, isOpen: boolean) {
+  if (isOpen) {
+    activeEditorCommentId.value = commentId;
+    return;
+  }
+
+  if (activeEditorCommentId.value === commentId) {
+    activeEditorCommentId.value = null;
+  }
+}
+
+function handleReplyDraftUpdated(commentId: string, draft: string) {
+  const nextDrafts = new Map(replyDrafts.value);
+
+  if (draft) {
+    nextDrafts.set(commentId, draft);
+  } else {
+    nextDrafts.delete(commentId);
+  }
+
+  replyDrafts.value = nextDrafts;
+}
+
 function updateComment(
   commentId: string,
   updater: (comment: DiscussionComment) => DiscussionComment
@@ -185,9 +212,12 @@ function resetDiscussionState(discussion: DiscussionDetailPayload) {
   loadingMoreComments.value = false;
   commentsError.value = '';
   submittingComment.value = false;
+  commentDraft.value = '';
+  replyDrafts.value = new Map();
   loadingReplyIds.value = new Set();
   submittingReplyIds.value = new Set();
   replyErrors.value = new Map();
+  activeEditorCommentId.value = null;
 }
 
 async function loadMoreComments() {
@@ -372,15 +402,20 @@ watch(
           :has-next-page="commentsPageInfo.hasNextPage"
           :error="commentsError"
           :reply-errors="replyErrors"
+          :reply-drafts="replyDrafts"
           :loading-reply-ids="loadingReplyIds"
           :submitting-reply-ids="submittingReplyIds"
           :submit-reply="submitReply"
+          :active-editor-comment-id="activeEditorCommentId"
           @load-more-comments="loadMoreComments"
           @load-more-replies="loadMoreReplies"
+          @reply-draft-updated="handleReplyDraftUpdated"
+          @reply-editor-toggled="handleReplyEditorToggled"
         />
 
         <FloatingMarkdownEditor
-          v-if="canComment"
+          v-if="canComment && !hasOpenReplyEditor"
+          v-model="commentDraft"
           class="discussion-detail__composer"
           :repo-owner="repoOwner"
           :repo-name="repoName"
@@ -390,13 +425,6 @@ watch(
           :submitting="submittingComment"
           :submit="submitComment"
         />
-
-        <p
-          v-else
-          class="notification is-warning is-light discussion-detail__composer discussion-detail__locked-message"
-        >
-          {{ t('discussionDetail.lockedCommentNotice') }}
-        </p>
       </div>
 
       <div class="column detail-sidebar-column">

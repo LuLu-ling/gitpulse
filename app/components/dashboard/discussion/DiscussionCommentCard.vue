@@ -20,32 +20,37 @@ const props = defineProps<{
   submittingReply?: boolean;
   loadingMoreReplies?: boolean;
   replyError?: string;
+  replyDraft: string;
   submitReply: DiscussionReplySubmitHandler;
+  isEditorActive: boolean;
 }>();
 
 const emit = defineEmits<{
   (e: 'load-more-replies', comment: DiscussionComment): void;
+  (e: 'reply-draft-updated', commentId: string, draft: string): void;
+  (e: 'reply-editor-toggled', commentId: string, isOpen: boolean): void;
 }>();
 
 const { locale, t } = useI18n();
 const relativeTimeNow = useRelativeTimeNow();
 const localeCode = computed(() => locale.value);
-const isReplying = shallowRef(false);
 const showReplies = shallowRef(false);
+
+const isReplying = computed(() => props.isEditorActive);
+
+const expandReplyEditor = () => {
+  emit('reply-editor-toggled', props.comment.id, true);
+};
+
+const collapseReplyEditor = () => {
+  emit('reply-editor-toggled', props.comment.id, false);
+};
 
 const submitReplyDraft = async (body: string) => {
   await props.submitReply(props.comment, body);
-  isReplying.value = false;
+  emit('reply-draft-updated', props.comment.id, '');
+  collapseReplyEditor();
 };
-
-watch(
-  () => props.canReply,
-  (canReply) => {
-    if (!canReply) {
-      isReplying.value = false;
-    }
-  }
-);
 </script>
 
 <template>
@@ -100,18 +105,6 @@ watch(
 
       <div class="discussion-comment__toolbar">
         <button
-          v-if="canReply"
-          class="button is-light is-small"
-          type="button"
-          :aria-expanded="isReplying"
-          @click="isReplying = !isReplying"
-        >
-          <MessageSquareReplyIcon :size="14" />
-          <span>{{
-            isReplying ? t('discussionDetail.cancelReply') : t('discussionDetail.reply')
-          }}</span>
-        </button>
-        <button
           v-if="comment.replies.totalCount > 0"
           class="button is-ghost is-small discussion-comment__reply-toggle"
           type="button"
@@ -123,20 +116,6 @@ watch(
         </button>
       </div>
 
-      <FloatingMarkdownEditor
-        v-if="isReplying && canReply"
-        class="mt-3"
-        compact
-        autofocus
-        :repo-owner="repoOwner"
-        :repo-name="repoName"
-        :placeholder="t('discussionDetail.replyPlaceholder')"
-        :submit-label="t('discussionDetail.submitReply')"
-        :submitting-label="t('discussionDetail.submittingReply')"
-        :submitting="submittingReply"
-        :submit="submitReplyDraft"
-      />
-
       <DiscussionReplyList
         v-if="showReplies"
         class="mt-3"
@@ -147,6 +126,35 @@ watch(
         :error="replyError"
         @load-more="emit('load-more-replies', comment)"
       />
+
+      <div v-if="canReply" class="discussion-comment__reply-entry mt-3">
+        <button
+          v-if="!isReplying"
+          class="discussion-comment__reply-capsule button is-light"
+          type="button"
+          @click="expandReplyEditor"
+        >
+          <MessageSquareReplyIcon :size="14" />
+          <span class="has-text-grey">{{ t('discussionDetail.replyPlaceholder') }}</span>
+        </button>
+
+        <div v-else class="discussion-comment__reply-editor">
+          <FloatingMarkdownEditor
+            compact
+            autofocus
+            :repo-owner="repoOwner"
+            :repo-name="repoName"
+            :model-value="replyDraft"
+            :placeholder="t('discussionDetail.replyPlaceholder')"
+            :submit-label="t('discussionDetail.submitReply')"
+            :submitting-label="t('discussionDetail.submittingReply')"
+            :submitting="submittingReply"
+            :submit="submitReplyDraft"
+            @update:model-value="(draft: string) => emit('reply-draft-updated', comment.id, draft)"
+            @collapsed="collapseReplyEditor"
+          />
+        </div>
+      </div>
     </div>
   </article>
 </template>
@@ -223,6 +231,35 @@ watch(
 
   &:hover {
     color: var(--gitpulse-accent);
+  }
+}
+
+.discussion-comment__reply-entry {
+  margin-left: 0.5rem;
+  padding-left: 1rem;
+  border-left: 2px solid var(--gitpulse-border);
+}
+
+.discussion-comment__reply-capsule {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 40px;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--gitpulse-border);
+  border-radius: 20px;
+  background: var(--gitpulse-surface-muted);
+  text-align: left;
+  cursor: text;
+  font-size: 0.875rem;
+}
+
+.discussion-comment__reply-editor {
+  // Override FloatingMarkdownEditor's sticky positioning
+  :deep(.floating-markdown-editor) {
+    position: static;
+    padding-top: 0;
   }
 }
 
