@@ -184,14 +184,7 @@
     "submittingComment": "评论中...",
     "submitReply": "回复",
     "submittingReply": "回复中...",
-    "writeTab": "编写",
-    "previewTab": "预览",
-    "previewEmpty": "开始输入后将在这里显示预览。",
-    "markdownHint": "支持 Markdown 和 #100 这类 GitHub 引用。",
-    "emptyComment": "请先输入评论内容。",
     "lockedCommentNotice": "此讨论已锁定，无法添加新评论或回复。",
-    "dismissError": "关闭错误",
-    "submitFailed": "提交讨论内容失败",
     "commentsLoadFailed": "加载讨论评论失败",
     "repliesLoadFailed": "加载讨论回复失败",
     "submitCommentFailed": "创建讨论评论失败",
@@ -440,7 +433,7 @@
       }
     }
   },
-  "commentComposer": {
+  "floatingMarkdownEditor": {
     "placeholder": "写下评论...",
     "writeTab": "编写",
     "previewTab": "预览",
@@ -451,7 +444,8 @@
     "submitting": "发表评论中...",
     "emptyError": "请先输入评论内容再提交。",
     "unavailableError": "当前条目暂时无法发表评论。",
-    "failed": "发表评论失败"
+    "submitFailed": "提交评论失败",
+    "dismissError": "关闭错误"
   },
   "timeline": {
     "referenceUnavailable": "引用不可用",

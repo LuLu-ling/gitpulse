@@ -1,0 +1,486 @@
+<template>
+  <div
+    v-show="!isAnyModalOpen"
+    :class="[
+      'floating-markdown-editor',
+      {
+        'floating-markdown-editor--expanded': isExpanded,
+        'floating-markdown-editor--compact': compact,
+      },
+    ]"
+    :aria-hidden="isAnyModalOpen ? 'true' : undefined"
+    :inert="isAnyModalOpen || undefined"
+  >
+    <div v-if="errorMessage" class="notification is-danger is-light mb-3 py-2 px-3">
+      <button
+        class="delete is-small"
+        type="button"
+        :aria-label="t('floatingMarkdownEditor.dismissError')"
+        @click="errorMessage = ''"
+      />
+      <p class="is-size-7">{{ errorMessage }}</p>
+    </div>
+
+    <!-- Collapsed capsule (non-compact mode only) -->
+    <button
+      v-if="!compact && !isExpanded"
+      class="floating-markdown-editor__capsule button is-light"
+      type="button"
+      @click="expandComposer"
+    >
+      <GitHubAvatar
+        variant="raised"
+        interactive
+        width="28"
+        height="28"
+        :src="currentUserAvatar"
+        :alt="currentUserLogin"
+        class="floating-markdown-editor__capsule-avatar"
+      />
+      <span class="floating-markdown-editor__capsule-placeholder has-text-grey">
+        {{ placeholder }}
+      </span>
+      <span class="button is-link is-small floating-markdown-editor__capsule-submit">
+        {{ submitLabel }}
+      </span>
+    </button>
+
+    <!-- Expanded panel -->
+    <div v-if="compact || isExpanded" class="floating-markdown-editor__panel">
+      <div class="floating-markdown-editor__header">
+        <GitHubAvatar
+          variant="raised"
+          interactive
+          width="28"
+          height="28"
+          :src="currentUserAvatar"
+          :alt="currentUserLogin"
+          class="floating-markdown-editor__avatar"
+        />
+        <div v-if="!compact" class="floating-markdown-editor__header-copy">
+          <span class="is-size-7 has-text-weight-medium">{{ currentUserLogin }}</span>
+        </div>
+        <div class="floating-markdown-editor__tabs tabs is-boxed is-small mb-0">
+          <ul>
+            <li :class="{ 'is-active': activeTab === 'write' }">
+              <a href="#" @click.prevent="activeTab = 'write'">
+                {{ t('floatingMarkdownEditor.writeTab') }}
+              </a>
+            </li>
+            <li :class="{ 'is-active': activeTab === 'preview' }">
+              <a href="#" @click.prevent="activeTab = 'preview'">
+                {{ t('floatingMarkdownEditor.previewTab') }}
+              </a>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <textarea
+        v-if="activeTab === 'write'"
+        ref="textareaRef"
+        v-model="draft"
+        class="textarea floating-markdown-editor__textarea"
+        :rows="compact ? 4 : 6"
+        :placeholder="placeholder"
+        :disabled="isSubmitting"
+      />
+
+      <div v-else class="floating-markdown-editor__preview content">
+        <MarkdownRenderer
+          v-if="trimmedDraft"
+          :value="draft"
+          :repo-owner="repoOwner"
+          :repo-name="repoName"
+        />
+        <p v-else class="has-text-grey is-size-7 mb-0">
+          {{ t('floatingMarkdownEditor.previewEmpty') }}
+        </p>
+      </div>
+
+      <div class="floating-markdown-editor__footer">
+        <p class="is-size-7 has-text-grey mb-0">
+          {{ t('floatingMarkdownEditor.markdownHint') }}
+        </p>
+        <div class="floating-markdown-editor__footer-actions">
+          <button
+            v-if="!compact"
+            class="button is-light is-small"
+            type="button"
+            :disabled="isSubmitting"
+            @click="collapseComposer"
+          >
+            {{ t('floatingMarkdownEditor.cancel') }}
+          </button>
+          <button
+            class="button is-link is-small"
+            type="button"
+            :class="{ 'is-loading': isSubmitting }"
+            :disabled="isSubmitting || !trimmedDraft || !canSubmit"
+            @click="handleSubmit"
+          >
+            {{ isSubmitting ? submittingLabel : submitLabel }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { computed, nextTick, shallowRef, useTemplateRef } from 'vue';
+import { useI18n } from 'vue-i18n';
+
+import GitHubAvatar from '~/components/ui/GitHubAvatar.vue';
+import MarkdownRenderer from '~/components/ui/MarkdownRenderer.vue';
+import getFetchErrorMessage from '~/utils/getFetchErrorMessage';
+
+interface CreatedCommentResponse {
+  id?: number | string;
+  node_id?: string;
+  body?: string;
+  html_url?: string;
+  created_at?: string;
+  user?: {
+    login?: string;
+    avatar_url?: string;
+    html_url?: string;
+    type?: string;
+  };
+}
+
+type TimelineCommentItem = {
+  kind: 'comment';
+  eventType: 'commented';
+  id: string;
+  createdAt: string;
+  body: string;
+  url?: string;
+  timelineSource: 'local.created';
+  author: {
+    login?: string;
+    avatarUrl?: string;
+    url?: string;
+    resourceType?: string;
+  };
+};
+
+type SubmitHandler = (body: string) => Promise<void>;
+
+const props = withDefaults(
+  defineProps<{
+    repoOwner: string;
+    repoName: string;
+    // Mode 1: Self-submit (for issue/PR)
+    itemNumber?: number | null;
+    // Mode 2: Callback submit (for discussion)
+    submit?: SubmitHandler | null;
+    // Configuration
+    placeholder?: string;
+    submitLabel?: string;
+    submittingLabel?: string;
+    compact?: boolean;
+    autofocus?: boolean;
+    // External state (for callback mode)
+    submitting?: boolean;
+  }>(),
+  {
+    itemNumber: null,
+    submit: null,
+    placeholder: undefined,
+    submitLabel: undefined,
+    submittingLabel: undefined,
+    compact: false,
+    autofocus: false,
+    submitting: false,
+  }
+);
+
+const emit = defineEmits<{
+  (e: 'comment-created', item: TimelineCommentItem): void;
+  (e: 'submitted'): void;
+  (e: 'error', message: string): void;
+  (e: 'expanded'): void;
+  (e: 'collapsed'): void;
+}>();
+
+const { t } = useI18n();
+const { user } = useUserSession();
+const { isAnyModalOpen } = useModalState();
+
+const textareaRef = useTemplateRef<HTMLTextAreaElement>('textareaRef');
+const isExpanded = shallowRef(false);
+const internalSubmitting = shallowRef(false);
+const activeTab = shallowRef<'write' | 'preview'>('write');
+const draft = shallowRef('');
+const errorMessage = shallowRef('');
+
+const trimmedDraft = computed(() => draft.value.trim());
+const currentUserLogin = computed(() => user.value?.login || 'You');
+const currentUserAvatar = computed(
+  () => user.value?.avatar_url || 'https://github.com/placeholder.png'
+);
+
+// Determine submission mode
+const isSelfSubmitMode = computed(() => props.itemNumber != null);
+const isCallbackMode = computed(() => props.submit != null);
+const canSubmit = computed(() => {
+  if (isSelfSubmitMode.value) {
+    return Boolean(props.repoOwner && props.repoName && props.itemNumber);
+  }
+  return isCallbackMode.value;
+});
+
+// Use external submitting state in callback mode, internal in self-submit mode
+const isSubmitting = computed(() => {
+  if (isCallbackMode.value) {
+    return props.submitting;
+  }
+  return internalSubmitting.value;
+});
+
+// Default labels
+const placeholder = computed(() => props.placeholder || t('floatingMarkdownEditor.placeholder'));
+const submitLabel = computed(() => props.submitLabel || t('floatingMarkdownEditor.submit'));
+const submittingLabel = computed(
+  () => props.submittingLabel || t('floatingMarkdownEditor.submitting')
+);
+
+const focus = async () => {
+  await nextTick();
+  textareaRef.value?.focus();
+};
+
+const expandComposer = async () => {
+  isExpanded.value = true;
+  activeTab.value = 'write';
+  emit('expanded');
+  await nextTick();
+  textareaRef.value?.focus();
+};
+
+const collapseComposer = () => {
+  isExpanded.value = false;
+  reset();
+  emit('collapsed');
+};
+
+const reset = () => {
+  draft.value = '';
+  errorMessage.value = '';
+  activeTab.value = 'write';
+};
+
+const handleSubmit = async () => {
+  if (!trimmedDraft.value) {
+    errorMessage.value = t('floatingMarkdownEditor.emptyError');
+    return;
+  }
+
+  if (!canSubmit.value) {
+    errorMessage.value = t('floatingMarkdownEditor.unavailableError');
+    return;
+  }
+
+  errorMessage.value = '';
+
+  try {
+    if (isSelfSubmitMode.value && props.itemNumber) {
+      // Self-submit mode: call API directly
+      await selfSubmit();
+    } else if (isCallbackMode.value && props.submit) {
+      // Callback mode: call parent's submit function
+      await props.submit(trimmedDraft.value);
+      emit('submitted');
+    }
+
+    reset();
+    if (!props.compact) {
+      isExpanded.value = false;
+    }
+  } catch (error: unknown) {
+    const message =
+      error instanceof Error ? error.message : t('floatingMarkdownEditor.submitFailed');
+    errorMessage.value = message;
+    emit('error', message);
+  }
+};
+
+const selfSubmit = async () => {
+  if (!props.itemNumber) return;
+
+  internalSubmitting.value = true;
+
+  try {
+    const response = await $fetch<CreatedCommentResponse>(
+      `/api/repos/${props.repoOwner}/${props.repoName}/issues/${props.itemNumber}/comments`,
+      {
+        method: 'POST',
+        body: {
+          body: trimmedDraft.value,
+        },
+      }
+    );
+
+    emit('comment-created', {
+      kind: 'comment',
+      eventType: 'commented',
+      id: String(response.id ?? response.node_id ?? `local-comment-${Date.now()}`),
+      createdAt: response.created_at ?? new Date().toISOString(),
+      body: response.body ?? trimmedDraft.value,
+      url: response.html_url,
+      timelineSource: 'local.created',
+      author: {
+        login: response.user?.login ?? user.value?.login,
+        avatarUrl: response.user?.avatar_url ?? user.value?.avatar_url,
+        url:
+          response.user?.html_url ??
+          (user.value?.login ? `https://github.com/${user.value.login}` : undefined),
+        resourceType: response.user?.type,
+      },
+    });
+  } finally {
+    internalSubmitting.value = false;
+  }
+};
+
+if (props.autofocus) {
+  void focus();
+}
+
+defineExpose({ focus });
+</script>
+
+<style scoped lang="scss">
+.floating-markdown-editor {
+  position: sticky;
+  bottom: 1rem;
+  z-index: 6;
+  padding-top: 0.5rem;
+}
+
+.floating-markdown-editor__capsule {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 52px;
+  gap: 0.75rem;
+  padding: 0.625rem 0.625rem 0.625rem 1rem;
+  border: 1px solid var(--gitpulse-border);
+  border-radius: 20px;
+  background: color-mix(in srgb, var(--gitpulse-surface) 92%, transparent);
+  backdrop-filter: blur(10px);
+  box-shadow: var(--gitpulse-shadow-raised);
+  text-align: left;
+  cursor: text;
+}
+
+.floating-markdown-editor__capsule-avatar {
+  flex: none;
+}
+
+.floating-markdown-editor__capsule-placeholder {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.floating-markdown-editor__capsule-submit {
+  flex: none;
+}
+
+.floating-markdown-editor__panel {
+  border: 1px solid var(--gitpulse-border);
+  border-radius: 16px;
+  padding: 1rem;
+  background: color-mix(in srgb, var(--gitpulse-surface) 92%, transparent);
+  backdrop-filter: blur(10px);
+  box-shadow: var(--gitpulse-shadow-raised);
+}
+
+.floating-markdown-editor__header,
+.floating-markdown-editor__footer {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.floating-markdown-editor__header {
+  margin-bottom: 0.75rem;
+}
+
+.floating-markdown-editor__avatar {
+  flex: none;
+}
+
+.floating-markdown-editor__header-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.floating-markdown-editor__tabs {
+  min-width: 0;
+  margin-left: auto;
+}
+
+.floating-markdown-editor__textarea,
+.floating-markdown-editor__preview {
+  min-height: 160px;
+  max-height: 40vh;
+  overflow-y: auto;
+}
+
+.floating-markdown-editor--compact .floating-markdown-editor__panel {
+  border-radius: 8px;
+  backdrop-filter: none;
+  background: var(--gitpulse-surface);
+  box-shadow: none;
+}
+
+.floating-markdown-editor--compact .floating-markdown-editor__textarea,
+.floating-markdown-editor--compact .floating-markdown-editor__preview {
+  min-height: 7rem;
+}
+
+.floating-markdown-editor__preview {
+  border: 1px solid var(--gitpulse-border);
+  border-radius: 8px;
+  padding: 0.875rem;
+  background: var(--gitpulse-surface-muted);
+}
+
+.floating-markdown-editor__footer {
+  justify-content: space-between;
+  margin-top: 0.75rem;
+}
+
+.floating-markdown-editor__footer-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+@media (max-width: 768px) {
+  .floating-markdown-editor {
+    bottom: 0.5rem;
+  }
+
+  .floating-markdown-editor__capsule {
+    min-height: 48px;
+    padding: 0.5rem 0.5rem 0.5rem 0.75rem;
+  }
+
+  .floating-markdown-editor__footer {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .floating-markdown-editor__footer-actions {
+    justify-content: flex-end;
+  }
+}
+</style>

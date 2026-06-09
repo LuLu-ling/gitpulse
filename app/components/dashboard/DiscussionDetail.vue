@@ -13,8 +13,8 @@ import type {
 import DiscussionActions from '~/components/dashboard/discussion/DiscussionActions.vue';
 import DiscussionAnswerCard from '~/components/dashboard/discussion/DiscussionAnswerCard.vue';
 import DiscussionComments from '~/components/dashboard/discussion/DiscussionComments.vue';
-import DiscussionComposer from '~/components/dashboard/discussion/DiscussionComposer.vue';
 import DiscussionHeader from '~/components/dashboard/discussion/DiscussionHeader.vue';
+import FloatingMarkdownEditor from '~/components/dashboard/timeline/FloatingMarkdownEditor.vue';
 import getFetchErrorMessage from '~/utils/getFetchErrorMessage';
 
 const props = defineProps<{
@@ -379,7 +379,7 @@ watch(
           @load-more-replies="loadMoreReplies"
         />
 
-        <DiscussionComposer
+        <FloatingMarkdownEditor
           v-if="canComment"
           class="discussion-detail__composer"
           :repo-owner="repoOwner"

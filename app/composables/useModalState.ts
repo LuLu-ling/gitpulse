@@ -3,7 +3,7 @@ import { readonly } from 'vue';
 /**
  * Global modal state management
  * Tracks whether any modal is currently open in the dashboard
- * This allows components like CommentComposer to hide themselves when modals are active
+ * This allows components like FloatingMarkdownEditor to hide themselves when modals are active
  */
 
 export function useModalState() {
