@@ -48,19 +48,7 @@
     <!-- Expanded panel -->
     <div v-if="compact || isExpanded" class="floating-markdown-editor__panel">
       <div class="floating-markdown-editor__header">
-        <GitHubAvatar
-          variant="raised"
-          interactive
-          width="28"
-          height="28"
-          :src="currentUserAvatar"
-          :alt="currentUserLogin"
-          class="floating-markdown-editor__avatar"
-        />
-        <div v-if="!compact" class="floating-markdown-editor__header-copy">
-          <span class="is-size-7 has-text-weight-medium">{{ currentUserLogin }}</span>
-        </div>
-        <div class="floating-markdown-editor__tabs tabs is-boxed is-small mb-0">
+        <div class="floating-markdown-editor__tabs tabs is-small mb-0">
           <ul>
             <li :class="{ 'is-active': activeTab === 'write' }">
               <a href="#" @click.prevent="activeTab = 'write'">
@@ -74,28 +62,48 @@
             </li>
           </ul>
         </div>
+        <div class="floating-markdown-editor__header-meta">
+          <span v-if="!compact" class="is-size-7 has-text-weight-medium has-text-grey">{{
+            currentUserLogin
+          }}</span>
+          <GitHubAvatar
+            variant="raised"
+            interactive
+            width="22"
+            height="22"
+            :src="currentUserAvatar"
+            :alt="currentUserLogin"
+            class="floating-markdown-editor__avatar"
+          />
+        </div>
       </div>
 
-      <textarea
-        v-if="activeTab === 'write'"
-        ref="textareaRef"
-        v-model="draft"
-        class="textarea floating-markdown-editor__textarea"
-        :rows="compact ? 4 : 6"
-        :placeholder="placeholder"
-        :disabled="isSubmitting"
-      />
-
-      <div v-else class="floating-markdown-editor__preview content">
-        <MarkdownRenderer
-          v-if="trimmedDraft"
-          :value="draft"
-          :repo-owner="repoOwner"
-          :repo-name="repoName"
+      <div class="floating-markdown-editor__content-area">
+        <textarea
+          ref="textareaRef"
+          v-model="draft"
+          class="textarea floating-markdown-editor__textarea"
+          :class="{ 'floating-markdown-editor__textarea--hidden': activeTab !== 'write' }"
+          :rows="compact ? 4 : 6"
+          :placeholder="placeholder"
+          :disabled="isSubmitting"
+          @input="autoResizeTextarea"
         />
-        <p v-else class="has-text-grey is-size-7 mb-0">
-          {{ t('floatingMarkdownEditor.previewEmpty') }}
-        </p>
+
+        <div
+          class="floating-markdown-editor__preview content"
+          :class="{ 'floating-markdown-editor__preview--hidden': activeTab !== 'preview' }"
+        >
+          <MarkdownRenderer
+            v-if="trimmedDraft"
+            :value="draft"
+            :repo-owner="repoOwner"
+            :repo-name="repoName"
+          />
+          <p v-else class="has-text-grey is-size-7 mb-0">
+            {{ t('floatingMarkdownEditor.previewEmpty') }}
+          </p>
+        </div>
       </div>
 
       <div class="floating-markdown-editor__footer">
@@ -128,7 +136,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, shallowRef, useTemplateRef } from 'vue';
+import { computed, nextTick, shallowRef, useTemplateRef, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import GitHubAvatar from '~/components/ui/GitHubAvatar.vue';
@@ -251,11 +259,27 @@ const focus = async () => {
   textareaRef.value?.focus();
 };
 
+const autoResizeTextarea = () => {
+  const el = textareaRef.value;
+  if (!el) return;
+  el.style.height = 'auto';
+  el.style.height = `${el.scrollHeight}px`;
+};
+
+// Auto-resize textarea when switching to write tab
+watch(activeTab, async (tab) => {
+  if (tab === 'write') {
+    await nextTick();
+    autoResizeTextarea();
+  }
+});
+
 const expandComposer = async () => {
   isExpanded.value = true;
   activeTab.value = 'write';
   emit('expanded');
   await nextTick();
+  autoResizeTextarea();
   textareaRef.value?.focus();
 };
 
@@ -269,6 +293,11 @@ const reset = () => {
   draft.value = '';
   errorMessage.value = '';
   activeTab.value = 'write';
+  // Reset textarea height
+  const el = textareaRef.value;
+  if (el) {
+    el.style.height = 'auto';
+  }
 };
 
 const handleSubmit = async () => {
@@ -348,6 +377,11 @@ if (props.autofocus) {
   void focus();
 }
 
+// Auto-resize textarea on mount for compact mode
+if (props.compact) {
+  void nextTick().then(() => autoResizeTextarea());
+}
+
 defineExpose({ focus });
 </script>
 
@@ -415,22 +449,38 @@ defineExpose({ focus });
   flex: none;
 }
 
-.floating-markdown-editor__header-copy {
+.floating-markdown-editor__header-meta {
   display: flex;
-  min-width: 0;
-  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: auto;
 }
 
 .floating-markdown-editor__tabs {
   min-width: 0;
-  margin-left: auto;
+
+  &.tabs ul {
+    border-bottom: none !important;
+    gap: 2px;
+  }
+
+  &.tabs li a {
+    border-radius: 8px;
+    border: 1px solid transparent;
+    padding: 0.3rem 0.875rem;
+    font-size: 0.8rem;
+    transition: all 0.15s ease;
+  }
+
+  &.tabs li.is-active a {
+    background: var(--gitpulse-surface-muted, rgba(0, 0, 0, 0.06));
+    border-color: var(--gitpulse-border, rgba(0, 0, 0, 0.12));
+  }
 }
 
-.floating-markdown-editor__textarea,
-.floating-markdown-editor__preview {
-  min-height: 160px;
+.floating-markdown-editor__content-area {
+  display: grid;
   max-height: 40vh;
-  overflow-y: auto;
 }
 
 .floating-markdown-editor--compact .floating-markdown-editor__panel {
@@ -440,9 +490,33 @@ defineExpose({ focus });
   box-shadow: none;
 }
 
+.floating-markdown-editor--compact .floating-markdown-editor__content-area {
+  max-height: 50vh;
+}
+
+.floating-markdown-editor__textarea,
+.floating-markdown-editor__preview {
+  grid-row: 1;
+  grid-column: 1;
+  min-height: 160px;
+  max-height: 40vh;
+  overflow-y: auto;
+  align-self: start;
+}
+
 .floating-markdown-editor--compact .floating-markdown-editor__textarea,
 .floating-markdown-editor--compact .floating-markdown-editor__preview {
   min-height: 7rem;
+}
+
+.floating-markdown-editor__textarea {
+  resize: none;
+}
+
+.floating-markdown-editor__textarea--hidden {
+  visibility: hidden;
+  overflow: hidden;
+  pointer-events: none;
 }
 
 .floating-markdown-editor__preview {
@@ -450,6 +524,12 @@ defineExpose({ focus });
   border-radius: 8px;
   padding: 0.875rem;
   background: var(--gitpulse-surface-muted);
+}
+
+.floating-markdown-editor__preview--hidden {
+  visibility: hidden;
+  overflow: hidden;
+  pointer-events: none;
 }
 
 .floating-markdown-editor__footer {
