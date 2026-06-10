@@ -5,10 +5,10 @@ import {
   ExternalLinkIcon,
   FileArchiveIcon,
   GitBranchIcon,
-  GithubIcon,
   PackageIcon,
   TagIcon,
 } from 'lucide-vue-next';
+import { GitHubIcon } from 'vue3-simple-icons';
 
 import type { ReleaseAsset, ReleaseDetailPayload } from '#shared/types/releases';
 import GitHubAvatar from '~/components/ui/GitHubAvatar.vue';
@@ -145,7 +145,7 @@ usePageMeta(
 
           <div class="release-header__meta">
             <button class="release-header__repo button is-ghost is-small" @click="handleRepoClick">
-              <GithubIcon :size="15" />
+              <GitHubIcon :size="15" />
               <span>{{ repoOwner }}/{{ repoName }}</span>
             </button>
 
@@ -260,7 +260,7 @@ usePageMeta(
                 rel="noopener noreferrer"
                 class="release-link"
               >
-                <GithubIcon :size="14" />
+                <GitHubIcon :size="14" />
                 <span>{{ t('releaseDetail.openOnGitHub') }}</span>
                 <ExternalLinkIcon :size="12" />
               </a>

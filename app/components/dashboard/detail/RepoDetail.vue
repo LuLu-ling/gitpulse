@@ -7,14 +7,14 @@ import {
   FileTextIcon,
   GlobeIcon,
   GitForkIcon,
-  GithubIcon,
   InfoIcon,
   Loader2Icon,
   StarIcon,
   XIcon,
 } from 'lucide-vue-next';
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
+import { computed, onMounted, onUnmounted, ref, watch, type Component } from 'vue';
 import type { LocationQueryRaw } from 'vue-router';
+import { GitHubIcon } from 'vue3-simple-icons';
 
 import { formatDurationFromNow } from '#imports';
 import BranchSelector from '~/components/dashboard/repo-files/BranchSelector.vue';
@@ -27,7 +27,7 @@ const props = defineProps<{
   repo: string;
 }>();
 
-type RepoDetailIcon = typeof GithubIcon;
+type RepoDetailIcon = Component;
 
 const { locale, t } = useI18n();
 const localePath = useLocalePath();
@@ -178,7 +178,7 @@ const visibility = computed(() =>
 const repoBadges = computed(() => {
   const badges: { icon: RepoDetailIcon; label: string; tone: string }[] = [
     {
-      icon: GithubIcon,
+      icon: GitHubIcon,
       label: visibility.value,
       tone: props.repository.private ? 'muted' : 'neutral',
     },
@@ -469,7 +469,7 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside));
       <div class="column detail-main-column">
         <section class="repo-detail-header">
           <div class="repo-detail-header__title-row">
-            <GithubIcon :size="28" class="repo-detail-header__icon" />
+            <GitHubIcon :size="28" class="repo-detail-header__icon" />
             <h1 class="title is-3 repo-detail-header__title">{{ repository.name }}</h1>
             <div class="repo-detail-header__actions">
               <button
