@@ -135,7 +135,11 @@ const currentNotification = computed(() => ({
 }));
 
 const avatarSrc = computed(() => {
-  // 只在loaded状态且有author信息时才显示
+  // Release类型直接使用repository.owner的头像，无需等待GraphQL加载
+  if (currentNotification.value.subject?.type === 'Release') {
+    return currentNotification.value.repository?.owner?.avatar_url;
+  }
+  // 其他类型：只在loaded状态且有author信息时才显示
   if (
     currentNotification.value.subject?.stateStatus === 'loaded' &&
     currentNotification.value.subject.authorAvatarUrl
@@ -146,6 +150,9 @@ const avatarSrc = computed(() => {
 });
 
 const avatarAlt = computed(() => {
+  if (currentNotification.value.subject?.type === 'Release') {
+    return currentNotification.value.repository?.owner?.login ?? '';
+  }
   return currentNotification.value.subject?.authorLogin ?? '';
 });
 
