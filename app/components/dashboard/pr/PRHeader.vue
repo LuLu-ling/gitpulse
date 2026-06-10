@@ -8,7 +8,6 @@
 
     <!-- Meta row -->
     <div class="header-meta is-flex is-align-items-center is-flex-wrap-wrap mb-4">
-      <span class="header-badge" :style="typeStyle">Pull Request</span>
       <span class="header-number has-text-weight-medium">#{{ pullRequest?.number }}</span>
       <span
         class="header-state-tag"
@@ -170,11 +169,6 @@ const stateColor = computed(() => {
   }
 });
 
-const typeStyle = {
-  backgroundColor: 'var(--gitpulse-surface-muted)',
-  color: 'var(--gitpulse-text-strong)',
-};
-
 const handleRepoClick = async () => {
   if (props.repoOwner && props.repoName) {
     const currentTab = route.query.tab as string;
@@ -193,24 +187,17 @@ const handleRepoClick = async () => {
 
 <style scoped lang="scss">
 .header-meta {
-  gap: 0.5rem;
-}
-
-.header-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.2rem 0.55rem;
-  border-radius: var(--gitpulse-radius-sm);
-  font-size: 0.75rem;
-  font-weight: 500;
-  background-color: var(--gitpulse-surface-muted);
-  color: var(--gitpulse-text);
-  border: 1px solid var(--gitpulse-border);
+  gap: 0.75rem;
 }
 
 .header-number {
-  font-size: 0.85rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 0.15rem 0.5rem;
+  border-radius: var(--gitpulse-radius-sm);
   color: var(--gitpulse-text-muted);
+  background-color: var(--gitpulse-surface-muted);
+  border: 1px solid var(--gitpulse-border);
 }
 
 .header-state-tag {

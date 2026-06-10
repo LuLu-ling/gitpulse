@@ -196,7 +196,6 @@ export default defineNuxtConfig({
         'dayjs', // CJS
         'dayjs/locale/zh-cn', // CJS
         'dayjs/plugin/duration.js', // CJS
-        'dayjs/plugin/relativeTime', // CJS
         'dayjs/plugin/relativeTime.js', // CJS
         'lucide-vue-next',
         'mermaid',

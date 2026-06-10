@@ -8,8 +8,8 @@
 
     <!-- Meta row -->
     <div class="header-meta is-flex is-align-items-center is-flex-wrap-wrap mb-4">
-      <span class="header-badge" :style="typeStyle">
-        {{ issue?.type?.name || t('issueDetail.issueTypeFallback') }}
+      <span v-if="issue?.type?.name" class="header-badge" :style="typeStyle">
+        {{ issue.type.name }}
       </span>
       <span class="header-number has-text-weight-medium">#{{ issue?.number }}</span>
       <span class="header-state-tag" :class="issue?.state === 'open' ? 'is-open' : 'is-closed'">
@@ -142,7 +142,7 @@ const handleRepoClick = async () => {
 
 <style scoped lang="scss">
 .header-meta {
-  gap: 0.5rem;
+  gap: 0.75rem;
 }
 
 .header-badge {
@@ -158,8 +158,13 @@ const handleRepoClick = async () => {
 }
 
 .header-number {
-  font-size: 0.85rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 0.15rem 0.5rem;
+  border-radius: var(--gitpulse-radius-sm);
   color: var(--gitpulse-text-muted);
+  background-color: var(--gitpulse-surface-muted);
+  border: 1px solid var(--gitpulse-border);
 }
 
 .header-state-tag {
