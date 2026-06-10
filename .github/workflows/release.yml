@@ -3,7 +3,7 @@ name: Release Extension
 on:
   push:
     tags:
-      - 'v*'
+      - 'extension-v*'
 
 permissions:
   contents: write
@@ -30,9 +30,19 @@ jobs:
         run: bun install --frozen-lockfile
         working-directory: extension
 
-      - name: Extract version from tag
+      - name: Extract and validate extension version
         id: version
-        run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+        shell: bash
+        run: |
+          tag_version="${GITHUB_REF_NAME#extension-v}"
+          package_version="$(bun -e "console.log(require('./extension/package.json').version)")"
+
+          if [ "$tag_version" != "$package_version" ]; then
+            echo "Tag version ($tag_version) must match extension/package.json version ($package_version)." >&2
+            exit 1
+          fi
+
+          echo "version=$tag_version" >> "$GITHUB_OUTPUT"
 
       - name: Zip extensions
         working-directory: extension
@@ -46,7 +56,7 @@ jobs:
         run: |
           gh release create ${{ github.ref_name }} \
             --draft \
-            --title "GitPulse ${{ github.ref_name }}" \
+            --title "GitPulse Extension v${{ steps.version.outputs.version }}" \
             --generate-notes \
             extension/.output/gitpulse-extension-${{ steps.version.outputs.version }}-chrome.zip \
             extension/.output/gitpulse-extension-${{ steps.version.outputs.version }}-firefox.zip \

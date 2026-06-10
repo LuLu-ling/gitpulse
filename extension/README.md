@@ -23,6 +23,16 @@ bun run extension:build:firefox
 bun run extension:test
 ```
 
+## Release
+
+The extension is released independently from the main GitPulse app.
+
+- `extension/package.json` is the source of truth for the extension version.
+- Create extension release tags as `extension-v<version>`, for example `extension-v0.1.0`.
+- The release workflow validates that the tag version matches `extension/package.json` before
+  building zip artifacts or submitting to stores.
+- Main app tags such as `v0.0.5` do not publish the browser extension.
+
 The built Chrome extension is emitted under `extension/.output/chrome-mv3`; the Firefox build is
 emitted under `extension/.output/firefox-mv2`.
 
