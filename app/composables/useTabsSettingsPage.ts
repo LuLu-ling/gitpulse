@@ -5,7 +5,6 @@ import {
   CircleDotIcon,
   CircleMinusIcon,
   FilePenLineIcon,
-  GitMergeIcon,
   GitPullRequestIcon,
   ShieldAlertIcon,
   XCircleIcon,
@@ -119,7 +118,6 @@ export const useTabsSettingsPage = () => {
   > = {
     issues: { icon: CircleDotIcon, activeColor: 'var(--gitpulse-success-solid)' },
     pulls: { icon: GitPullRequestIcon, activeColor: 'var(--gitpulse-purple)' },
-    all: { icon: GitMergeIcon, activeColor: 'var(--gitpulse-accent)' },
     open: { icon: CircleDotIcon, activeColor: 'var(--gitpulse-success-solid)' },
     closed: { icon: CircleMinusIcon, activeColor: 'var(--gitpulse-danger-solid)' },
     draft: { icon: FilePenLineIcon, activeColor: 'var(--gitpulse-warning-solid)' },
@@ -308,7 +306,7 @@ export const useTabsSettingsPage = () => {
   });
 
   const isPullRequestSearch = computed(() => {
-    return newTab.query.type === 'pulls' || newTab.query.type === 'all';
+    return newTab.query.type === 'pulls';
   });
 
   const advancedFilterCount = computed(() => {

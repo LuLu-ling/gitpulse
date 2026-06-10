@@ -1,6 +1,7 @@
 import {
   appendCustomTabQueryParams,
   buildIssueSearchParts,
+  createGitHubIssueSearchUrl,
   getOneYearAgoSearchDate,
 } from '#shared/utils/github-search-query';
 import type {
@@ -54,7 +55,6 @@ export const customTabSourceOptions: CustomTabSourceOption[] = [
 export const customTabTypeOptions: Array<CustomTabToggleOption<CustomTabSearchType>> = [
   { labelKey: 'dashboard.tabsSettings.options.issues', value: 'issues' },
   { labelKey: 'dashboard.tabsSettings.options.pullRequests', value: 'pulls' },
-  { labelKey: 'dashboard.tabsSettings.options.both', value: 'all' },
 ];
 
 export const customTabStateOptions: Array<CustomTabToggleOption<CustomTabState | 'any'>> = [
@@ -137,18 +137,7 @@ export function createCustomTabPreviewSearchParams(
 }
 
 export function createGitHubCustomTabPreviewUrl(query: CustomTabQuery) {
-  const searchParams = new URLSearchParams({ q: buildCustomTabSearchQuery(query) });
-  if (query.type === 'issues') {
-    searchParams.set('type', 'issues');
-  } else if (query.type === 'pulls') {
-    searchParams.set('type', 'pullrequests');
-  }
-  if (query.sort !== 'best-match') {
-    searchParams.set('s', query.sort ?? 'updated');
-    searchParams.set('o', query.order ?? 'desc');
-  }
-
-  return `https://github.com/search?${searchParams.toString()}`;
+  return createGitHubIssueSearchUrl(query, buildCustomTabSearchQuery(query));
 }
 
 export function buildCustomTabHumanPreview(query: CustomTabQuery, t: Translate) {
@@ -197,7 +186,5 @@ export function buildCustomTabSummary(query: CustomTabQuery, t: Translate) {
 function getCustomTabTypeSummary(type: CustomTabSearchType, t: Translate) {
   return type === 'pulls'
     ? t('dashboard.tabsSettings.summary.pullRequests')
-    : type === 'all'
-      ? t('dashboard.tabsSettings.summary.issuesAndPullRequests')
-      : t('dashboard.tabsSettings.summary.issues');
+    : t('dashboard.tabsSettings.summary.issues');
 }

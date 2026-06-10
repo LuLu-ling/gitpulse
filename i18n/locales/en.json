@@ -260,7 +260,7 @@
       "cancelChildGroupButton": "Cancel",
       "dragHandleGroup": "Drag to reorder group",
       "dragHandleTab": "Drag to move or reorder view",
-      "defaultQueryPreview": "GitHub Search: involves me",
+      "defaultQueryPreview": "GitHub Search",
       "editorTitle": "New Search View",
       "editorTitleEdit": "Edit Search View",
       "editorCaption": "Creates a {source} view inside {group}.",
@@ -287,7 +287,7 @@
       "mentionsLabel": "Mentions",
       "mentionsPlaceholder": "mentioned user",
       "involvesLabel": "Involves",
-      "involvesPlaceholder": "fallback: you",
+      "involvesPlaceholder": "username",
       "commenterLabel": "Commenter",
       "commenterPlaceholder": "commenter",
       "milestoneLabel": "Milestone",
@@ -344,7 +344,6 @@
       "summary": {
         "issues": "issues",
         "pullRequests": "pull requests",
-        "issuesAndPullRequests": "issues and pull requests",
         "inRepo": "in {value}",
         "authoredBy": "authored by {value}",
         "assignedTo": "assigned to {value}",
@@ -356,7 +355,6 @@
       "options": {
         "issues": "Issues",
         "pullRequests": "Pull Requests",
-        "both": "Both",
         "any": "Any",
         "open": "Open",
         "closed": "Closed",

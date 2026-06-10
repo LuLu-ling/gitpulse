@@ -192,7 +192,7 @@ const normalizeQuery = (query: unknown): CustomTabQuery => {
     state === 'open' || state === 'closed' || state === 'all' ? state : undefined;
   const type = candidate.type;
   const normalizedType: CustomTabSearchType | undefined =
-    type === 'issues' || type === 'pulls' || type === 'all' ? type : undefined;
+    type === 'issues' || type === 'pulls' ? type : undefined;
   const sort = candidate.sort;
   const normalizedSort: CustomTabSort | undefined =
     sort === 'best-match' ||

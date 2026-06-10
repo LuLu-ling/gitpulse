@@ -60,17 +60,6 @@ const PULL_SEARCH_QUALIFIER_FIELDS = [
   'head',
 ] as const satisfies readonly (keyof CustomTabQuery)[];
 
-const FALLBACK_INVOLVES_BLOCKING_FIELDS = [
-  'repo',
-  'org',
-  'user',
-  'author',
-  'assignee',
-  'mentions',
-  'commenter',
-  'involves',
-] as const satisfies readonly (keyof CustomTabQuery)[];
-
 export const getOneYearAgoSearchDate = () => {
   const today = new Date();
   const oneYearAgo = new Date(today.getFullYear() - 1, today.getMonth(), today.getDate());
@@ -82,7 +71,7 @@ export const quoteSearchValue = (value: string) => {
 };
 
 export const normalizeIssueSearchType = (value: string): CustomTabSearchType => {
-  return value === 'pulls' || value === 'all' ? value : 'issues';
+  return value === 'pulls' ? 'pulls' : 'issues';
 };
 
 export const normalizeIssueSearchSort = (value: string): GitHubIssueSearchSort | '' => {
@@ -99,6 +88,17 @@ export const normalizeIssueSearchScopes = (values: string[]) => {
   return values.filter((scope): scope is CustomTabSearchScope => {
     return SEARCH_SCOPES.includes(scope as CustomTabSearchScope);
   });
+};
+
+export const createGitHubIssueSearchUrl = (query: CustomTabQuery, searchQuery: string) => {
+  const searchParams = new URLSearchParams({ q: searchQuery });
+
+  if (query.sort && query.sort !== 'best-match') {
+    searchParams.set('s', query.sort);
+    searchParams.set('o', query.order ?? 'desc');
+  }
+
+  return `https://github.com/search?${searchParams.toString()}`;
 };
 
 const cleanList = (values: string[] | undefined) => {
@@ -144,7 +144,7 @@ const appendSearchQualifier = (parts: string[], qualifier: string, value: string
 
 export const buildIssueSearchParts = (
   query: CustomTabQuery,
-  options: { createdAfter?: string; fallbackInvolves?: string } = {}
+  options: { createdAfter?: string } = {}
 ) => {
   const text = query.text?.trim();
   const parts = text ? [text] : [];
@@ -155,7 +155,7 @@ export const buildIssueSearchParts = (
 
   if (query.type === 'pulls') {
     parts.push('is:pr');
-  } else if (query.type !== 'all') {
+  } else {
     parts.push('is:issue');
   }
 
@@ -186,7 +186,7 @@ export const buildIssueSearchParts = (
     parts.push(`label:${quoteSearchValue(label)}`);
   }
 
-  if (query.type === 'pulls' || query.type === 'all') {
+  if (query.type === 'pulls') {
     if (query.draft === 'draft') {
       parts.push('draft:true');
     } else if (query.draft === 'ready') {
@@ -205,13 +205,6 @@ export const buildIssueSearchParts = (
     for (const field of PULL_SEARCH_QUALIFIER_FIELDS) {
       appendSearchQualifier(parts, field, query[field]);
     }
-  }
-
-  if (
-    options.fallbackInvolves &&
-    !FALLBACK_INVOLVES_BLOCKING_FIELDS.some((field) => query[field])
-  ) {
-    parts.push(`involves:${options.fallbackInvolves}`);
   }
 
   return parts;

@@ -1,6 +1,6 @@
 export type CustomTabState = 'open' | 'closed' | 'all';
 export type CustomTabSource = 'github-search';
-export type CustomTabSearchType = 'issues' | 'pulls' | 'all';
+export type CustomTabSearchType = 'issues' | 'pulls';
 export type CustomTabSearchScope = 'title' | 'body' | 'comments';
 export type CustomTabSort =
   | 'best-match'

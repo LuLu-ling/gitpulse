@@ -3,6 +3,7 @@ import { describe, expect, test } from 'bun:test';
 import {
   appendCustomTabQueryParams,
   buildIssueSearchParts,
+  createGitHubIssueSearchUrl,
   normalizeIssueSearchScopes,
   quoteSearchValue,
 } from '../shared/utils/github-search-query';
@@ -64,7 +65,7 @@ describe('github search query helpers', () => {
           base: 'main',
           head: 'feature branch',
         },
-        { createdAfter: '2025-01-01', fallbackInvolves: 'fallback-user' }
+        { createdAfter: '2025-01-01' }
       )
     ).toEqual([
       'crash report',
@@ -85,16 +86,20 @@ describe('github search query helpers', () => {
     ]);
   });
 
-  test('adds fallback involves only when no owner qualifiers are set', () => {
-    expect(buildIssueSearchParts({}, { fallbackInvolves: 'octocat' })).toEqual([
-      'is:issue',
-      'archived:false',
-      'involves:octocat',
-    ]);
+  test('does not add implicit owner qualifiers', () => {
+    expect(buildIssueSearchParts({})).toEqual(['is:issue', 'archived:false']);
 
-    expect(buildIssueSearchParts({ repo: ' ' }, { fallbackInvolves: 'octocat' })).toEqual([
-      'is:issue',
-      'archived:false',
-    ]);
+    expect(buildIssueSearchParts({ type: 'pulls' })).toEqual(['is:pr', 'archived:false']);
+  });
+
+  test('creates GitHub search URLs from the displayed query without type overrides', () => {
+    const url = createGitHubIssueSearchUrl(
+      { type: 'pulls', sort: 'updated', order: 'desc' },
+      'created:>=2025-01-01 is:pr archived:false'
+    );
+
+    expect(url).toBe(
+      'https://github.com/search?q=created%3A%3E%3D2025-01-01+is%3Apr+archived%3Afalse&s=updated&o=desc'
+    );
   });
 });

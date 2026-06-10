@@ -260,7 +260,7 @@
       "cancelChildGroupButton": "取消",
       "dragHandleGroup": "拖拽以重新排序分组",
       "dragHandleTab": "拖拽以移动或重新排序视图",
-      "defaultQueryPreview": "GitHub 搜索：与我相关",
+      "defaultQueryPreview": "GitHub 搜索",
       "editorTitle": "新建搜索视图",
       "editorTitleEdit": "编辑搜索视图",
       "editorCaption": "将在 {group} 中创建一个 {source} 视图。",
@@ -287,7 +287,7 @@
       "mentionsLabel": "提及",
       "mentionsPlaceholder": "被提及用户",
       "involvesLabel": "相关人",
-      "involvesPlaceholder": "默认：你",
+      "involvesPlaceholder": "用户名",
       "commenterLabel": "评论者",
       "commenterPlaceholder": "commenter",
       "milestoneLabel": "里程碑",
@@ -344,7 +344,6 @@
       "summary": {
         "issues": "议题",
         "pullRequests": "拉取请求",
-        "issuesAndPullRequests": "议题和拉取请求",
         "inRepo": "位于 {value}",
         "authoredBy": "作者为 {value}",
         "assignedTo": "指派给 {value}",
@@ -356,7 +355,6 @@
       "options": {
         "issues": "议题",
         "pullRequests": "拉取请求",
-        "both": "两者",
         "any": "任意",
         "open": "开启",
         "closed": "关闭",

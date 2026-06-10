@@ -46,7 +46,7 @@ const getGitHubErrorHeader = (error: unknown, headerName: string) => {
 
 export default definePrivateApiCoalescedEventHandler(async (event) => {
   try {
-    const { octokit, userLogin } = await getGitHubSessionContext(event);
+    const { octokit } = await getGitHubSessionContext(event);
     const query = getQuery(event);
     const page = parsePaginationNumber(query.page, 1);
     const perPage = parsePaginationNumber(query.per_page, 20, 100);
@@ -105,7 +105,6 @@ export default definePrivateApiCoalescedEventHandler(async (event) => {
 
     const searchParts = buildIssueSearchParts(customQuery, {
       createdAfter: createdDate,
-      fallbackInvolves: userLogin,
     });
 
     const requestParams: {
