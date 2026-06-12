@@ -143,13 +143,21 @@ const tokens = computed<Token[]>(() => {
   flex-wrap: wrap;
   align-items: baseline;
   gap: 0.15rem 0;
+  max-width: 100%;
+  min-width: 0;
   line-height: 1.7;
 }
 
 .tq-token {
   display: inline-flex;
   align-items: baseline;
-  white-space: nowrap;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.tq-seg {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .tq-sep {

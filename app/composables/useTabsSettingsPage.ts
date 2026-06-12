@@ -186,6 +186,7 @@ export const useTabsSettingsPage = () => {
   const confirmingTabId = shallowRef<string | null>(null);
   const confirmingGroupId = shallowRef<string | null>(null);
   const selectedTabId = shallowRef<string | null>(null);
+  const editorOpen = shallowRef(false);
   const advancedFiltersOpen = ref(false);
   const previewLoading = ref(false);
   const previewError = ref<string | null>(null);
@@ -278,18 +279,6 @@ export const useTabsSettingsPage = () => {
   watch(customGroupRows, () => {
     if (isGroupDragUpdating) return;
     syncGroupRows();
-  });
-
-  const parentGroupOptions = computed(() => {
-    return customGroupRows.value.filter((group) => group.depth < maxGroupDepth);
-  });
-
-  const editableGroupOptions = computed(() => {
-    return customGroupRows.value.map((group) => ({
-      id: group.id,
-      name: group.name,
-      depth: group.depth,
-    }));
   });
 
   const selectedGroupExists = computed(() => {
@@ -770,6 +759,7 @@ export const useTabsSettingsPage = () => {
     if (!isCustomTab(tab.id)) return;
 
     selectedTabId.value = tab.id;
+    editorOpen.value = true;
     newTab.name = tab.name;
     newTab.subtitle = tab.subtitle?.trim() || getTabSubtitle(tab);
     subtitleManuallyEdited.value = Boolean(tab.subtitle?.trim());
@@ -810,6 +800,22 @@ export const useTabsSettingsPage = () => {
     resetNewTabForm();
   };
 
+  const closeEditor = () => {
+    deselectTab();
+    editorOpen.value = false;
+  };
+
+  const startNewTabInGroup = (groupId: string) => {
+    deselectTab();
+    setNewTabGroup(groupId);
+    editorOpen.value = true;
+  };
+
+  const startNewTab = () => {
+    deselectTab();
+    editorOpen.value = true;
+  };
+
   const handleSaveTab = () => {
     const name = newTab.name.trim();
     if (!name || !selectedGroupExists.value) return;
@@ -822,7 +828,7 @@ export const useTabsSettingsPage = () => {
         source: newTab.source,
         query: buildCurrentQuery(),
       });
-      deselectTab();
+      closeEditor();
       return;
     }
 
@@ -834,7 +840,7 @@ export const useTabsSettingsPage = () => {
       query: buildCurrentQuery(),
     });
 
-    resetNewTabForm();
+    closeEditor();
   };
 
   const loadPreview = async (silent = false) => {
@@ -879,7 +885,7 @@ export const useTabsSettingsPage = () => {
 
   watch(customTabs, (tabs) => {
     if (selectedTabId.value && !tabs.some((tab) => tab.id === selectedTabId.value)) {
-      deselectTab();
+      closeEditor();
     }
   });
 
@@ -902,7 +908,7 @@ export const useTabsSettingsPage = () => {
   watch(
     appPreviewUrl,
     () => {
-      if (paginationInProgress) {
+      if (paginationInProgress || !editorOpen.value) {
         return;
       }
       if (previewTimer) {
@@ -915,6 +921,18 @@ export const useTabsSettingsPage = () => {
     },
     { immediate: true }
   );
+
+  watch(editorOpen, (open) => {
+    if (open) {
+      void loadPreview();
+      return;
+    }
+
+    if (previewTimer) {
+      clearTimeout(previewTimer);
+      previewTimer = null;
+    }
+  });
 
   onBeforeUnmount(() => {
     if (previewTimer) {
@@ -965,6 +983,7 @@ export const useTabsSettingsPage = () => {
     confirmingTabId,
     confirmingGroupId,
     selectedTabId,
+    editorOpen,
     advancedFiltersOpen,
     previewLoading,
     previewError,
@@ -977,9 +996,8 @@ export const useTabsSettingsPage = () => {
     customGroupRows,
     groupTabLists,
     draggableGroupRows,
-    parentGroupOptions,
-    editableGroupOptions,
     selectedGroupExists,
+    selectedGroupName,
     activeSource,
     activeSourceLabel,
     isPullRequestSearch,
@@ -1010,7 +1028,6 @@ export const useTabsSettingsPage = () => {
     cancelDeleteConfirmation,
     confirmDeleteGroup,
     setActiveSource,
-    setNewTabGroup,
     setSearchType,
     setQueryState,
     toggleScope,
@@ -1024,6 +1041,9 @@ export const useTabsSettingsPage = () => {
     handleCancelChildGroup,
     handleCreateChildGroup,
     deselectTab,
+    closeEditor,
+    startNewTab,
+    startNewTabInGroup,
     selectTabForEdit,
     handleSaveTab,
     goToPreviewPage,

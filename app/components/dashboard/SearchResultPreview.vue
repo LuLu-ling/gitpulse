@@ -145,22 +145,33 @@ const getStateIcon = (item: SearchResultItem) => {
 .search-result-preview {
   display: grid;
   gap: 0.5rem;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .srp-toolbar {
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  min-width: 0;
+}
+
+.srp-toolbar__status {
+  min-width: 0;
 }
 
 .srp-pill {
   display: inline-flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 0.35rem;
+  min-width: 0;
+  max-width: 100%;
   padding: 0.2rem 0;
   font-size: 0.78rem;
   font-weight: 650;
   color: var(--gitpulse-warning);
+  overflow-wrap: anywhere;
 
   &.is-error {
     color: var(--gitpulse-danger);
@@ -240,6 +251,7 @@ const getStateIcon = (item: SearchResultItem) => {
 .srp-card {
   display: flex;
   gap: 0.55rem;
+  min-width: 0;
   padding: 0.5rem 0.6rem;
   border: 1px solid var(--gitpulse-border);
   border-radius: 6px;

@@ -1,38 +1,41 @@
 <script setup lang="ts">
-import { LinkIcon } from 'lucide-vue-next';
+import { LayersIcon, PlusIcon } from 'lucide-vue-next';
 
-import TabsEditorPanel from '~/components/dashboard/tabs-settings/TabsEditorPanel.vue';
-import TabsViewsPanel from '~/components/dashboard/tabs-settings/TabsViewsPanel.vue';
+import TabsEditorDrawer from '~/components/dashboard/tabs-settings/TabsEditorDrawer.vue';
+import TabsLibraryPanel from '~/components/dashboard/tabs-settings/TabsLibraryPanel.vue';
 import type { TabsSettingsPageState } from '~/composables/useTabsSettingsPage';
 
 const props = defineProps<{
   model: TabsSettingsPageState;
 }>();
 
-const { t, githubPreviewUrl, deselectTab } = props.model;
+const { t, editorOpen, startNewTab, closeEditor } = props.model;
 </script>
 
 <template>
-  <div class="tabs-settings-page" @keydown.escape="deselectTab">
+  <div class="tabs-settings-page" @keydown.escape="closeEditor">
     <header class="settings-header">
-      <div>
-        <h1 class="title is-4 mb-1">{{ t('dashboard.tabsSettings.pageTitle') }}</h1>
+      <div class="settings-header__icon" aria-hidden="true">
+        <LayersIcon :size="20" />
       </div>
-      <a
-        class="button is-small is-light preview-link"
-        :href="githubPreviewUrl"
-        target="_blank"
-        rel="noreferrer"
-      >
-        <span class="icon is-small"><LinkIcon :size="14" /></span>
-        <span>{{ t('dashboard.tabsSettings.openQuery') }}</span>
-      </a>
+      <div class="settings-header__copy">
+        <h1 class="settings-header__title">{{ t('dashboard.tabsSettings.pageTitle') }}</h1>
+        <p class="settings-header__subtitle">{{ t('dashboard.tabsSettings.heroSubtitle') }}</p>
+      </div>
+      <button class="button is-small new-view-btn" type="button" @click="startNewTab">
+        <PlusIcon :size="14" aria-hidden="true" />
+        <span>{{ t('dashboard.tabsSettings.editorTitle') }}</span>
+      </button>
     </header>
 
-    <div class="settings-grid">
-      <TabsViewsPanel :model="model" />
-      <TabsEditorPanel :model="model" />
-    </div>
+    <TabsLibraryPanel :model="model" />
+
+    <Transition name="scrim">
+      <div v-if="editorOpen" class="editor-scrim" aria-hidden="true" @click="closeEditor" />
+    </Transition>
+    <Transition name="drawer">
+      <TabsEditorDrawer v-if="editorOpen" :model="model" />
+    </Transition>
   </div>
 </template>
 
@@ -40,255 +43,180 @@ const { t, githubPreviewUrl, deselectTab } = props.model;
 .tabs-settings-page {
   width: 100%;
   min-height: 100%;
-  padding: 1.25rem;
+  max-width: 62rem;
+  margin: 0 auto;
+  padding: 1.5rem 1.25rem 3rem;
 }
 
-.settings-header,
-.panel-heading-row,
-.section-label-row,
-.section-label,
-.subtitle-label-row,
-.builtin-row,
-.tree-group-row,
-.tree-tab-row,
-.preview-header,
-.preview-status-row,
-.label-heading {
-  display: flex;
-  align-items: center;
-}
+/* --------------------------------- Header ---------------------------------- */
 
 .settings-header {
-  justify-content: space-between;
-  gap: 1rem;
-  margin-bottom: 1rem;
-}
-
-.settings-subtitle,
-.panel-caption,
-.tree-group-main small,
-.tree-tab-main small,
-.query-preview,
-.chip-label {
-  color: var(--gitpulse-text-muted);
-  font-size: 0.78rem;
-}
-
-.section-label {
-  font-weight: 750;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-
-.settings-subtitle {
-  margin: 0;
-}
-
-.preview-link {
-  flex: 0 0 auto;
-}
-
-.settings-grid {
-  display: grid;
-  grid-template-columns: minmax(18rem, 0.82fr) minmax(28rem, 1.45fr);
-  gap: 1rem;
-  align-items: start;
-}
-
-.views-tree-panel,
-.editor-panel {
-  margin-bottom: 0;
-  border: 1px solid var(--gitpulse-border);
-  border-radius: 8px;
-  box-shadow: var(--gitpulse-shadow-card);
-}
-
-.panel-heading-row,
-.section-label-row,
-.preview-header,
-.preview-status-row {
-  justify-content: space-between;
-  gap: 1rem;
-}
-
-.section-label {
-  gap: 0.4rem;
-  color: var(--bulma-text-strong, #111827);
-  font-size: 0.72rem;
-}
-
-.builtin-section,
-.custom-section,
-.search-fields-panel,
-.preview-panel,
-.group-creator-strip,
-.pr-field-band {
-  padding: 0.85rem;
-  border: 1px solid var(--gitpulse-border);
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--gitpulse-surface-muted) 72%, transparent);
-}
-
-.builtin-section {
-  padding: 0.6rem 0.75rem;
-}
-
-.builtin-section,
-.custom-section,
-.group-creator-strip {
-  margin-top: 0.8rem;
-}
-
-.group-insights {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.45rem;
-  margin-top: 0.75rem;
-}
-
-.group-insight-card {
-  display: grid;
-  gap: 0.15rem;
-  min-width: 0;
-  padding: 0.55rem 0.6rem;
-  border: 1px solid var(--gitpulse-border);
-  border-radius: 6px;
-  background: var(--gitpulse-surface);
-}
-
-.group-insight-card strong {
-  color: var(--gitpulse-accent);
-  font-size: 1rem;
-  line-height: 1;
-}
-
-.group-insight-card span {
-  overflow: hidden;
-  color: var(--gitpulse-text-muted);
-  font-size: 0.68rem;
-  font-weight: 700;
-  text-overflow: ellipsis;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  white-space: nowrap;
-}
-
-.group-creator-strip {
-  display: grid;
-  gap: 0.55rem;
-  margin-top: 0.75rem;
-  border-color: var(--gitpulse-border);
-  background: var(--gitpulse-surface);
-}
-
-.group-creator-form,
-.inline-child-creator__controls,
-.inline-delete-confirm,
-.inline-delete-confirm__actions,
-.tab-delete-confirm,
-.tree-group-actions,
-.tree-tab-actions {
   display: flex;
   align-items: center;
+  gap: 0.85rem;
+  padding-bottom: 1.15rem;
+  margin-bottom: 1.25rem;
+  border-bottom: 1px solid var(--gitpulse-border);
 }
 
-.group-creator-header {
+.settings-header__icon {
   display: flex;
   align-items: center;
-  gap: 0.65rem;
-}
-
-.group-creator-icon {
-  display: grid;
-  width: 2rem;
-  height: 2rem;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
   flex: 0 0 auto;
-  place-items: center;
   border-radius: 10px;
   color: var(--gitpulse-accent);
   background: var(--gitpulse-accent-soft);
 }
 
-.group-creator-title {
+.settings-header__copy {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.settings-header__title {
+  margin: 0 0 0.15rem;
+  color: var(--bulma-text-strong, var(--gitpulse-text-strong));
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+}
+
+.settings-header__subtitle {
   margin: 0;
-  color: var(--bulma-text-strong, #111827);
-  font-size: 0.9rem;
+  color: var(--gitpulse-text-muted);
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
+.new-view-btn {
+  flex: 0 0 auto;
+  gap: 0.35rem;
+  height: 2.25rem;
+  padding-inline: 0.85rem;
+  border-color: transparent;
+  color: #ffffff;
+  background: var(--gitpulse-primary-solid);
+  font-weight: 650;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+}
+
+.new-view-btn:hover {
+  color: #ffffff;
+  background: var(--gitpulse-primary-solid-hover);
+}
+
+/* ------------------------------ Built-in strip ----------------------------- */
+
+.builtin-strip {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-bottom: 1.1rem;
+}
+
+.builtin-strip__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-right: 0.25rem;
+  color: var(--gitpulse-text-subtle);
+  font-size: 0.7rem;
+  font-weight: 750;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.builtin-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.28rem 0.7rem;
+  border: 1px solid var(--gitpulse-border);
+  border-radius: 999px;
+  color: var(--gitpulse-text-muted);
+  background: color-mix(in srgb, var(--gitpulse-surface-muted) 80%, transparent);
+  font-size: 0.78rem;
+  font-weight: 650;
+  cursor: default;
+}
+
+/* --------------------------------- Library -------------------------------- */
+
+.library-empty {
+  display: grid;
+  place-items: center;
+  gap: 0.4rem;
+  padding: 2.5rem 1rem;
+  margin-bottom: 1rem;
+  border: 1px dashed var(--gitpulse-border-strong);
+  border-radius: 12px;
+  text-align: center;
+}
+
+.library-empty__icon {
+  display: grid;
+  width: 3rem;
+  height: 3rem;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--gitpulse-accent);
+  background: var(--gitpulse-accent-soft);
+}
+
+.library-empty__title {
+  margin: 0.35rem 0 0;
+  color: var(--gitpulse-text-strong);
+  font-size: 0.95rem;
   font-weight: 750;
 }
 
-.group-creator-copy {
-  margin: 0.1rem 0 0;
+.library-empty__hint {
+  margin: 0;
+  max-width: 26rem;
   color: var(--gitpulse-text-muted);
-  font-size: 0.75rem;
+  font-size: 0.8rem;
 }
 
-.group-creator-form {
-  gap: 0.55rem;
-  align-items: flex-end;
-}
-
-.group-creator-form .field:first-child {
-  flex: 1 1 11rem;
-}
-
-.group-create-button {
-  flex: 0 0 auto;
-  gap: 0.45rem;
-  font-weight: 700;
-}
-
-.builtin-list,
 .tree-list,
+.tree-drag-root,
 .tree-tabs {
   display: grid;
   gap: 0.6rem;
 }
 
-.builtin-list {
-  gap: 0.3rem;
-  margin-top: 0.4rem;
-}
-
 .tree-list {
-  margin-top: 0.5rem;
-}
-
-.builtin-row,
-.tree-tab-row {
-  gap: 0.55rem;
-  min-height: 2.5rem;
-  padding: 0.55rem 0.75rem;
-  border: 1px solid transparent;
-  border-radius: 6px;
-  background: var(--bulma-scheme-main, #ffffff);
-}
-
-.builtin-row {
-  gap: 0.45rem;
-  min-height: 1.9rem;
-  padding: 0.35rem 0.65rem;
-  color: var(--bulma-text, #334155);
+  margin-bottom: 1rem;
 }
 
 .tree-group {
   overflow: hidden;
   border: 1px solid var(--gitpulse-border);
-  border-radius: 8px;
-  background: var(--bulma-scheme-main, #ffffff);
+  border-radius: 10px;
+  background: var(--gitpulse-surface);
+  box-shadow: var(--gitpulse-shadow-card);
+  transition: border-color 0.15s ease;
+}
+
+.tree-group:hover {
+  border-color: color-mix(in srgb, var(--gitpulse-accent) 26%, var(--gitpulse-border));
 }
 
 .tree-group-row {
   position: relative;
+  display: flex;
+  align-items: center;
   gap: 0.45rem;
   min-width: 0;
-  min-height: 2.75rem;
+  min-height: 2.85rem;
   padding: 0.6rem 1rem 0.6rem 0.75rem;
-  border: 1px solid transparent;
-  box-shadow: inset 3px 0 0 transparent;
-  transition:
-    border-color 0.15s ease,
-    background 0.15s ease,
-    box-shadow 0.15s ease;
+  background: color-mix(in srgb, var(--gitpulse-surface-muted) 55%, transparent);
 }
 
 .tree-depth-spacer {
@@ -296,23 +224,26 @@ const { t, githubPreviewUrl, deselectTab } = props.model;
   flex: 0 0 auto;
 }
 
-.tree-group-row:hover,
-.tree-group-row:focus-within,
-.tree-tab-row:hover,
-.builtin-row:hover {
-  border-color: color-mix(in srgb, var(--gitpulse-accent) 24%, transparent);
-  background: var(--gitpulse-accent-soft);
+.group-folder-icon {
+  display: grid;
+  width: 1.6rem;
+  height: 1.6rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 7px;
+  color: var(--gitpulse-warning);
+  background: var(--gitpulse-warning-soft);
 }
 
-.tree-tab-row.is-selected {
-  border-color: var(--gitpulse-accent);
+.view-glyph {
+  display: grid;
+  width: 1.5rem;
+  height: 1.5rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 6px;
+  color: var(--gitpulse-accent);
   background: var(--gitpulse-accent-soft);
-  box-shadow: inset 3px 0 0 var(--gitpulse-accent);
-}
-
-.tree-group-row:hover,
-.tree-group-row:focus-within {
-  box-shadow: inset 3px 0 0 var(--gitpulse-accent);
 }
 
 .tree-icon {
@@ -337,6 +268,8 @@ const { t, githubPreviewUrl, deselectTab } = props.model;
 
 .tree-group-actions,
 .tree-tab-actions {
+  display: flex;
+  align-items: center;
   flex: 0 0 auto;
   justify-content: flex-end;
   gap: 0.2rem;
@@ -367,9 +300,9 @@ const { t, githubPreviewUrl, deselectTab } = props.model;
 .tree-name-input {
   height: 1.85rem;
   border-color: transparent;
-  border-bottom: 1px dashed var(--gitpulse-border-strong);
+  border-bottom: 1px dashed transparent;
   background: transparent;
-  font-weight: 650;
+  font-weight: 700;
 }
 
 .tree-name-input:hover:not(:disabled) {
@@ -378,7 +311,7 @@ const { t, githubPreviewUrl, deselectTab } = props.model;
 
 .tree-name-input:focus {
   border-color: var(--gitpulse-accent);
-  background: var(--bulma-scheme-main, #ffffff);
+  background: var(--gitpulse-surface);
 }
 
 .tree-delete,
@@ -418,14 +351,21 @@ const { t, githubPreviewUrl, deselectTab } = props.model;
   transform: translateY(-1px);
 }
 
+.tree-add.tree-add-view {
+  color: var(--gitpulse-success);
+}
+
+.tree-add.tree-add-view:hover,
+.tree-add.tree-add-view:focus-visible {
+  background: var(--gitpulse-success-soft);
+}
+
 .inline-child-creator,
 .inline-delete-confirm {
   display: grid;
   gap: 0.45rem;
   padding: 0.55rem 0.65rem 0.65rem;
-  margin-right: 0.7rem;
-  margin-bottom: 0.55rem;
-  margin-top: 0.6rem;
+  margin: 0.6rem 0.7rem 0.55rem;
   border: 1px dashed color-mix(in srgb, var(--gitpulse-accent) 30%, transparent);
   border-radius: 8px;
   background: color-mix(in srgb, var(--gitpulse-accent) 8%, transparent);
@@ -433,6 +373,7 @@ const { t, githubPreviewUrl, deselectTab } = props.model;
 
 .inline-delete-confirm {
   display: flex;
+  align-items: center;
   justify-content: space-between;
   border-color: color-mix(in srgb, var(--gitpulse-danger) 30%, transparent);
   color: var(--gitpulse-danger);
@@ -442,6 +383,8 @@ const { t, githubPreviewUrl, deselectTab } = props.model;
 }
 
 .inline-delete-confirm__actions {
+  display: flex;
+  align-items: center;
   flex: 0 0 auto;
   gap: 0.35rem;
 }
@@ -453,6 +396,8 @@ const { t, githubPreviewUrl, deselectTab } = props.model;
 }
 
 .inline-child-creator__controls {
+  display: flex;
+  align-items: center;
   gap: 0.45rem;
 }
 
@@ -461,16 +406,40 @@ const { t, githubPreviewUrl, deselectTab } = props.model;
 }
 
 .tree-tabs {
-  display: grid;
-  gap: 0.6rem;
   min-width: 0;
-  padding: 0.35rem 1rem 0.7rem 0.7rem;
+  padding: 0.55rem 1rem 0.7rem 0.7rem;
   margin-right: 0.7rem;
+  border-top: 1px solid color-mix(in srgb, var(--gitpulse-border) 60%, transparent);
 }
 
 .tree-tab-row {
-  min-width: 0;
+  display: flex;
+  align-items: center;
   flex-wrap: wrap;
+  gap: 0.55rem;
+  min-width: 0;
+  min-height: 2.5rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: var(--gitpulse-surface);
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.tree-tab-row:hover,
+.tree-tab-row:focus-visible {
+  border-color: color-mix(in srgb, var(--gitpulse-accent) 24%, transparent);
+  background: var(--gitpulse-accent-soft);
+}
+
+.tree-tab-row.is-selected {
+  border-color: var(--gitpulse-accent);
+  background: var(--gitpulse-accent-soft);
+  box-shadow: inset 3px 0 0 var(--gitpulse-accent);
 }
 
 .tree-tab-main span,
@@ -480,6 +449,10 @@ const { t, githubPreviewUrl, deselectTab } = props.model;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.tree-tab-main > span {
+  font-weight: 650;
 }
 
 .tab-subtitle-button {
@@ -507,6 +480,8 @@ const { t, githubPreviewUrl, deselectTab } = props.model;
 }
 
 .tab-delete-confirm {
+  display: flex;
+  align-items: center;
   flex: 0 0 auto;
   gap: 0.2rem;
   color: var(--gitpulse-danger);
@@ -515,33 +490,73 @@ const { t, githubPreviewUrl, deselectTab } = props.model;
   white-space: nowrap;
 }
 
-.subtitle-label-row {
-  justify-content: space-between;
-  gap: 0.75rem;
-  margin-bottom: 0.35rem;
-}
-
-.subtitle-auto-hint {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.group-picker,
-.segmented-row,
-.source-selector {
+.empty-drop-zone {
   display: flex;
   align-items: center;
-  gap: 0.35rem;
+  justify-content: center;
+  gap: 0.4rem;
+  width: 100%;
+  padding: 0.65rem;
+  border: 1px dashed var(--gitpulse-border-strong);
+  border-radius: 8px;
+  color: var(--gitpulse-text-muted);
+  background: transparent;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition:
+    color 0.15s ease,
+    border-color 0.15s ease,
+    background 0.15s ease;
 }
 
-.segmented-row.is-wrap,
-.group-picker,
-.source-selector {
-  flex-wrap: wrap;
+.empty-drop-zone:hover {
+  border-color: color-mix(in srgb, var(--gitpulse-success) 50%, transparent);
+  color: var(--gitpulse-success);
+  background: var(--gitpulse-success-soft);
 }
 
-/* Drag-and-drop */
+/* ----------------------------- Group creator tile -------------------------- */
+
+.group-creator-tile {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.65rem 0.8rem;
+  border: 1px dashed var(--gitpulse-border-strong);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--gitpulse-surface-muted) 50%, transparent);
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease;
+}
+
+.group-creator-tile:focus-within {
+  border-color: color-mix(in srgb, var(--gitpulse-accent) 50%, transparent);
+  background: var(--gitpulse-surface);
+}
+
+.group-creator-tile__icon {
+  display: grid;
+  width: 1.9rem;
+  height: 1.9rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 8px;
+  color: var(--gitpulse-warning);
+  background: var(--gitpulse-warning-soft);
+}
+
+.group-creator-tile__input {
+  flex: 1 1 12rem;
+}
+
+.group-create-button {
+  flex: 0 0 auto;
+  gap: 0.45rem;
+  font-weight: 700;
+}
+
+/* ------------------------------- Drag-and-drop ----------------------------- */
 
 .drag-handle {
   flex: 0 0 auto;
@@ -563,27 +578,279 @@ const { t, githubPreviewUrl, deselectTab } = props.model;
   cursor: grabbing;
 }
 
-:deep(.sortable-ghost) {
+.sortable-ghost {
   opacity: 0.4;
   background: var(--gitpulse-accent-soft);
 }
 
-:deep(.sortable-chosen) {
+.sortable-chosen {
   opacity: 0.85;
   box-shadow: var(--gitpulse-shadow-card-hover);
 }
 
-:deep(.sortable-drag) {
+.sortable-drag {
   opacity: 0.9;
 }
 
+/* ------------------------------- Editor drawer ----------------------------- */
+
+.editor-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: var(--gitpulse-overlay-bg);
+}
+
+.editor-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 41;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  width: min(68rem, 94vw);
+  border-left: 1px solid var(--gitpulse-border);
+  background: var(--gitpulse-surface);
+  box-shadow: var(--gitpulse-shadow-raised);
+}
+
+.scrim-enter-active,
+.scrim-leave-active {
+  transition: opacity 0.22s ease;
+}
+
+.scrim-enter-from,
+.scrim-leave-to {
+  opacity: 0;
+}
+
+.drawer-enter-active {
+  transition: transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.drawer-leave-active {
+  transition: transform 0.2s cubic-bezier(0.4, 0, 1, 1);
+}
+
+.drawer-enter-from,
+.drawer-leave-to {
+  transform: translateX(102%);
+}
+
+.drawer-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--gitpulse-border);
+  background: color-mix(in srgb, var(--gitpulse-surface-muted) 65%, transparent);
+}
+
+.drawer-header__titles {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.drawer-title {
+  margin: 0;
+  color: var(--gitpulse-text-strong);
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+
+.drawer-caption {
+  margin: 0.15rem 0 0;
+  overflow: hidden;
+  color: var(--gitpulse-text-muted);
+  font-size: 0.76rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.destination-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  max-width: 14rem;
+  flex: 0 0 auto;
+  padding: 0.18rem 0.55rem;
+  border: 1px solid color-mix(in srgb, var(--gitpulse-accent) 24%, transparent);
+  border-radius: 999px;
+  color: var(--gitpulse-accent);
+  background: var(--gitpulse-accent-soft);
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+
+.destination-chip svg {
+  flex: 0 0 auto;
+}
+
+.destination-chip span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.drawer-close {
+  flex: 0 0 auto;
+  width: 2.1rem;
+  height: 2.1rem;
+  padding: 0;
+  color: var(--gitpulse-text-muted);
+}
+
+.drawer-close:hover {
+  color: var(--gitpulse-danger);
+  background: var(--gitpulse-danger-soft);
+}
+
+.drawer-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  min-height: 0;
+}
+
+.drawer-form,
+.drawer-preview {
+  min-width: 0;
+  padding: 1.15rem 1.25rem 1.5rem;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.drawer-preview {
+  border-left: 1px solid var(--gitpulse-border);
+  background: color-mix(in srgb, var(--gitpulse-surface-muted) 45%, transparent);
+}
+
+.drawer-preview__label {
+  margin-bottom: 0.5rem;
+}
+
+.preview-human {
+  display: block;
+  color: var(--gitpulse-text-strong);
+  font-size: 0.84rem;
+  overflow-wrap: anywhere;
+}
+
+.drawer-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  padding: 0.85rem 1.25rem;
+  border-top: 1px solid var(--gitpulse-border);
+  background: color-mix(in srgb, var(--gitpulse-surface-muted) 65%, transparent);
+}
+
+.drawer-cancel-btn {
+  font-weight: 600;
+}
+
+.drawer-save-btn {
+  gap: 0.4rem;
+  min-width: 13rem;
+  justify-content: center;
+  border-color: transparent;
+  color: #ffffff;
+  background: var(--gitpulse-primary-solid);
+  font-weight: 700;
+
+  &:hover:not(:disabled) {
+    color: #ffffff;
+    background: var(--gitpulse-primary-solid-hover);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+  }
+}
+
+/* ------------------------------ Section labels ----------------------------- */
+
+.section-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.section-label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--gitpulse-text-strong);
+  font-size: 0.72rem;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.section-icon {
+  display: inline-grid;
+  width: 1.45rem;
+  height: 1.45rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 6px;
+  color: var(--gitpulse-accent);
+  background: var(--gitpulse-accent-soft);
+}
+
+.section-icon.is-query {
+  color: var(--gitpulse-purple);
+  background: var(--gitpulse-purple-soft);
+}
+
+.section-icon.is-preview {
+  color: var(--gitpulse-success);
+  background: var(--gitpulse-success-soft);
+}
+
+/* ------------------------------- Editor form ------------------------------- */
+
+.search-fields-panel {
+  padding: 0.85rem;
+  border: 1px solid var(--gitpulse-border);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--gitpulse-surface-muted) 72%, transparent);
+}
+
+.subtitle-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.35rem;
+}
+
+.subtitle-auto-hint {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.segmented-row,
+.source-selector {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.segmented-row.is-wrap,
+.source-selector {
+  flex-wrap: wrap;
+}
+
 .chip-button,
-.group-choice,
 .segmented-button,
 .source-option {
   border: 1px solid var(--gitpulse-border);
-  color: var(--bulma-text, #334155);
-  background: var(--bulma-scheme-main, #ffffff);
+  color: var(--gitpulse-text);
+  background: var(--gitpulse-surface);
   cursor: pointer;
   transition:
     border-color 0.15s ease,
@@ -608,19 +875,7 @@ const { t, githubPreviewUrl, deselectTab } = props.model;
   padding: 0.18rem 0.45rem;
 }
 
-.group-choice {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  min-height: 2.1rem;
-  padding: 0.35rem 0.7rem;
-  border-radius: 6px;
-  font-size: 0.84rem;
-  font-weight: 650;
-}
-
 .chip-button:hover:not(:disabled),
-.group-choice:hover,
 .segmented-button:hover,
 .source-option:hover:not(:disabled) {
   border-color: color-mix(in srgb, var(--gitpulse-accent) 36%, transparent);
@@ -629,12 +884,6 @@ const { t, githubPreviewUrl, deselectTab } = props.model;
 }
 
 .chip-button.is-active {
-  border-color: var(--gitpulse-accent);
-  color: #ffffff;
-  background: var(--gitpulse-accent);
-}
-
-.group-choice.is-active {
   border-color: var(--gitpulse-accent);
   color: #ffffff;
   background: var(--gitpulse-accent);
@@ -676,6 +925,7 @@ const { t, githubPreviewUrl, deselectTab } = props.model;
 .source-option svg {
   grid-row: 1 / span 2;
   align-self: center;
+  fill: currentColor;
 }
 
 .source-option span {
@@ -684,7 +934,7 @@ const { t, githubPreviewUrl, deselectTab } = props.model;
 }
 
 .source-option small {
-  color: var(--bulma-text-light, #6b7280);
+  color: var(--gitpulse-text-muted);
   font-size: 0.7rem;
 }
 
@@ -717,24 +967,13 @@ const { t, githubPreviewUrl, deselectTab } = props.model;
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
-.field-grid.is-four {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-}
-
 .toggle-section {
   margin-bottom: 0.85rem;
 }
 
-.segmented-row {
-  flex-wrap: wrap;
-}
-
-.segmented-row.is-compact-row {
-  flex-wrap: nowrap;
-}
-
-.label-heading,
-.section-label {
+.label-heading {
+  display: flex;
+  align-items: center;
   gap: 0.35rem;
 }
 
@@ -746,7 +985,7 @@ const { t, githubPreviewUrl, deselectTab } = props.model;
   padding: 0.45rem;
   border: 1px solid var(--bulma-border, #dbdbdb);
   border-radius: 6px;
-  background: var(--bulma-scheme-main, #ffffff);
+  background: var(--gitpulse-surface);
 }
 
 .label-chip {
@@ -771,126 +1010,12 @@ const { t, githubPreviewUrl, deselectTab } = props.model;
   overflow: auto;
   border: 1px solid var(--gitpulse-border);
   border-radius: 8px;
-  background: var(--bulma-scheme-main, #ffffff);
+  background: var(--gitpulse-surface);
   box-shadow: var(--gitpulse-shadow-raised);
 }
 
 .suggestion-row {
   justify-content: flex-start;
-}
-
-.preview-panel {
-  margin-top: 1rem;
-  border-color: var(--gitpulse-border);
-  background: var(--bulma-scheme-main, #ffffff);
-}
-
-/* Tokenized query box */
-.tokenized-query-box {
-  margin-top: 0.75rem;
-  border: 1px solid color-mix(in srgb, var(--gitpulse-accent) 22%, transparent);
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--gitpulse-surface-muted) 82%, transparent);
-  overflow: hidden;
-}
-
-.tqb-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.45rem 0.7rem;
-  background: var(--gitpulse-accent-soft);
-  border-bottom: 1px solid color-mix(in srgb, var(--gitpulse-accent) 18%, transparent);
-}
-
-.tqb-label {
-  font-size: 0.68rem;
-  font-weight: 750;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--gitpulse-accent);
-}
-
-.tqb-gh-link {
-  font-size: 0.72rem;
-  font-weight: 600;
-  color: var(--gitpulse-accent);
-  text-decoration: none;
-
-  &:hover {
-    text-decoration: underline;
-  }
-}
-
-.tqb-body {
-  padding: 0.65rem 0.7rem;
-  font-family: var(--gitpulse-code-font-family);
-  font-size: 0.78rem;
-}
-
-/* Preview results */
-.preview-results {
-  margin-top: 0.75rem;
-}
-
-.pr-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 0.45rem;
-}
-
-.pr-label {
-  font-size: 0.68rem;
-  font-weight: 750;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--bulma-text-light, #6b7280);
-}
-
-/* Preview pagination */
-.preview-pagination {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-}
-
-.preview-page-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 2rem;
-  height: 2rem;
-  padding: 0;
-  border: 1px solid var(--bulma-border, #dbdbdb);
-  border-radius: 5px;
-  background: var(--bulma-scheme-main, #ffffff);
-  color: var(--bulma-text, #4a4a4a);
-  font-size: 0.75rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition:
-    background 0.15s ease,
-    border-color 0.15s ease;
-
-  &:hover:not(:disabled) {
-    background: var(--bulma-link-soft);
-    border-color: var(--gitpulse-accent);
-    color: var(--gitpulse-accent);
-  }
-
-  &:disabled {
-    opacity: 0.45;
-    cursor: not-allowed;
-  }
-}
-
-.preview-page-info {
-  font-size: 0.75rem;
-  font-weight: 650;
-  color: var(--bulma-text, #4a4a4a);
-  min-width: 5rem;
-  text-align: center;
 }
 
 /* Compact type/state row */
@@ -965,64 +1090,166 @@ const { t, githubPreviewUrl, deselectTab } = props.model;
   background: var(--gitpulse-success-soft);
 }
 
-.preview-create-btn {
-  background: var(--gitpulse-accent);
-  border-color: transparent;
-  color: #ffffff;
+/* ------------------------------ Live preview ------------------------------- */
+
+.tokenized-query-box {
+  margin-top: 0.75rem;
+  border: 1px solid color-mix(in srgb, var(--gitpulse-accent) 22%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--gitpulse-surface-muted) 82%, transparent);
+  overflow: hidden;
+}
+
+.tqb-header {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.25rem 0.7rem;
+  padding: 0.45rem 0.7rem;
+  background: var(--gitpulse-accent-soft);
+  border-bottom: 1px solid color-mix(in srgb, var(--gitpulse-accent) 18%, transparent);
+}
+
+.tqb-label {
+  font-size: 0.68rem;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--gitpulse-accent);
+}
+
+.tqb-gh-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.72rem;
   font-weight: 600;
-  white-space: nowrap;
+  color: var(--gitpulse-accent);
+  text-decoration: none;
+
+  svg {
+    fill: currentColor;
+  }
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.tqb-body {
+  padding: 0.65rem 0.7rem;
+  font-family: var(--gitpulse-code-font-family);
+  font-size: 0.78rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.preview-results {
+  margin-top: 0.75rem;
+}
+
+.pr-header {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.25rem 0.7rem;
+  margin-bottom: 0.45rem;
+}
+
+.pr-label {
+  font-size: 0.68rem;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--gitpulse-text-muted);
+}
+
+.preview-pagination {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.preview-page-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: 1px solid var(--bulma-border, #dbdbdb);
+  border-radius: 5px;
+  background: var(--gitpulse-surface);
+  color: var(--gitpulse-text);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
 
   &:hover:not(:disabled) {
-    background: var(--gitpulse-accent-hover);
-    color: #ffffff;
+    background: var(--gitpulse-accent-soft);
+    border-color: var(--gitpulse-accent);
+    color: var(--gitpulse-accent);
   }
 
   &:disabled {
-    opacity: 0.5;
+    opacity: 0.45;
+    cursor: not-allowed;
   }
 }
 
-.query-preview {
-  min-width: 0;
-  margin: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.empty-drop-zone,
-.empty-state {
-  color: var(--gitpulse-text-muted);
-  font-size: 0.85rem;
-}
-
-.empty-drop-zone {
-  padding: 0.65rem;
-  border: 1px dashed var(--gitpulse-border);
-  border-radius: 6px;
+.preview-page-info {
+  font-size: 0.75rem;
+  font-weight: 650;
+  color: var(--gitpulse-text);
+  min-width: 5rem;
   text-align: center;
 }
 
-.empty-state {
-  display: grid;
-  place-items: center;
-  gap: 0.5rem;
-  min-height: 8rem;
-}
+/* ------------------------------- Responsive -------------------------------- */
 
 @media (max-width: 1160px) {
-  .settings-grid,
-  .field-grid.is-four {
+  .drawer-body {
     grid-template-columns: 1fr;
+    overflow-y: auto;
+  }
+
+  .drawer-form,
+  .drawer-preview {
+    overflow-y: visible;
+  }
+
+  .drawer-preview {
+    border-left: 0;
+    border-top: 1px solid var(--gitpulse-border);
+  }
+
+  .editor-drawer {
+    width: min(46rem, 100vw);
   }
 }
 
 @media (max-width: 820px) {
-  .settings-header,
-  .preview-header,
-  .preview-status-row {
-    align-items: stretch;
-    flex-direction: column;
+  .settings-header {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .settings-header__copy {
+    flex-basis: calc(100% - 3.35rem);
+  }
+
+  .new-view-btn {
+    margin-left: 3.35rem;
+  }
+
+  .editor-drawer {
+    width: 100vw;
+    border-left: 0;
   }
 
   .field-grid.is-two,
@@ -1046,27 +1273,77 @@ const { t, githubPreviewUrl, deselectTab } = props.model;
     margin-left: 0.85rem !important;
     padding-left: 0.7rem;
   }
+
+  .drawer-header {
+    flex-wrap: wrap;
+  }
 }
 
-html.dark .builtin-section,
-html.dark .custom-section,
+/* -------------------------------- Dark mode -------------------------------- */
+
+html.dark .builtin-pill {
+  background: var(--gitpulse-surface-muted);
+}
+
+html.dark .tree-group {
+  background: var(--gitpulse-surface-raised);
+}
+
+html.dark .tree-group-row {
+  background: color-mix(in srgb, var(--gitpulse-surface-muted) 70%, transparent);
+}
+
+html.dark .tree-tab-row,
+html.dark .inline-child-creator,
+html.dark .label-combobox,
+html.dark .label-suggestions,
+html.dark .chip-button,
+html.dark .segmented-button,
+html.dark .source-option,
+html.dark .preview-page-btn {
+  background: var(--gitpulse-surface);
+}
+
+html.dark .chip-button.is-active,
+html.dark .segmented-button.is-active,
+html.dark .source-option.is-active {
+  background: var(--gitpulse-accent-soft);
+  border-color: color-mix(in srgb, var(--gitpulse-accent) 30%, transparent);
+  color: var(--gitpulse-accent);
+}
+
+html.dark .source-option.is-active small {
+  color: var(--gitpulse-text-muted);
+}
+
 html.dark .search-fields-panel,
-html.dark .group-creator-strip,
-html.dark .pr-field-band,
 html.dark .source-selector {
   background: var(--gitpulse-surface-muted);
 }
 
-html.dark .preview-panel {
-  background: var(--gitpulse-surface);
+html.dark .group-creator-tile {
+  background: color-mix(in srgb, var(--gitpulse-surface-muted) 65%, transparent);
+}
+
+html.dark .group-creator-tile:focus-within {
+  background: var(--gitpulse-surface-raised);
+}
+
+html.dark .editor-drawer {
+  background: var(--gitpulse-shell-bg);
+}
+
+html.dark .drawer-header,
+html.dark .drawer-footer {
+  background: color-mix(in srgb, var(--gitpulse-surface-muted) 80%, transparent);
+}
+
+html.dark .drawer-preview {
+  background: color-mix(in srgb, var(--gitpulse-surface-muted) 55%, transparent);
 }
 
 html.dark .tokenized-query-box {
   background: color-mix(in srgb, var(--gitpulse-surface-muted) 82%, transparent);
-}
-
-html.dark .tqb-header {
-  background: var(--gitpulse-accent-soft);
 }
 
 html.dark .advanced-section {
@@ -1081,68 +1358,18 @@ html.dark .advanced-pr-band {
   background: var(--gitpulse-success-soft);
 }
 
-html.dark .builtin-row,
-html.dark .tree-group,
-html.dark .inline-child-creator,
-html.dark .tree-tab-row,
-html.dark .label-combobox,
-html.dark .label-suggestions,
-html.dark .chip-button,
-html.dark .group-choice,
-html.dark .segmented-button,
-html.dark .source-option {
-  background: var(--gitpulse-surface);
-}
-
-html.dark .chip-button.is-active,
-html.dark .group-choice.is-active,
-html.dark .segmented-button.is-active,
-html.dark .source-option.is-active {
-  background: var(--gitpulse-accent-soft);
-  border-color: color-mix(in srgb, var(--gitpulse-accent) 30%, transparent);
-  color: var(--gitpulse-accent);
-}
-
-html.dark .source-option.is-active small {
-  color: var(--gitpulse-text-muted);
-}
-
-html.dark .tree-tab-main small,
-html.dark .panel-caption,
-html.dark .query-preview,
-html.dark .chip-label,
-html.dark .group-creator-copy,
-html.dark .tab-subtitle-button {
+html.dark .tab-subtitle-button,
+html.dark .tree-tab-main small {
   color: var(--gitpulse-text-subtle);
 }
 
-html.dark .group-insight-card span {
-  color: var(--gitpulse-text-muted);
+html.dark .section-icon.is-query {
+  background: var(--gitpulse-purple-soft);
+  color: var(--gitpulse-purple);
 }
 
-html.dark .empty-drop-zone,
-html.dark .empty-state {
+html.dark .library-empty,
+html.dark .empty-drop-zone {
   color: var(--gitpulse-text-subtle);
-}
-
-html.dark .advanced-toggle__icon {
-  color: var(--gitpulse-text-muted);
-}
-
-html.dark .group-view-badge {
-  background: var(--gitpulse-accent-soft);
-  color: var(--gitpulse-accent);
-}
-
-.editor-deselect-btn {
-  margin-left: 0.5rem;
-  padding: 0.15rem 0.5rem;
-  font-size: 0.8rem;
-  height: auto;
-  color: var(--gitpulse-accent);
-}
-
-.editor-deselect-btn:hover {
-  background: var(--gitpulse-accent-soft);
 }
 </style>
