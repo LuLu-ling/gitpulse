@@ -122,6 +122,18 @@ const archivedChipOptionByValue: Record<CustomTabArchived, string> = {
 
 const createEmptyDashboardRouteFilters = (): DashboardRouteFilters => ({ labels: [] });
 
+export const hasNotificationPageLocalPredicates = (
+  localFilters: NotificationFilterAdapter['local']
+) => {
+  return Boolean(
+    localFilters.readState === 'read' ||
+    localFilters.repo ||
+    localFilters.reason ||
+    localFilters.subjectType ||
+    localFilters.subjectState
+  );
+};
+
 const getStringValue = (query: Record<string, unknown>, key: DashboardFilterQueryKey) => {
   return getQueryParamValue(query[key])?.trim() || undefined;
 };
@@ -239,8 +251,6 @@ export const createDashboardEffectiveFilters = (
   }
 
   effective.repo = filters.repo;
-  effective.author = filters.author;
-  effective.labels = filters.labels;
 
   if (source === 'notifications') {
     if (filters.state === 'all' || filters.state === 'unread' || filters.state === 'read') {
@@ -251,6 +261,9 @@ export const createDashboardEffectiveFilters = (
     effective.subjectState = filters.subjectState;
     return effective;
   }
+
+  effective.author = filters.author;
+  effective.labels = filters.labels;
 
   if (filters.state === 'all' || filters.state === 'open' || filters.state === 'closed') {
     effective.state = filters.state;
@@ -385,30 +398,22 @@ export const buildNotificationFilterAdapter = (
 ): NotificationFilterAdapter => {
   const readState =
     filters.state === 'read' || filters.state === 'unread' ? filters.state : undefined;
-  const usesPageLocalPredicates = Boolean(
-    readState === 'read' ||
-    filters.repo ||
-    filters.author ||
-    filters.labels.length > 0 ||
-    filters.reason ||
-    filters.subjectType ||
-    filters.subjectState
-  );
+  const localFilters: NotificationFilterAdapter['local'] = {
+    readState,
+    repo: filters.repo,
+    author: undefined,
+    labels: [],
+    reason: filters.reason,
+    subjectType: filters.subjectType,
+    subjectState: filters.subjectState,
+  };
 
   return {
     apiParams: {
       all: filters.state === 'unread' ? undefined : true,
     },
-    local: {
-      readState,
-      repo: filters.repo,
-      author: filters.author,
-      labels: filters.labels,
-      reason: filters.reason,
-      subjectType: filters.subjectType,
-      subjectState: filters.subjectState,
-    },
-    usesPageLocalPredicates,
+    local: localFilters,
+    usesPageLocalPredicates: hasNotificationPageLocalPredicates(localFilters),
   };
 };
 

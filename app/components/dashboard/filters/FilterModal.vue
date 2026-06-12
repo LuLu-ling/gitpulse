@@ -74,14 +74,7 @@ const stateOptions = computed<SegmentedOption[]>(() => {
   return [];
 });
 
-const subjectStateOptions = computed<SegmentedOption[]>(() => [
-  { value: '', label: t('dashboard.filters.options.any') },
-  { value: 'open', label: t('dashboard.filters.options.open') },
-  { value: 'closed', label: t('dashboard.filters.options.closed') },
-]);
-
 const selectedState = computed(() => localFilters.value.state ?? '');
-const selectedSubjectState = computed(() => localFilters.value.subjectState ?? '');
 
 const handleKeydown = (event: KeyboardEvent) => {
   if (event.key === 'Escape') {
@@ -176,18 +169,6 @@ watch(
             />
           </section>
 
-          <section v-if="currentTab === 'notifications'" class="filter-modal__section">
-            <h3 class="filter-modal__section-title">
-              {{ t('dashboard.filters.subjectState') }}
-            </h3>
-            <FilterSegmentedControl
-              :options="subjectStateOptions"
-              :model-value="selectedSubjectState"
-              :aria-label="t('dashboard.filters.subjectState')"
-              @update:model-value="updateLocalFilter('subjectState', $event)"
-            />
-          </section>
-
           <section v-if="currentTab !== 'repos'" class="filter-modal__section">
             <h3 class="filter-modal__section-title">
               {{ t('dashboard.filters.repo') }}
@@ -200,7 +181,10 @@ watch(
             />
           </section>
 
-          <section v-if="currentTab !== 'repos'" class="filter-modal__section">
+          <section
+            v-if="currentTab !== 'repos' && currentTab !== 'notifications'"
+            class="filter-modal__section"
+          >
             <h3 class="filter-modal__section-title">
               {{ t('dashboard.filters.author') }}
             </h3>
@@ -213,7 +197,7 @@ watch(
           </section>
 
           <details
-            v-if="currentTab !== 'repos'"
+            v-if="currentTab !== 'repos' && currentTab !== 'notifications'"
             class="filter-modal__collapsible"
             :open="advancedOpen || undefined"
             @toggle="advancedOpen = ($event.target as HTMLDetailsElement).open"
@@ -246,138 +230,106 @@ watch(
                 />
               </label>
 
-              <template v-if="currentTab === 'notifications'">
-                <label class="filter-modal__field">
-                  <span class="filter-modal__field-label">{{ t('dashboard.filters.reason') }}</span>
-                  <input
-                    class="filter-modal__input"
-                    type="text"
-                    :value="localFilters.reason ?? ''"
-                    placeholder="mention"
-                    @change="updateLocalFilter('reason', ($event.target as HTMLInputElement).value)"
-                  />
-                </label>
+              <label v-if="currentTab === 'pulls'" class="filter-modal__field">
+                <span class="filter-modal__field-label">{{ t('dashboard.filters.review') }}</span>
+                <FilterDropdown
+                  :model-value="localFilters.review ?? ''"
+                  :options="[
+                    { value: '', label: t('dashboard.filters.options.any') },
+                    {
+                      value: 'none',
+                      label: t('dashboard.filters.options.none'),
+                    },
+                    {
+                      value: 'required',
+                      label: t('dashboard.filters.options.required'),
+                    },
+                    {
+                      value: 'approved',
+                      label: t('dashboard.filters.options.approved'),
+                    },
+                    {
+                      value: 'changes_requested',
+                      label: t('dashboard.filters.options.changes_requested'),
+                    },
+                  ]"
+                  :placeholder="t('dashboard.filters.options.any')"
+                  @update:model-value="updateLocalFilter('review', $event)"
+                />
+              </label>
 
-                <label class="filter-modal__field">
-                  <span class="filter-modal__field-label">{{
-                    t('dashboard.filters.subjectType')
-                  }}</span>
-                  <input
-                    class="filter-modal__input"
-                    type="text"
-                    :value="localFilters.subjectType ?? ''"
-                    placeholder="Issue"
-                    @change="
-                      updateLocalFilter('subjectType', ($event.target as HTMLInputElement).value)
-                    "
-                  />
-                </label>
-              </template>
+              <label class="filter-modal__field">
+                <span class="filter-modal__field-label">{{ t('dashboard.filters.archived') }}</span>
+                <FilterDropdown
+                  :model-value="localFilters.archived ?? ''"
+                  :options="[
+                    {
+                      value: '',
+                      label: t('dashboard.filters.options.excludeArchived'),
+                    },
+                    {
+                      value: 'include',
+                      label: t('dashboard.filters.options.includeArchived'),
+                    },
+                    {
+                      value: 'only',
+                      label: t('dashboard.filters.options.onlyArchived'),
+                    },
+                  ]"
+                  :placeholder="t('dashboard.filters.options.excludeArchived')"
+                  @update:model-value="updateLocalFilter('archived', $event)"
+                />
+              </label>
 
-              <template v-else>
-                <label v-if="currentTab === 'pulls'" class="filter-modal__field">
-                  <span class="filter-modal__field-label">{{ t('dashboard.filters.review') }}</span>
-                  <FilterDropdown
-                    :model-value="localFilters.review ?? ''"
-                    :options="[
-                      { value: '', label: t('dashboard.filters.options.any') },
-                      {
-                        value: 'none',
-                        label: t('dashboard.filters.options.none'),
-                      },
-                      {
-                        value: 'required',
-                        label: t('dashboard.filters.options.required'),
-                      },
-                      {
-                        value: 'approved',
-                        label: t('dashboard.filters.options.approved'),
-                      },
-                      {
-                        value: 'changes_requested',
-                        label: t('dashboard.filters.options.changes_requested'),
-                      },
-                    ]"
-                    :placeholder="t('dashboard.filters.options.any')"
-                    @update:model-value="updateLocalFilter('review', $event)"
-                  />
-                </label>
+              <label class="filter-modal__field">
+                <span class="filter-modal__field-label">{{ t('dashboard.filters.sort') }}</span>
+                <FilterDropdown
+                  :model-value="localFilters.sort ?? ''"
+                  :options="[
+                    {
+                      value: '',
+                      label: t('dashboard.filters.options.updated'),
+                    },
+                    {
+                      value: 'created',
+                      label: t('dashboard.filters.options.created'),
+                    },
+                    {
+                      value: 'comments',
+                      label: t('dashboard.filters.options.comments'),
+                    },
+                    {
+                      value: 'reactions',
+                      label: t('dashboard.filters.options.reactions'),
+                    },
+                    {
+                      value: 'interactions',
+                      label: t('dashboard.filters.options.interactions'),
+                    },
+                  ]"
+                  :placeholder="t('dashboard.filters.options.updated')"
+                  @update:model-value="updateLocalFilter('sort', $event)"
+                />
+              </label>
 
-                <label class="filter-modal__field">
-                  <span class="filter-modal__field-label">{{
-                    t('dashboard.filters.archived')
-                  }}</span>
-                  <FilterDropdown
-                    :model-value="localFilters.archived ?? ''"
-                    :options="[
-                      {
-                        value: '',
-                        label: t('dashboard.filters.options.excludeArchived'),
-                      },
-                      {
-                        value: 'include',
-                        label: t('dashboard.filters.options.includeArchived'),
-                      },
-                      {
-                        value: 'only',
-                        label: t('dashboard.filters.options.onlyArchived'),
-                      },
-                    ]"
-                    :placeholder="t('dashboard.filters.options.excludeArchived')"
-                    @update:model-value="updateLocalFilter('archived', $event)"
-                  />
-                </label>
-
-                <label class="filter-modal__field">
-                  <span class="filter-modal__field-label">{{ t('dashboard.filters.sort') }}</span>
-                  <FilterDropdown
-                    :model-value="localFilters.sort ?? ''"
-                    :options="[
-                      {
-                        value: '',
-                        label: t('dashboard.filters.options.updated'),
-                      },
-                      {
-                        value: 'created',
-                        label: t('dashboard.filters.options.created'),
-                      },
-                      {
-                        value: 'comments',
-                        label: t('dashboard.filters.options.comments'),
-                      },
-                      {
-                        value: 'reactions',
-                        label: t('dashboard.filters.options.reactions'),
-                      },
-                      {
-                        value: 'interactions',
-                        label: t('dashboard.filters.options.interactions'),
-                      },
-                    ]"
-                    :placeholder="t('dashboard.filters.options.updated')"
-                    @update:model-value="updateLocalFilter('sort', $event)"
-                  />
-                </label>
-
-                <label class="filter-modal__field">
-                  <span class="filter-modal__field-label">{{ t('dashboard.filters.order') }}</span>
-                  <FilterDropdown
-                    :model-value="localFilters.order ?? ''"
-                    :options="[
-                      {
-                        value: '',
-                        label: t('dashboard.filters.options.desc'),
-                      },
-                      {
-                        value: 'asc',
-                        label: t('dashboard.filters.options.asc'),
-                      },
-                    ]"
-                    :placeholder="t('dashboard.filters.options.desc')"
-                    @update:model-value="updateLocalFilter('order', $event)"
-                  />
-                </label>
-              </template>
+              <label class="filter-modal__field">
+                <span class="filter-modal__field-label">{{ t('dashboard.filters.order') }}</span>
+                <FilterDropdown
+                  :model-value="localFilters.order ?? ''"
+                  :options="[
+                    {
+                      value: '',
+                      label: t('dashboard.filters.options.desc'),
+                    },
+                    {
+                      value: 'asc',
+                      label: t('dashboard.filters.options.asc'),
+                    },
+                  ]"
+                  :placeholder="t('dashboard.filters.options.desc')"
+                  @update:model-value="updateLocalFilter('order', $event)"
+                />
+              </label>
             </div>
           </details>
         </div>
@@ -552,30 +504,6 @@ watch(
   font-size: 0.75rem;
   font-weight: 600;
   color: var(--gitpulse-text-muted);
-}
-
-.filter-modal__input {
-  width: 100%;
-  height: 40px;
-  padding: 0 0.75rem;
-  border: 1px solid var(--gitpulse-border);
-  border-radius: var(--gitpulse-radius-md);
-  background: var(--gitpulse-input-bg);
-  color: var(--gitpulse-text-strong);
-  font-size: 0.875rem;
-  transition:
-    border-color 0.12s ease,
-    box-shadow 0.12s ease;
-
-  &:focus {
-    outline: none;
-    border-color: var(--gitpulse-accent);
-    box-shadow: 0 0 0 2px var(--gitpulse-accent-soft);
-  }
-
-  &::placeholder {
-    color: var(--gitpulse-text-subtle);
-  }
 }
 
 .filter-modal__footer {

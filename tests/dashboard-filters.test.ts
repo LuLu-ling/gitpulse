@@ -12,6 +12,7 @@ import {
   buildNotificationFilterAdapter,
   clearDashboardRouteFilters,
   clearDashboardSourceFilters,
+  hasNotificationPageLocalPredicates,
   isIssuePrQueryFiltered,
   parseDashboardRouteFilters,
   serializeDashboardRouteFilters,
@@ -80,7 +81,7 @@ describe('dashboard route filters', () => {
         state: 'read',
         repo: 'owner/repo',
         author: 'octocat',
-        labels: [],
+        labels: ['bug'],
         reason: 'mention',
         subjectState: 'open',
       })
@@ -89,7 +90,7 @@ describe('dashboard route filters', () => {
       local: {
         readState: 'read',
         repo: 'owner/repo',
-        author: 'octocat',
+        author: undefined,
         labels: [],
         reason: 'mention',
         subjectType: undefined,
@@ -104,6 +105,39 @@ describe('dashboard route filters', () => {
     expect(
       buildNotificationFilterAdapter({ state: 'unread', labels: [] }).usesPageLocalPredicates
     ).toBe(false);
+    const readAdapter = buildNotificationFilterAdapter({ state: 'read', labels: [] });
+    expect(readAdapter.apiParams).toEqual({ all: true });
+    expect(readAdapter.usesPageLocalPredicates).toBe(true);
+    expect(hasNotificationPageLocalPredicates(readAdapter.local)).toBe(true);
+  });
+
+  test('omits author and labels from active notification filters', () => {
+    const sourceState = createDashboardFilterSourceState('notifications', {
+      state: 'read',
+      repo: 'owner/repo',
+      author: 'octocat',
+      labels: ['bug'],
+      reason: 'mention',
+    });
+
+    expect(sourceState.filters).toEqual({
+      labels: [],
+      repo: 'owner/repo',
+      state: 'read',
+      reason: 'mention',
+      subjectType: undefined,
+      subjectState: undefined,
+    });
+    expect(sourceState.chips.map((chip) => chip.key)).toEqual(['state', 'repo', 'reason']);
+    expect(sourceState.notificationAdapter.local).toEqual({
+      readState: 'read',
+      repo: 'owner/repo',
+      author: undefined,
+      labels: [],
+      reason: 'mention',
+      subjectType: undefined,
+      subjectState: undefined,
+    });
   });
 
   test('drops source-inapplicable filters from active issue filters and chips', () => {

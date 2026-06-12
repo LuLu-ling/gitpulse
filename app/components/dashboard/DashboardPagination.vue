@@ -59,9 +59,15 @@ interface PaginationPageItem {
   page: number;
 }
 
-const props = defineProps<{
-  pagination: PaginationMeta;
-}>();
+const props = withDefaults(
+  defineProps<{
+    pagination: PaginationMeta;
+    currentPageOnly?: boolean;
+  }>(),
+  {
+    currentPageOnly: false,
+  }
+);
 
 const emit = defineEmits<{
   (e: 'change', page: number): void;
@@ -107,7 +113,9 @@ const pageItems = computed(() => {
   if (!totalPages) {
     return [
       { key: `page-${page}`, type: 'page' as const, page },
-      ...(hasNext ? [{ key: `page-${page + 1}`, type: 'page' as const, page: page + 1 }] : []),
+      ...(hasNext && !props.currentPageOnly
+        ? [{ key: `page-${page + 1}`, type: 'page' as const, page: page + 1 }]
+        : []),
     ];
   }
 

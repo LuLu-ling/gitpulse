@@ -1,31 +1,5 @@
 <script setup lang="ts">
-import {
-  SlidersHorizontalIcon,
-  ChevronRightIcon,
-  CircleDotIcon,
-  CircleMinusIcon,
-  GitMergeIcon,
-  LayoutGridIcon,
-  GitPullRequestIcon,
-  MessageSquareIcon,
-  TagIcon,
-  AlertTriangleIcon,
-  CheckCircleIcon,
-  InboxIcon,
-  CodeIcon,
-  UserPlusIcon,
-  PenLineIcon,
-  ActivityIcon,
-  MailIcon,
-  BookmarkIcon,
-  AtSignIcon,
-  EyeIcon,
-  ShieldCheckIcon,
-  ShieldAlertIcon,
-  GitCommitIcon,
-  Users2Icon,
-  BellIcon,
-} from 'lucide-vue-next';
+import { SlidersHorizontalIcon, ChevronRightIcon } from 'lucide-vue-next';
 import { ref } from 'vue';
 
 import FilterAutocomplete from '~/components/ui/FilterAutocomplete.vue';
@@ -69,16 +43,10 @@ const activeFilterCount = computed(() => {
   let count = props.filters.labels.length;
   if (props.filters.repo) count++;
   if (props.filters.author) count++;
-  if (props.currentTab === 'notifications') {
-    if (props.filters.reason) count++;
-    if (props.filters.subjectType) count++;
-    if (props.filters.subjectState) count++;
-  } else {
-    if (props.currentTab === 'pulls' && props.filters.review) count++;
-    if (props.filters.archived) count++;
-    if (props.filters.sort) count++;
-    if (props.filters.order) count++;
-  }
+  if (props.currentTab === 'pulls' && props.filters.review) count++;
+  if (props.filters.archived) count++;
+  if (props.filters.sort) count++;
+  if (props.filters.order) count++;
   return count;
 });
 
@@ -109,90 +77,8 @@ const orderOptions: FilterOption[] = [
   { value: 'asc', label: t('dashboard.filters.options.asc') },
 ];
 
-const subjectTypeOptions: FilterOption[] = [
-  { value: '', label: t('dashboard.filters.options.all'), icon: InboxIcon },
-  { value: 'Issue', label: t('dashboard.filters.subjectTypes.issue'), icon: CircleDotIcon },
-  {
-    value: 'PullRequest',
-    label: t('dashboard.filters.subjectTypes.pullRequest'),
-    icon: GitPullRequestIcon,
-  },
-  {
-    value: 'Discussion',
-    label: t('dashboard.filters.subjectTypes.discussion'),
-    icon: MessageSquareIcon,
-  },
-  { value: 'Release', label: t('dashboard.filters.subjectTypes.release'), icon: TagIcon },
-  { value: 'Commit', label: t('dashboard.filters.subjectTypes.commit'), icon: CodeIcon },
-  {
-    value: 'CheckSuite',
-    label: t('dashboard.filters.subjectTypes.checkSuite'),
-    icon: CheckCircleIcon,
-  },
-  {
-    value: 'RepositoryVulnerabilityAlert',
-    label: t('dashboard.filters.subjectTypes.securityAlert'),
-    icon: AlertTriangleIcon,
-  },
-];
-
-const reasonOptions: FilterOption[] = [
-  { value: '', label: t('dashboard.filters.options.all'), icon: LayoutGridIcon },
-  { value: 'assign', label: t('dashboard.filters.reasons.assign'), icon: UserPlusIcon },
-  { value: 'author', label: t('dashboard.filters.reasons.author'), icon: PenLineIcon },
-  { value: 'comment', label: t('dashboard.filters.reasons.comment'), icon: MessageSquareIcon },
-  { value: 'mention', label: t('dashboard.filters.reasons.mention'), icon: AtSignIcon },
-  {
-    value: 'review_requested',
-    label: t('dashboard.filters.reasons.review_requested'),
-    icon: EyeIcon,
-  },
-  {
-    value: 'state_change',
-    label: t('dashboard.filters.reasons.state_change'),
-    icon: GitCommitIcon,
-  },
-  { value: 'subscribed', label: t('dashboard.filters.reasons.subscribed'), icon: BellIcon },
-  { value: 'team_mention', label: t('dashboard.filters.reasons.team_mention'), icon: Users2Icon },
-  { value: 'ci_activity', label: t('dashboard.filters.reasons.ci_activity'), icon: ActivityIcon },
-  {
-    value: 'security_alert',
-    label: t('dashboard.filters.reasons.security_alert'),
-    icon: ShieldAlertIcon,
-  },
-];
-
-const showSubjectStateFilter = computed(() => {
-  return props.filters.subjectType === 'Issue' || props.filters.subjectType === 'PullRequest';
-});
-
-const subjectStateOptionsForType = computed<FilterOption[]>(() => {
-  const base: FilterOption[] = [
-    { value: '', label: t('dashboard.filters.options.any'), icon: LayoutGridIcon },
-    { value: 'open', label: t('dashboard.filters.options.open'), icon: CircleDotIcon },
-    { value: 'closed', label: t('dashboard.filters.options.closed'), icon: CircleMinusIcon },
-  ];
-
-  if (props.filters.subjectType === 'PullRequest') {
-    base.push({
-      value: 'merged',
-      label: t('dashboard.filters.options.merged'),
-      icon: GitMergeIcon,
-    });
-  }
-
-  return base;
-});
-
-const updateSelect = (
-  key: 'review' | 'archived' | 'sort' | 'order' | 'subjectType' | 'reason' | 'subjectState',
-  value: string
-) => {
-  const patch: Partial<DashboardRouteFilters> = { [key]: value || undefined };
-  if (key === 'subjectType') {
-    patch.subjectState = undefined;
-  }
-  emit('update', patch);
+const updateSelect = (key: 'review' | 'archived' | 'sort' | 'order', value: string) => {
+  emit('update', { [key]: value || undefined });
 };
 
 const updateLabels = (labels: string[]) => {
@@ -213,7 +99,7 @@ const toggleCollapsed = () => {
 </script>
 
 <template>
-  <div v-if="currentTab !== 'repos'" class="sidebar-card">
+  <div v-if="currentTab !== 'repos' && currentTab !== 'notifications'" class="sidebar-card">
     <button
       class="sidebar-card__header sidebar-card__header--collapsible"
       :aria-expanded="!isCollapsed"
@@ -240,143 +126,77 @@ const toggleCollapsed = () => {
     >
       <div class="sidebar-card__content">
         <div class="dashboard-advanced-filters__body">
-          <template v-if="currentTab === 'notifications'">
-            <label class="dashboard-advanced-filters__control">
-              <span>{{ t('dashboard.filters.repo') }}</span>
-              <FilterAutocomplete
-                :suggestions="repoSuggestionItems"
-                :model-value="filters.repo ?? ''"
-                :placeholder="t('dashboard.filters.repoPlaceholder')"
-                @update:model-value="handleRepoChange"
-              />
-            </label>
+          <label class="dashboard-advanced-filters__control">
+            <span>{{ t('dashboard.filters.repo') }}</span>
+            <FilterAutocomplete
+              :suggestions="repoSuggestionItems"
+              :model-value="filters.repo ?? ''"
+              :placeholder="t('dashboard.filters.repoPlaceholder')"
+              @update:model-value="handleRepoChange"
+            />
+          </label>
 
-            <label class="dashboard-advanced-filters__control">
-              <span>{{ t('dashboard.filters.author') }}</span>
-              <FilterAutocomplete
-                :suggestions="authorSuggestionItems"
-                :model-value="filters.author ?? ''"
-                :placeholder="t('dashboard.filters.authorPlaceholder')"
-                @update:model-value="handleAuthorChange"
-              />
-            </label>
+          <label class="dashboard-advanced-filters__control">
+            <span>{{ t('dashboard.filters.author') }}</span>
+            <FilterAutocomplete
+              :suggestions="authorSuggestionItems"
+              :model-value="filters.author ?? ''"
+              :placeholder="t('dashboard.filters.authorPlaceholder')"
+              @update:model-value="handleAuthorChange"
+            />
+          </label>
 
-            <label class="dashboard-advanced-filters__control">
-              <span>{{ t('dashboard.filters.labels') }}</span>
-              <FilterMultiSelect
-                :suggestions="labelSuggestionItems"
-                :model-value="filters.labels"
-                :placeholder="t('dashboard.filters.labelsPlaceholder')"
-                :empty-message="t('dashboard.filters.noResults')"
-                :aria-label="t('dashboard.filters.labels')"
-                @update:model-value="updateLabels"
-              />
-            </label>
+          <label class="dashboard-advanced-filters__control">
+            <span>{{ t('dashboard.filters.labels') }}</span>
+            <FilterMultiSelect
+              :suggestions="labelSuggestionItems"
+              :model-value="filters.labels"
+              :placeholder="t('dashboard.filters.labelsPlaceholder')"
+              :empty-message="t('dashboard.filters.noResults')"
+              :aria-label="t('dashboard.filters.labels')"
+              @update:model-value="updateLabels"
+            />
+          </label>
 
-            <label class="dashboard-advanced-filters__control">
-              <span>{{ t('dashboard.filters.subjectType') }}</span>
-              <FilterDropdown
-                :options="subjectTypeOptions"
-                :model-value="filters.subjectType ?? ''"
-                :aria-label="t('dashboard.filters.subjectType')"
-                @update:model-value="updateSelect('subjectType', $event)"
-              />
-            </label>
+          <label v-if="currentTab === 'pulls'" class="dashboard-advanced-filters__control">
+            <span>{{ t('dashboard.filters.review') }}</span>
+            <FilterDropdown
+              :options="reviewOptions"
+              :model-value="filters.review ?? ''"
+              :aria-label="t('dashboard.filters.review')"
+              @update:model-value="updateSelect('review', $event)"
+            />
+          </label>
 
-            <label class="dashboard-advanced-filters__control">
-              <span>{{ t('dashboard.filters.reason') }}</span>
-              <FilterDropdown
-                :options="reasonOptions"
-                :model-value="filters.reason ?? ''"
-                :aria-label="t('dashboard.filters.reason')"
-                @update:model-value="updateSelect('reason', $event)"
-              />
-            </label>
+          <label class="dashboard-advanced-filters__control">
+            <span>{{ t('dashboard.filters.archived') }}</span>
+            <FilterDropdown
+              :options="archivedOptions"
+              :model-value="filters.archived ?? ''"
+              :aria-label="t('dashboard.filters.archived')"
+              @update:model-value="updateSelect('archived', $event)"
+            />
+          </label>
 
-            <label v-if="showSubjectStateFilter" class="dashboard-advanced-filters__control">
-              <span>{{ t('dashboard.filters.subjectState') }}</span>
-              <FilterDropdown
-                :options="subjectStateOptionsForType"
-                :model-value="filters.subjectState ?? ''"
-                :aria-label="t('dashboard.filters.subjectState')"
-                @update:model-value="updateSelect('subjectState', $event)"
-              />
-            </label>
-          </template>
+          <label class="dashboard-advanced-filters__control">
+            <span>{{ t('dashboard.filters.sort') }}</span>
+            <FilterDropdown
+              :options="sortOptions"
+              :model-value="filters.sort ?? ''"
+              :aria-label="t('dashboard.filters.sort')"
+              @update:model-value="updateSelect('sort', $event)"
+            />
+          </label>
 
-          <template v-else>
-            <label class="dashboard-advanced-filters__control">
-              <span>{{ t('dashboard.filters.repo') }}</span>
-              <FilterAutocomplete
-                :suggestions="repoSuggestionItems"
-                :model-value="filters.repo ?? ''"
-                :placeholder="t('dashboard.filters.repoPlaceholder')"
-                @update:model-value="handleRepoChange"
-              />
-            </label>
-
-            <label class="dashboard-advanced-filters__control">
-              <span>{{ t('dashboard.filters.author') }}</span>
-              <FilterAutocomplete
-                :suggestions="authorSuggestionItems"
-                :model-value="filters.author ?? ''"
-                :placeholder="t('dashboard.filters.authorPlaceholder')"
-                @update:model-value="handleAuthorChange"
-              />
-            </label>
-
-            <label class="dashboard-advanced-filters__control">
-              <span>{{ t('dashboard.filters.labels') }}</span>
-              <FilterMultiSelect
-                :suggestions="labelSuggestionItems"
-                :model-value="filters.labels"
-                :placeholder="t('dashboard.filters.labelsPlaceholder')"
-                :empty-message="t('dashboard.filters.noResults')"
-                :aria-label="t('dashboard.filters.labels')"
-                @update:model-value="updateLabels"
-              />
-            </label>
-
-            <label v-if="currentTab === 'pulls'" class="dashboard-advanced-filters__control">
-              <span>{{ t('dashboard.filters.review') }}</span>
-              <FilterDropdown
-                :options="reviewOptions"
-                :model-value="filters.review ?? ''"
-                :aria-label="t('dashboard.filters.review')"
-                @update:model-value="updateSelect('review', $event)"
-              />
-            </label>
-
-            <label class="dashboard-advanced-filters__control">
-              <span>{{ t('dashboard.filters.archived') }}</span>
-              <FilterDropdown
-                :options="archivedOptions"
-                :model-value="filters.archived ?? ''"
-                :aria-label="t('dashboard.filters.archived')"
-                @update:model-value="updateSelect('archived', $event)"
-              />
-            </label>
-
-            <label class="dashboard-advanced-filters__control">
-              <span>{{ t('dashboard.filters.sort') }}</span>
-              <FilterDropdown
-                :options="sortOptions"
-                :model-value="filters.sort ?? ''"
-                :aria-label="t('dashboard.filters.sort')"
-                @update:model-value="updateSelect('sort', $event)"
-              />
-            </label>
-
-            <label class="dashboard-advanced-filters__control">
-              <span>{{ t('dashboard.filters.order') }}</span>
-              <FilterDropdown
-                :options="orderOptions"
-                :model-value="filters.order ?? ''"
-                :aria-label="t('dashboard.filters.order')"
-                @update:model-value="updateSelect('order', $event)"
-              />
-            </label>
-          </template>
+          <label class="dashboard-advanced-filters__control">
+            <span>{{ t('dashboard.filters.order') }}</span>
+            <FilterDropdown
+              :options="orderOptions"
+              :model-value="filters.order ?? ''"
+              :aria-label="t('dashboard.filters.order')"
+              @update:model-value="updateSelect('order', $event)"
+            />
+          </label>
         </div>
       </div>
     </div>

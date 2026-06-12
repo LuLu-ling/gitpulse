@@ -8,6 +8,11 @@ import type {
   NotificationSubjectStateTarget,
 } from '#shared/types/notifications';
 import { appendCustomTabQueryParams } from '#shared/utils/github-search-query';
+import {
+  applyNotificationLocalFilters,
+  hasNotificationPageLocalPredicates,
+  type NotificationFilterAdapter,
+} from '~/composables/useDashboardFilters';
 import type { DashboardTab } from '~/composables/useDashboardTabs';
 import parseGitHubNotificationSubjectTarget, {
   toNotificationSubjectStateTarget,
@@ -65,6 +70,7 @@ interface DashboardFetchOptions {
   force?: boolean;
   query?: CustomTabQuery;
   notificationParams?: Record<string, boolean | string | undefined>;
+  notificationFilters?: NotificationFilterAdapter['local'];
 }
 
 interface DashboardPageCache {
@@ -75,7 +81,24 @@ interface DashboardPageCache {
   customTabs: Record<string, Record<number, PaginatedDashboardResponse<DashboardEntity>>>;
 }
 
+interface NotificationRawPageCache {
+  items: DashboardNotification[];
+  hasNext: boolean;
+}
+
+interface NotificationStreamCache {
+  rawPages: Record<number, NotificationRawPageCache>;
+  filteredItems: DashboardNotification[];
+  nextRawPage: number;
+  hasMoreRawPages: boolean;
+  lastMatchesPerRawPage: number | null;
+}
+
 const defaultPerPage = 20;
+const notificationApiPerPage = 50;
+const notificationInitialBatchSize = 3;
+const notificationMaxBatchSize = 5;
+const notificationSubjectStateChunkSize = 50;
 const maxCachedPagesPerCollection = 5;
 const maxCachedCustomTabQueries = 25;
 
@@ -134,6 +157,70 @@ const buildParamQueryKey = (params: Record<string, boolean | string | undefined>
   }
 
   return searchParams.toString() || 'default';
+};
+
+const createDefaultNotificationLocalFilters = (): NotificationFilterAdapter['local'] => ({
+  labels: [],
+});
+
+const buildNotificationQueryKey = (
+  params: Record<string, boolean | string | undefined>,
+  localFilters: NotificationFilterAdapter['local']
+) => {
+  return buildParamQueryKey({
+    ...params,
+    read_state: localFilters.readState,
+    repo: localFilters.repo,
+    reason: localFilters.reason,
+    subject_type: localFilters.subjectType,
+    subject_state: localFilters.subjectState,
+  });
+};
+
+const createNotificationStreamCache = (): NotificationStreamCache => ({
+  rawPages: {},
+  filteredItems: [],
+  nextRawPage: 1,
+  hasMoreRawPages: true,
+  lastMatchesPerRawPage: null,
+});
+
+const getNotificationBatchSize = (cache: NotificationStreamCache, requiredItemCount: number) => {
+  if (cache.lastMatchesPerRawPage === null) return notificationInitialBatchSize;
+  if (cache.lastMatchesPerRawPage <= 0) return notificationMaxBatchSize;
+
+  return Math.min(
+    notificationMaxBatchSize,
+    Math.max(1, Math.ceil(requiredItemCount / cache.lastMatchesPerRawPage))
+  );
+};
+
+const buildNotificationDisplayPage = (
+  cache: NotificationStreamCache,
+  page: number
+): PaginatedDashboardResponse<DashboardNotification> => {
+  const start = (page - 1) * defaultPerPage;
+  const end = start + defaultPerPage;
+
+  return {
+    items: cache.filteredItems.slice(start, end),
+    pagination: {
+      page,
+      perPage: defaultPerPage,
+      hasPrev: page > 1,
+      hasNext: cache.filteredItems.length > end || cache.hasMoreRawPages,
+      totalCount: null,
+      totalPages: null,
+    },
+  };
+};
+
+const chunkItems = <T>(items: T[], chunkSize: number) => {
+  const chunks: T[][] = [];
+  for (let index = 0; index < items.length; index += chunkSize) {
+    chunks.push(items.slice(index, index + chunkSize));
+  }
+  return chunks;
 };
 
 const parseNotificationSubjectStateTarget = (
@@ -270,6 +357,7 @@ export function useGithubData() {
   const activeNotificationRequestId = ref(0);
   const activeNotificationStateRequestId = ref(0);
   const pageCache = ref(createPageCache());
+  const notificationStreamCache = ref<Record<string, NotificationStreamCache>>({});
   const pageCacheOrder = {
     notifications: [] as string[],
     notificationPages: {} as Record<string, number[]>,
@@ -314,7 +402,8 @@ export function useGithubData() {
     pageOrders: Record<string, number[]>,
     queryKey: string,
     page: number,
-    maxCachedQueries = maxCachedCustomTabQueries
+    maxCachedQueries = maxCachedCustomTabQueries,
+    onExpireQuery?: (queryKey: string) => void
   ) => {
     const existingQueryIndex = queryOrder.indexOf(queryKey);
     if (existingQueryIndex >= 0) {
@@ -335,8 +424,23 @@ export function useGithubData() {
       if (expiredQueryKey) {
         delete cache[expiredQueryKey];
         delete pageOrders[expiredQueryKey];
+        onExpireQuery?.(expiredQueryKey);
       }
     }
+  };
+
+  const touchNotificationCache = (queryKey: string, page: number) => {
+    touchQueryCache(
+      pageCache.value.notifications,
+      pageCacheOrder.notifications,
+      pageCacheOrder.notificationPages,
+      queryKey,
+      page,
+      maxCachedCustomTabQueries,
+      (expiredQueryKey) => {
+        delete notificationStreamCache.value[expiredQueryKey];
+      }
+    );
   };
 
   const touchCustomTabCache = (queryKey: string, page: number) => {
@@ -421,6 +525,97 @@ export function useGithubData() {
     }
   };
 
+  const enrichNotificationItems = async (items: DashboardNotification[]) => {
+    const pendingItems = withPendingNotificationSubjectStates(items);
+    const targets = collectUniqueNotificationSubjectTargets(pendingItems);
+    if (targets.length === 0) return pendingItems;
+
+    try {
+      const responses = await Promise.all(
+        chunkItems(targets, notificationSubjectStateChunkSize).map((chunk) =>
+          apiFetch<{ items: NotificationSubjectStateResult[] }>(
+            '/api/notifications/subject-states',
+            {
+              method: 'POST',
+              body: { targets: chunk },
+            }
+          )
+        )
+      );
+
+      return applyNotificationSubjectStates(
+        pendingItems,
+        responses.flatMap((response) => response.items)
+      );
+    } catch (err) {
+      console.error('Error enriching notification subject states:', err);
+      return markNotificationSubjectStateErrors(pendingItems);
+    }
+  };
+
+  const fetchNotificationRawPage = async (
+    page: number,
+    notificationParams: Record<string, boolean | string | undefined>
+  ): Promise<{ page: number; items: DashboardNotification[]; hasNext: boolean }> => {
+    const data = await apiFetch<PaginatedDashboardResponse<DashboardNotification>>(
+      buildPaginationUrl('/api/notifications', page, notificationApiPerPage, notificationParams)
+    );
+
+    return {
+      page: data.pagination.page,
+      items: await enrichNotificationItems(data.items),
+      hasNext: data.pagination.hasNext,
+    };
+  };
+
+  const rebuildNotificationFilteredItems = (
+    cache: NotificationStreamCache,
+    localFilters: NotificationFilterAdapter['local']
+  ) => {
+    const rawItems = Object.entries(cache.rawPages)
+      .sort(([left], [right]) => Number(left) - Number(right))
+      .flatMap(([, rawPage]) => rawPage.items);
+
+    cache.filteredItems = applyNotificationLocalFilters(rawItems, localFilters);
+  };
+
+  const fetchNotificationBatch = async (
+    cache: NotificationStreamCache,
+    notificationParams: Record<string, boolean | string | undefined>,
+    localFilters: NotificationFilterAdapter['local'],
+    targetPage: number
+  ) => {
+    const requiredItemCount = Math.max(
+      targetPage * defaultPerPage - cache.filteredItems.length,
+      defaultPerPage
+    );
+    const batchSize = getNotificationBatchSize(cache, requiredItemCount);
+    const pages = Array.from({ length: batchSize }, (_, index) => cache.nextRawPage + index);
+    const fetchedPages = (
+      await Promise.all(
+        pages.map((rawPage) => fetchNotificationRawPage(rawPage, notificationParams))
+      )
+    ).sort((left, right) => left.page - right.page);
+
+    let matchedItems = 0;
+    for (const rawPage of fetchedPages) {
+      cache.rawPages[rawPage.page] = {
+        items: rawPage.items,
+        hasNext: rawPage.hasNext,
+      };
+      matchedItems += applyNotificationLocalFilters(rawPage.items, localFilters).length;
+    }
+
+    const lastFetchedPage = fetchedPages[fetchedPages.length - 1];
+    if (lastFetchedPage) {
+      cache.nextRawPage = Math.max(cache.nextRawPage, lastFetchedPage.page + 1);
+      cache.hasMoreRawPages = fetchedPages.every((rawPage) => rawPage.hasNext);
+      cache.lastMatchesPerRawPage = matchedItems / fetchedPages.length;
+    }
+
+    rebuildNotificationFilteredItems(cache, localFilters);
+  };
+
   const applyIssuesData = (data: PaginatedDashboardResponse<DashboardEntity>) => {
     issues.value = data.items || [];
     stats.value.issues = data.total_count || 0;
@@ -439,26 +634,25 @@ export function useGithubData() {
     pagination.value.repos = data.pagination;
   };
 
-  const fetchNotifications = async (page = 1, options: DashboardFetchOptions = {}) => {
-    const notificationParams = options.notificationParams ?? { all: true };
+  const fetchLegacyNotifications = async (
+    page: number,
+    options: DashboardFetchOptions,
+    notificationParams: Record<string, boolean | string | undefined>,
+    notificationRequestId: number
+  ) => {
     const queryKey = buildParamQueryKey(notificationParams);
     const queryCache = pageCache.value.notifications[queryKey] ?? {};
     const cachedData = queryCache[page];
+
     if (cachedData && !options.force) {
-      touchQueryCache(
-        pageCache.value.notifications,
-        pageCacheOrder.notifications,
-        pageCacheOrder.notificationPages,
-        queryKey,
-        page
-      );
+      touchNotificationCache(queryKey, page);
       applyNotificationsData(cachedData);
       if (shouldEnrichNotificationSubjectStates(cachedData.items)) {
         void enrichNotificationSubjectStates(
           queryKey,
           page,
           cachedData.items,
-          activeNotificationRequestId.value
+          notificationRequestId
         );
       }
       error.value = null;
@@ -467,9 +661,7 @@ export function useGithubData() {
     }
 
     const requestId = activeRequestId.value + 1;
-    const notificationRequestId = activeNotificationRequestId.value + 1;
     activeRequestId.value = requestId;
-    activeNotificationRequestId.value = notificationRequestId;
     loading.value = true;
     error.value = null;
 
@@ -487,14 +679,9 @@ export function useGithubData() {
       if (!pageCache.value.notifications[queryKey]) {
         pageCache.value.notifications[queryKey] = {};
       }
+
       pageCache.value.notifications[queryKey][data.pagination.page] = pendingData;
-      touchQueryCache(
-        pageCache.value.notifications,
-        pageCacheOrder.notifications,
-        pageCacheOrder.notificationPages,
-        queryKey,
-        data.pagination.page
-      );
+      touchNotificationCache(queryKey, data.pagination.page);
       applyNotificationsData(pendingData);
       void enrichNotificationSubjectStates(
         queryKey,
@@ -502,6 +689,74 @@ export function useGithubData() {
         pendingData.items,
         notificationRequestId
       );
+    } catch (err) {
+      if (requestId !== activeRequestId.value) return;
+
+      error.value = err instanceof Error ? err.message : 'An error occurred';
+    } finally {
+      if (requestId === activeRequestId.value) {
+        loading.value = false;
+      }
+    }
+  };
+
+  const fetchNotifications = async (page = 1, options: DashboardFetchOptions = {}) => {
+    const notificationParams = options.notificationParams ?? { all: true };
+    const localFilters = options.notificationFilters ?? createDefaultNotificationLocalFilters();
+    activeRequestId.value += 1;
+    const notificationRequestId = activeNotificationRequestId.value + 1;
+    activeNotificationRequestId.value = notificationRequestId;
+
+    if (!hasNotificationPageLocalPredicates(localFilters)) {
+      await fetchLegacyNotifications(page, options, notificationParams, notificationRequestId);
+      return;
+    }
+
+    const queryKey = buildNotificationQueryKey(notificationParams, localFilters);
+
+    if (!notificationStreamCache.value[queryKey] || options.force) {
+      notificationStreamCache.value[queryKey] = createNotificationStreamCache();
+      pageCache.value.notifications[queryKey] = {};
+    }
+
+    const streamCache = notificationStreamCache.value[queryKey]!;
+    const queryCache = pageCache.value.notifications[queryKey] ?? {};
+    const cachedData = queryCache[page];
+    const cachedPageIsFilled = Boolean(
+      cachedData &&
+      (cachedData.items.length >= defaultPerPage ||
+        !streamCache.hasMoreRawPages ||
+        streamCache.filteredItems.length >= page * defaultPerPage)
+    );
+
+    if (cachedData && cachedPageIsFilled && !options.force) {
+      touchNotificationCache(queryKey, page);
+      applyNotificationsData(cachedData);
+      error.value = null;
+      loading.value = false;
+      return;
+    }
+
+    const requestId = activeRequestId.value + 1;
+    activeRequestId.value = requestId;
+    loading.value = true;
+    error.value = null;
+
+    try {
+      if (streamCache.filteredItems.length < page * defaultPerPage && streamCache.hasMoreRawPages) {
+        await fetchNotificationBatch(streamCache, notificationParams, localFilters, page);
+      }
+
+      if (requestId !== activeRequestId.value) return;
+
+      if (!pageCache.value.notifications[queryKey]) {
+        pageCache.value.notifications[queryKey] = {};
+      }
+
+      const data = buildNotificationDisplayPage(streamCache, page);
+      pageCache.value.notifications[queryKey][page] = data;
+      touchNotificationCache(queryKey, page);
+      applyNotificationsData(data);
     } catch (err) {
       if (requestId !== activeRequestId.value) return;
 

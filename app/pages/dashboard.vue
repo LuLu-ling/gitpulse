@@ -68,6 +68,7 @@
             <DashboardPagination
               v-if="showPagination"
               :pagination="currentPagination"
+              :current-page-only="currentTab === 'notifications' && notificationUsesBatchedFetch"
               @change="goToPage"
             />
           </div>
@@ -87,6 +88,9 @@
               ]"
             >
               <SimpleBar class="dashboard-list-scroll" v-if="currentTab === 'notifications'">
+                <div v-if="filteredNotifications.length === 0" class="dashboard-empty-state">
+                  {{ notificationEmptyMessage }}
+                </div>
                 <div
                   v-for="notification in filteredNotifications"
                   :key="notification.id"
@@ -428,6 +432,7 @@ const {
     fetchNotifications(page, {
       ...options,
       notificationParams: notificationFilterAdapter.value.apiParams,
+      notificationFilters: notificationFilterAdapter.value.local,
     }),
   fetchIssues: (page, options = {}) =>
     fetchIssues(page, {
@@ -526,11 +531,25 @@ const routeFilterFetchKey = computed(() => {
 
   if (source === 'notifications') {
     const apiParams = sourceState.notificationAdapter.apiParams;
-    return new URLSearchParams(
-      Object.entries(apiParams)
-        .filter(([, value]) => value !== undefined)
-        .map(([key, value]) => [key, String(value)])
-    ).toString();
+    const localFilters = sourceState.notificationAdapter.local;
+    if (!sourceState.notificationAdapter.usesPageLocalPredicates) {
+      return new URLSearchParams(
+        Object.entries(apiParams)
+          .filter(([, value]) => value !== undefined)
+          .map(([key, value]) => [key, String(value)])
+      ).toString();
+    }
+
+    return JSON.stringify({
+      apiParams,
+      localFilters: {
+        readState: localFilters.readState,
+        repo: localFilters.repo,
+        reason: localFilters.reason,
+        subjectType: localFilters.subjectType,
+        subjectState: localFilters.subjectState,
+      },
+    });
   }
 
   if (source === 'repos') {
@@ -623,19 +642,26 @@ const currentPage = computed(() => parseDashboardPage(route.query.page));
 
 const currentPagination = computed(() => pagination.value[currentTab.value]);
 
+const notificationUsesBatchedFetch = computed(() => {
+  return notificationFilterAdapter.value.usesPageLocalPredicates;
+});
+
 const showPagination = computed(() => {
   const activePagination = currentPagination.value;
-  if (
-    currentTab.value === 'notifications' &&
-    notificationFilterAdapter.value.usesPageLocalPredicates
-  ) {
-    return false;
+  if (currentTab.value === 'notifications' && notificationUsesBatchedFetch.value) {
+    return true;
   }
   return activePagination.totalPages !== 1 || activePagination.hasPrev || activePagination.hasNext;
 });
 
 const filteredNotifications = computed(() => {
   return applyNotificationLocalFilters(notifications.value, notificationFilterAdapter.value.local);
+});
+
+const notificationEmptyMessage = computed(() => {
+  return hasActiveVisibleFilters.value
+    ? t('dashboard.notifications.emptyFiltered')
+    : t('dashboard.notifications.empty');
 });
 
 const getEntityRepoName = (entity: DashboardEntity) => {
@@ -1155,6 +1181,17 @@ watch(
 .dashboard-list-scroll {
   min-height: 0;
   height: 100%;
+}
+
+.dashboard-empty-state {
+  display: flex;
+  min-height: 12rem;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  color: var(--gitpulse-text-muted);
+  font-size: 0.875rem;
+  text-align: center;
 }
 
 @media (max-width: 860px) {
