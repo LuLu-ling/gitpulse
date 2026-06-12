@@ -234,6 +234,7 @@ import {
   applyNotificationLocalFilters,
   createCustomTabFilterSourceState,
   createDashboardFilterSourceState,
+  normalizeCustomTabRouteFilterPatch,
   type DashboardFilterSource,
   type DashboardRouteFilters,
 } from '~/composables/useDashboardFilters';
@@ -504,11 +505,7 @@ const activeFilterState = computed(() => {
     return filterSourceStates.value[activeFilterSource.value];
   }
 
-  const filterSource = getCustomTabFilterSource(customTab.query);
-  return createCustomTabFilterSourceState(
-    customTab.query,
-    filterSourceStates.value[filterSource].filters
-  );
+  return createCustomTabFilterSourceState(customTab.query, dashboardFilters.value);
 });
 const visibleDashboardFilters = computed(() => activeFilterState.value.filters);
 const hasActiveVisibleFilters = computed(() => activeFilterState.value.hasActiveFilters);
@@ -557,10 +554,14 @@ const routeFilterFetchKey = computed(() => {
   }
 
   if (customTab) {
+    const customSourceState = createCustomTabFilterSourceState(
+      customTab.query,
+      dashboardFilters.value
+    );
     return JSON.stringify({
       customTabId: customTab.id,
       query: customTab.query,
-      filters: sourceState.filters,
+      filters: customSourceState.filters,
     });
   }
 
@@ -889,10 +890,12 @@ const loadRouteTabSafely = async (tab: unknown, page: number) => {
 
     if (customTab) {
       setActiveTabId(customTab.id);
+      const customSourceState = createCustomTabFilterSourceState(
+        customTab.query,
+        dashboardFilters.value
+      );
       await fetchCustomTab(
-        filterSourceStates.value[getCustomTabFilterSource(customTab.query)].overlayCustomTabQuery(
-          customTab.query
-        ),
+        customSourceState.overlayCustomTabQuery(customTab.query),
         page,
         {},
         customTab.source
@@ -992,7 +995,8 @@ const handleActivityGroupSelect = async (groupId: string) => {
 };
 
 const handleFilterUpdate = async (patch: Partial<DashboardRouteFilters>) => {
-  await updateFilters(patch);
+  const customTab = selectedCustomTab.value;
+  await updateFilters(customTab ? normalizeCustomTabRouteFilterPatch(patch) : patch);
 };
 
 const clearVisibleFilters = async () => {

@@ -14,6 +14,7 @@ import {
   clearDashboardSourceFilters,
   hasNotificationPageLocalPredicates,
   isIssuePrQueryFiltered,
+  normalizeCustomTabRouteFilterPatch,
   parseDashboardRouteFilters,
   serializeDashboardRouteFilters,
 } from '../app/composables/useDashboardFilters';
@@ -397,6 +398,66 @@ describe('dashboard route filters', () => {
       merged: 'merged',
       review: 'approved',
       sort: 'created',
+    });
+  });
+
+  test('custom pull tabs can override saved all state with open from the route', () => {
+    const savedQuery = {
+      type: 'pulls' as const,
+      state: 'all' as const,
+    };
+    const sourceState = createCustomTabFilterSourceState(savedQuery, {
+      state: 'open',
+      labels: [],
+    });
+
+    expect(sourceState.filters).toEqual({
+      labels: [],
+      repo: undefined,
+      author: undefined,
+      state: 'open',
+      archived: undefined,
+      sort: undefined,
+      order: undefined,
+    });
+    expect(sourceState.overlayCustomTabQuery(savedQuery)).toEqual({
+      type: 'pulls',
+      state: 'open',
+    });
+  });
+
+  test('custom pull tabs clear merged qualifiers when route state changes to open', () => {
+    const savedQuery = {
+      type: 'pulls' as const,
+      state: 'closed' as const,
+      merged: 'merged' as const,
+    };
+    const sourceState = createCustomTabFilterSourceState(savedQuery, {
+      state: 'open',
+      labels: [],
+    });
+
+    expect(sourceState.filters).toEqual({
+      labels: [],
+      repo: undefined,
+      author: undefined,
+      state: 'open',
+      archived: undefined,
+      sort: undefined,
+      order: undefined,
+    });
+    expect(sourceState.overlayCustomTabQuery(savedQuery)).toEqual({
+      type: 'pulls',
+      state: 'open',
+    });
+  });
+
+  test('normalizes custom tab open state updates from segmented control empty value', () => {
+    expect(normalizeCustomTabRouteFilterPatch({ state: undefined })).toEqual({
+      state: 'open',
+    });
+    expect(normalizeCustomTabRouteFilterPatch({ state: 'closed' })).toEqual({
+      state: 'closed',
     });
   });
 

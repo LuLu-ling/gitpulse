@@ -586,6 +586,33 @@ export const createDashboardFiltersFromCustomTabQuery = (
   return createDashboardEffectiveFilters(source, filters);
 };
 
+export const normalizeCustomTabRouteFilterPatch = (
+  patch: Partial<DashboardRouteFilters>
+): Partial<DashboardRouteFilters> => {
+  if (Object.hasOwn(patch, 'state') && patch.state === undefined) {
+    return { ...patch, state: 'open' };
+  }
+
+  return patch;
+};
+
+const preserveCustomTabRouteState = (
+  source: Extract<DashboardFilterSource, 'issues' | 'pulls'>,
+  filters: DashboardRouteFilters,
+  routeFilters: DashboardRouteFilters
+) => {
+  if (
+    routeFilters.state === 'all' ||
+    routeFilters.state === 'open' ||
+    routeFilters.state === 'closed' ||
+    (source === 'pulls' && routeFilters.state === 'merged')
+  ) {
+    filters.state = routeFilters.state;
+  }
+
+  return filters;
+};
+
 export const mergeDashboardRouteFilterOverlay = (
   baseFilters: DashboardRouteFilters,
   overlayFilters: DashboardRouteFilters
@@ -622,7 +649,11 @@ export const createCustomTabFilterSourceState = (
 ): DashboardFilterSourceState => {
   const source: Extract<DashboardFilterSource, 'issues' | 'pulls'> =
     savedQuery.type === 'pulls' ? 'pulls' : 'issues';
-  const sourceFilters = createDashboardEffectiveFilters(source, routeFilters);
+  const sourceFilters = preserveCustomTabRouteState(
+    source,
+    createDashboardEffectiveFilters(source, routeFilters),
+    routeFilters
+  );
   const savedFilters = createDashboardFiltersFromCustomTabQuery(savedQuery);
   const displayFilters = mergeDashboardRouteFilterOverlay(savedFilters, sourceFilters);
 

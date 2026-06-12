@@ -108,7 +108,9 @@ const stateOptions = computed<SegmentedOption[]>(() => {
   return [];
 });
 
-const selectedState = computed(() => props.filters.state ?? '');
+const selectedState = computed(() =>
+  props.filters.state === 'open' ? '' : (props.filters.state ?? '')
+);
 
 const handleStateChange = (value: string) => {
   emit('update', { state: (value || undefined) as DashboardRouteState | undefined });
