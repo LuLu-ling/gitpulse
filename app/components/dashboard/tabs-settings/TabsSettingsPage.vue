@@ -868,6 +868,7 @@ const { t, editorOpen, startNewTab, closeEditor } = props.model;
   border-radius: 999px;
   font-size: 0.76rem;
   font-weight: 650;
+  white-space: nowrap;
 }
 
 .chip-button.is-compact {
@@ -1021,6 +1022,7 @@ const { t, editorOpen, startNewTab, closeEditor } = props.model;
 /* Compact type/state row */
 .cmpact-row {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.75rem;
   margin-bottom: 0.85rem;
 }
@@ -1028,6 +1030,7 @@ const { t, editorOpen, startNewTab, closeEditor } = props.model;
 .cmpact-toggle {
   margin-bottom: 0;
   flex: 1;
+  min-width: fit-content;
 }
 
 /* Advanced filters collapsible */
