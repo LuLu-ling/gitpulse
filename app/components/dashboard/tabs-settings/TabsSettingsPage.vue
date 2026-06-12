@@ -896,7 +896,21 @@ const { t, editorOpen, startNewTab, closeEditor } = props.model;
 .source-option:hover:not(:disabled) {
   border-color: color-mix(in srgb, var(--gitpulse-accent) 36%, transparent);
   color: var(--gitpulse-accent);
-  background: var(--gitpulse-accent-soft);
+  background: color-mix(in srgb, var(--gitpulse-accent) 14%, var(--gitpulse-surface));
+}
+
+.source-option:hover:not(:disabled) small {
+  color: var(--gitpulse-accent);
+}
+
+.source-option.is-active:hover:not(:disabled) {
+  border-color: var(--gitpulse-accent);
+  color: #ffffff;
+  background: color-mix(in srgb, var(--gitpulse-accent) 86%, #ffffff);
+}
+
+.source-option.is-active:hover:not(:disabled) small {
+  color: rgba(255, 255, 255, 0.76);
 }
 
 .chip-button.is-active {
@@ -1330,8 +1344,19 @@ html.dark .source-option.is-active {
   color: var(--gitpulse-accent);
 }
 
+html.dark .source-option:hover:not(:disabled) small,
 html.dark .source-option.is-active small {
-  color: var(--gitpulse-text-muted);
+  color: var(--gitpulse-accent);
+}
+
+html.dark .source-option.is-active:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--gitpulse-accent) 50%, transparent);
+  color: var(--gitpulse-accent);
+  background: color-mix(in srgb, var(--gitpulse-accent) 28%, var(--gitpulse-surface));
+}
+
+html.dark .source-option.is-active:hover:not(:disabled) small {
+  color: var(--gitpulse-accent);
 }
 
 html.dark .search-fields-panel,
