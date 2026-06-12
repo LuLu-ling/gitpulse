@@ -239,7 +239,7 @@ import {
   type DashboardRouteFilters,
 } from '~/composables/useDashboardFilters';
 import type { DashboardTab } from '~/composables/useDashboardTabs';
-import { clearDashboardDetailQuery } from '~/utils/dashboard-url-navigation-utils';
+import { buildDashboardTabSwitchQuery } from '~/utils/dashboard-url-navigation-utils';
 import getQueryParamValue from '~/utils/getQueryParamValue';
 import parseGitHubRepoPath from '~/utils/parseGitHubRepoPath';
 
@@ -924,11 +924,12 @@ const switchTabSafely = async (tabId: string) => {
   try {
     await router.push({
       path: localePath('/dashboard'),
-      query: buildDashboardQuery({
-        ...clearDashboardDetailQuery(route.query),
-        tab: tabId,
-        page: undefined,
-      }),
+      query: buildDashboardQuery(
+        buildDashboardTabSwitchQuery(tabId, {
+          currentQuery: route.query,
+          resetQuery: Boolean(getCustomTabById(tabId)),
+        })
+      ),
     });
   } catch (error) {
     console.error('Error updating dashboard tab route:', error);

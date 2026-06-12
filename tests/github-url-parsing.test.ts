@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test';
 
 import {
   buildDashboardQueryFromNavigationEntry,
+  buildDashboardTabSwitchQuery,
   parseDashboardUrlTarget,
 } from '../app/utils/dashboard-url-navigation-utils';
 import {
@@ -352,6 +353,53 @@ describe('buildDashboardQueryFromNavigationEntry', () => {
       tab: 'notifications',
       release: 'owner/repo',
       releaseTag: 'v1.2.3',
+    });
+  });
+});
+
+describe('buildDashboardTabSwitchQuery', () => {
+  test('resets query state when selecting a custom tab from the page', () => {
+    expect(
+      buildDashboardTabSwitchQuery('custom-tab-1', {
+        currentQuery: {
+          tab: 'issues',
+          page: 3,
+          f_repo: 'owner/repo',
+          f_state: 'closed',
+          repo: 'detail/repo',
+          issue: 'detail/repo/12',
+        },
+        resetQuery: true,
+      })
+    ).toEqual({
+      tab: 'custom-tab-1',
+    });
+  });
+
+  test('preserves route filters for built-in tab switches', () => {
+    expect(
+      buildDashboardTabSwitchQuery('pulls', {
+        currentQuery: {
+          tab: 'issues',
+          page: 3,
+          f_repo: 'owner/repo',
+          issue: 'detail/repo/12',
+        },
+      })
+    ).toEqual({
+      tab: 'pulls',
+      page: undefined,
+      f_repo: 'owner/repo',
+      issue: undefined,
+      pr: undefined,
+      prView: undefined,
+      discussion: undefined,
+      release: undefined,
+      releaseTag: undefined,
+      repo: undefined,
+      path: undefined,
+      branch: undefined,
+      url: undefined,
     });
   });
 });

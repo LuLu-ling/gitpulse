@@ -86,6 +86,26 @@ export function clearDashboardDetailQuery(query: LocationQueryRaw): LocationQuer
   };
 }
 
+interface DashboardTabSwitchQueryOptions {
+  currentQuery?: LocationQueryRaw;
+  resetQuery?: boolean;
+}
+
+export function buildDashboardTabSwitchQuery(
+  tabId: string,
+  options: DashboardTabSwitchQueryOptions = {}
+): LocationQueryRaw {
+  if (options.resetQuery) {
+    return { tab: tabId };
+  }
+
+  return {
+    ...clearDashboardDetailQuery(options.currentQuery ?? {}),
+    tab: tabId,
+    page: undefined,
+  };
+}
+
 function serializeDashboardDetailTarget(owner: string, repo: string, number: number) {
   return `${owner}/${repo}/${number}`;
 }
