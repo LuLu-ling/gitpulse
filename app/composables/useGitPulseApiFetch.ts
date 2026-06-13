@@ -1,4 +1,4 @@
-import type { $Fetch, FetchOptions, FetchRequest, ResponseType } from 'ofetch';
+import type { FetchOptions, FetchRequest, ResponseType } from 'ofetch';
 import {
   CSRF_COOKIE_NAME,
   CSRF_HEADER_NAME,
@@ -8,7 +8,7 @@ import {
 } from '~/utils/csrf';
 
 export function useGitPulseApiFetch() {
-  const requestFetch = useRequestFetch() as $Fetch;
+  const requestFetch = useRequestFetch();
   const csrfCookie = useCookie<string | null | undefined>(CSRF_COOKIE_NAME, {
     readonly: true,
   });
