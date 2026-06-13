@@ -35,11 +35,6 @@ interface GraphQLSubjectResponse {
   [key: string]: GraphQLSubjectRepository | null | undefined;
 }
 
-interface GraphQLResponseEnvelope {
-  data?: GraphQLSubjectResponse;
-  errors?: unknown[];
-}
-
 const maxTargets = 50;
 const maxGraphQLInt = 2_147_483_647;
 
@@ -148,16 +143,7 @@ export default defineEventHandler(async (event) => {
   const { query, variables } = buildSubjectStatesQuery(targets);
 
   try {
-    const response = await octokit.request<GraphQLResponseEnvelope>('POST /graphql', {
-      query,
-      variables,
-    });
-
-    if (response.data.errors?.length) {
-      throw new Error('GitHub GraphQL returned errors for notification subject states');
-    }
-
-    const payload = response.data.data ?? {};
+    const payload = await octokit.graphql<GraphQLSubjectResponse>(query, variables);
 
     const items = targets.map((target, index): NotificationSubjectStateResult => {
       const repository = payload[`subject${index}`];

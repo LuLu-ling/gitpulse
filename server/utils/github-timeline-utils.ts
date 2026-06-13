@@ -229,14 +229,18 @@ export function throwTimelineFatalError(error: unknown, fallbackMessage: string)
   });
 }
 
-function getResponseLinkHeader(response: { headers?: Record<string, string | undefined> }) {
+function getResponseLinkHeader(response: {
+  headers?: Record<string, string | number | undefined>;
+}) {
   const headers = response.headers;
-  const linkHeader = (headers && (headers.link ?? headers.Link)) ?? '';
+  const linkHeader = headers?.link ?? headers?.Link;
 
   return typeof linkHeader === 'string' ? linkHeader : '';
 }
 
-function getResponseHasNextPage(response: { headers?: Record<string, string | undefined> }) {
+function getResponseHasNextPage(response: {
+  headers?: Record<string, string | number | undefined>;
+}) {
   const links = parseLinkHeader(getResponseLinkHeader(response));
 
   return Boolean(links.next);
@@ -348,15 +352,12 @@ export async function fetchPRReviewThreads(
   let cursor: string | null = null;
 
   while (true) {
-    const response = await octokit.graphql<PRReviewThreadsGraphQLResponse>(
-      PR_REVIEW_THREADS_QUERY,
-      {
-        owner,
-        repo,
-        pullNumber,
-        cursor,
-      }
-    );
+    const response = (await octokit.graphql(PR_REVIEW_THREADS_QUERY, {
+      owner,
+      repo,
+      pullNumber,
+      cursor,
+    })) as PRReviewThreadsGraphQLResponse;
     const reviewThreads = response.repository?.pullRequest?.reviewThreads;
 
     for (const thread of reviewThreads?.nodes ?? []) {

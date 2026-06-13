@@ -314,7 +314,14 @@ async function fetchCheckRuns(
 
 export function normalizeMergePullRequestBody(body: unknown): NormalizedMergePullRequestBody {
   const requestBody = normalizeRequestBody<MergePullRequestBody>(body, ['method']);
-  const method = requestBody?.method;
+  if (!requestBody) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'method must be one of merge, squash, or rebase',
+    });
+  }
+
+  const method = requestBody.method;
 
   if (typeof method !== 'string' || !mergeMethods.has(method as PRMergeMethod)) {
     throw createError({
