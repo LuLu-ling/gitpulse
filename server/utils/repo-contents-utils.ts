@@ -1,6 +1,6 @@
 import type { H3Event } from 'h3';
 
-import { executeGitHubRequest, extractRepoParams } from './repo-route-utils';
+import { executeGitHubRequest, extractRepoParams, getStringQueryParam } from './repo-route-utils';
 
 type RepoContentType = 'file' | 'dir' | 'symlink' | 'submodule';
 
@@ -33,11 +33,6 @@ type GitHubContentItem = RepoContentItem & {
   content?: string;
   encoding?: string;
 };
-
-function getStringQueryParam(value: unknown) {
-  const rawValue = Array.isArray(value) ? value[0] : value;
-  return typeof rawValue === 'string' && rawValue ? rawValue : undefined;
-}
 
 function mapContentItem(item: GitHubContentItem): RepoContentItem {
   return {

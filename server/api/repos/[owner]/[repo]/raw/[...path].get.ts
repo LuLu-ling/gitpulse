@@ -2,18 +2,13 @@ import { Buffer } from 'node:buffer';
 
 import { getGitHubClient, throwGitHubRouteError } from '#server/utils/github-auth-utils';
 import { getContentPath } from '#server/utils/repo-contents-utils';
-import { extractRepoParams } from '#server/utils/repo-route-utils';
+import { extractRepoParams, getStringQueryParam } from '#server/utils/repo-route-utils';
 
 type RawRepoContentResponse = {
   type?: string;
   content?: string;
   encoding?: string;
 };
-
-function getStringQueryParam(value: unknown) {
-  const rawValue = Array.isArray(value) ? value[0] : value;
-  return typeof rawValue === 'string' && rawValue ? rawValue : undefined;
-}
 
 function getContentType(path: string) {
   const extension = path.split('.').pop()?.toLowerCase();

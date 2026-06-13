@@ -1,10 +1,9 @@
 import { fetchDiscussionComments } from '#server/utils/github-discussion-utils';
-import { executeGitHubRequest, extractDiscussionRouteParams } from '#server/utils/repo-route-utils';
-
-function getStringQueryParam(value: unknown) {
-  const rawValue = Array.isArray(value) ? value[0] : value;
-  return typeof rawValue === 'string' && rawValue ? rawValue : undefined;
-}
+import {
+  executeGitHubRequest,
+  extractDiscussionRouteParams,
+  getStringQueryParam,
+} from '#server/utils/repo-route-utils';
 
 export default definePrivateApiCoalescedEventHandler(async (event) => {
   const { owner, repo, discussionNumber } = extractDiscussionRouteParams(event);

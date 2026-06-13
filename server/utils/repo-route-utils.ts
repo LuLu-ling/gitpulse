@@ -100,6 +100,11 @@ export function extractDiscussionRouteParams(event: H3Event) {
   };
 }
 
+export function getStringQueryParam(value: unknown) {
+  const rawValue = Array.isArray(value) ? value[0] : value;
+  return typeof rawValue === 'string' && rawValue ? rawValue : undefined;
+}
+
 /**
  * Normalize and validate a request body as JSON object.
  * Returns null if body is missing/null, throws if invalid type.

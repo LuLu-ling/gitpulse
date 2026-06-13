@@ -1,11 +1,7 @@
 import { Buffer } from 'node:buffer';
 
 import { hasGitHubErrorStatus } from '#server/utils/github-auth-utils';
-
-function getStringQueryParam(value: unknown) {
-  const rawValue = Array.isArray(value) ? value[0] : value;
-  return typeof rawValue === 'string' && rawValue ? rawValue : undefined;
-}
+import { getStringQueryParam } from '#server/utils/repo-route-utils';
 
 export default definePrivateApiCoalescedEventHandler(async (event) => {
   try {
