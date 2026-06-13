@@ -296,35 +296,18 @@ function parsePositiveNumber(value: string | undefined) {
 }
 
 function createPullRequestTarget(target: PullRequestUrlTarget): DashboardUrlTarget {
-  if (target.view === 'diff') {
-    return createPullRequestReviewTarget(target);
-  }
-
-  const query: LocationQueryRaw = {
-    pr: `${target.owner}/${target.repo}/${target.number}`,
-  };
+  const isReview = target.view === 'diff';
+  const type = isReview ? 'pull-request-review' : 'pull-request';
+  const queryKey = isReview ? 'prReview' : 'pr';
 
   return {
-    type: 'pull-request',
+    type,
     owner: target.owner,
     repo: target.repo,
     number: target.number,
-    query,
-    hash: target.hash,
-  };
-}
-
-function createPullRequestReviewTarget(target: PullRequestUrlTarget): DashboardUrlTarget {
-  const query: LocationQueryRaw = {
-    prReview: `${target.owner}/${target.repo}/${target.number}`,
-  };
-
-  return {
-    type: 'pull-request-review',
-    owner: target.owner,
-    repo: target.repo,
-    number: target.number,
-    query,
+    query: {
+      [queryKey]: `${target.owner}/${target.repo}/${target.number}`,
+    },
     hash: target.hash,
   };
 }
