@@ -68,6 +68,7 @@ import IssueHeader from '~/components/dashboard/issue/IssueHeader.vue';
 import IssueLabels from '~/components/dashboard/issue/IssueLabels.vue';
 import IssueTimelineEvents from '~/components/dashboard/issue/IssueTimelineEvents.vue';
 import type { IssueTimelineItem } from '~/composables/useIssueTimelineEvents';
+import { normalizeRepoPermissions } from '~/utils/createEmptyRepoPermissions';
 import parseGitHubRepoPath from '~/utils/parseGitHubRepoPath';
 
 const props = defineProps<{
@@ -276,15 +277,7 @@ const fetchRepoPermissions = async () => {
 
     if (requestId !== permissionRequestId.value || issueIdentity !== getIssueIdentity()) return;
 
-    repoPermissions.value = {
-      admin: Boolean(permissionData?.admin),
-      maintain: Boolean(permissionData?.maintain),
-      push: Boolean(permissionData?.push),
-      triage: Boolean(permissionData?.triage),
-      pull: Boolean(permissionData?.pull),
-      canEditLabels: Boolean(permissionData?.canEditLabels),
-      canLockIssue: Boolean(permissionData?.canLockIssue),
-    };
+    repoPermissions.value = normalizeRepoPermissions(permissionData);
   } catch (err) {
     console.error('Error fetching repository permissions:', err);
     if (requestId === permissionRequestId.value) {

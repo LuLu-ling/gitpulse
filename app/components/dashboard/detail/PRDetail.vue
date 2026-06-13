@@ -139,6 +139,7 @@ import type {
   PRReviewerSummaryItem,
 } from '~/composables/usePRReviewers';
 import type { PRTimelineItem } from '~/composables/usePRTimelineEvents';
+import { normalizeRepoPermissions } from '~/utils/createEmptyRepoPermissions';
 import getFetchErrorMessage from '~/utils/getFetchErrorMessage';
 import parseGitHubRepoPath from '~/utils/parseGitHubRepoPath';
 
@@ -677,15 +678,7 @@ const fetchRepoPermissions = async () => {
     }
 
     if (permissionData) {
-      repoPermissions.value = {
-        admin: Boolean(permissionData.admin),
-        maintain: Boolean(permissionData.maintain),
-        push: Boolean(permissionData.push),
-        triage: Boolean(permissionData.triage),
-        pull: Boolean(permissionData.pull),
-        canEditLabels: Boolean(permissionData.canEditLabels),
-        canLockIssue: Boolean(permissionData.canLockIssue),
-      };
+      repoPermissions.value = normalizeRepoPermissions(permissionData);
     }
   } catch (err) {
     console.error('Error fetching repository permissions:', err);

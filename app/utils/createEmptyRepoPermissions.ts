@@ -8,14 +8,20 @@ export interface RepoPermissions {
   canLockIssue: boolean;
 }
 
-export default function createEmptyRepoPermissions(): RepoPermissions {
+type RepoPermissionsSource = Partial<Record<keyof RepoPermissions, unknown>> | null | undefined;
+
+export function normalizeRepoPermissions(source: RepoPermissionsSource): RepoPermissions {
   return {
-    admin: false,
-    maintain: false,
-    push: false,
-    triage: false,
-    pull: false,
-    canEditLabels: false,
-    canLockIssue: false,
+    admin: Boolean(source?.admin),
+    maintain: Boolean(source?.maintain),
+    push: Boolean(source?.push),
+    triage: Boolean(source?.triage),
+    pull: Boolean(source?.pull),
+    canEditLabels: Boolean(source?.canEditLabels),
+    canLockIssue: Boolean(source?.canLockIssue),
   };
+}
+
+export default function createEmptyRepoPermissions(): RepoPermissions {
+  return normalizeRepoPermissions(null);
 }
