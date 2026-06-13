@@ -1,107 +1,25 @@
-export type PRReviewerKind = 'user' | 'team';
+import type {
+  PullRequestReviewerCandidatesResponse as PRReviewerCandidatesResponse,
+  PullRequestReviewerMutationPayload as PRReviewerMutationPayload,
+  PullRequestReviewerMutationResponse as PRReviewerMutationResponse,
+  PullRequestReviewerSummaryWarning as PRReviewerSummaryWarning,
+  PullRequestReviewersSummary as PRReviewersSummary,
+} from '#shared/types/pr-reviewers';
 
-export type PRReviewerStatus =
-  | 'requested'
-  | 'approved'
-  | 'changes_requested'
-  | 'commented'
-  | 'dismissed'
-  | 'pending'
-  | 'unknown';
-
-export interface PRReviewerSummaryItem {
-  key: string;
-  kind: PRReviewerKind;
-  id?: string;
-  nodeId?: string;
-  login?: string;
-  slug?: string;
-  name: string;
-  avatarUrl?: string | null;
-  url?: string | null;
-  status: PRReviewerStatus;
-  rawState?: string;
-  latestSubmittedAt?: string | null;
-  latestCommentedAt?: string | null;
-  latestReviewUrl?: string | null;
-  reviewCount: number;
-  commentCount: number;
-  requested: boolean;
-  removable: boolean;
-}
-
-export interface PRReviewerRequestedUser {
-  id?: number | string;
-  node_id?: string;
-  login?: string;
-  avatar_url?: string | null;
-  html_url?: string | null;
-  url?: string | null;
-}
-
-export interface PRReviewerRequestedTeam {
-  id?: number | string;
-  node_id?: string;
-  slug?: string;
-  name?: string;
-  description?: string | null;
-  html_url?: string | null;
-  url?: string | null;
-}
-
-export interface PRReviewersSummary {
-  items: PRReviewerSummaryItem[];
-  requestedUsers: PRReviewerRequestedUser[];
-  requestedTeams: PRReviewerRequestedTeam[];
-  counts: Record<PRReviewerStatus, number> & {
-    total: number;
-    users: number;
-    teams: number;
-  };
-  warnings?: PRReviewerSummaryWarning[];
-}
-
-export interface PRReviewerCandidate {
-  key: string;
-  kind: PRReviewerKind;
-  id?: string;
-  nodeId?: string;
-  login?: string;
-  slug?: string;
-  name: string;
-  avatarUrl?: string | null;
-  url?: string | null;
-  requested: boolean;
-}
-
-export interface PRReviewerCandidatesResponse {
-  query: string;
-  items: PRReviewerCandidate[];
-  users: PRReviewerCandidate[];
-  teams: PRReviewerCandidate[];
-  warnings: PRReviewerCandidateWarning[];
-  canRequestReviewers: boolean;
-}
-
-export interface PRReviewerSummaryWarning {
-  source: 'reviewer-summary';
-  message: string;
-}
-
-export interface PRReviewerCandidateWarning {
-  source: 'requested-reviewers' | 'collaborators' | 'teams';
-  message: string;
-}
-
-export interface PRReviewerMutationPayload {
-  reviewers?: string[];
-  teamReviewers?: string[];
-}
-
-export interface PRReviewerMutationResponse {
-  pullRequest?: Record<string, unknown>;
-  reviewers?: PRReviewersSummary;
-}
+export type {
+  PullRequestReviewerCandidate as PRReviewerCandidate,
+  PullRequestReviewerCandidateWarning as PRReviewerCandidateWarning,
+  PullRequestReviewerCandidatesResponse as PRReviewerCandidatesResponse,
+  PullRequestReviewerKind as PRReviewerKind,
+  PullRequestReviewerMutationPayload as PRReviewerMutationPayload,
+  PullRequestReviewerMutationResponse as PRReviewerMutationResponse,
+  PullRequestReviewerRequestedTeam as PRReviewerRequestedTeam,
+  PullRequestReviewerRequestedUser as PRReviewerRequestedUser,
+  PullRequestReviewerStatus as PRReviewerStatus,
+  PullRequestReviewerSummaryItem as PRReviewerSummaryItem,
+  PullRequestReviewerSummaryWarning as PRReviewerSummaryWarning,
+  PullRequestReviewersSummary as PRReviewersSummary,
+} from '#shared/types/pr-reviewers';
 
 export const createEmptyPRReviewersSummary = (
   warnings: PRReviewerSummaryWarning[] = []

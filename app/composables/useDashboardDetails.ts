@@ -4,9 +4,10 @@ import type { LocationQueryRaw } from 'vue-router';
 import type { DiscussionDetailPayload } from '#shared/types/discussions';
 import type { IssueDetailPayload } from '#shared/types/issues';
 import type { DashboardNotification } from '#shared/types/notifications';
-import type { PullRequestDetailPayload } from '#shared/types/pulls';
+import type { PullRequestDetailResponse, PullRequestDetailViewModel } from '#shared/types/pulls';
 import type { ReleaseDetailPayload } from '#shared/types/releases';
 import type { RepositoryDetailPayload } from '#shared/types/repos';
+import createPullRequestDetailViewModel from '~/utils/createPullRequestDetailViewModel';
 import {
   DASHBOARD_DETAIL_QUERY_KEYS,
   buildDashboardQueryFromNavigationEntry,
@@ -23,6 +24,7 @@ import parseGitHubRepoPath from '~/utils/parseGitHubRepoPath';
 interface DashboardDetailListItem {
   repository_url?: string | null;
   number?: number | null;
+  [key: string]: unknown;
 }
 
 type DetailType = 'issue' | 'pull-request' | 'discussion';
@@ -119,7 +121,7 @@ export function useDashboardDetails(currentRouteTab: Ref<string>) {
   const localePath = useLocalePath();
 
   const issuePanel = createDetailPanel<IssueDetailPayload>();
-  const prPanel = createDetailPanel<PullRequestDetailPayload>();
+  const prPanel = createDetailPanel<PullRequestDetailViewModel>();
   const discussionPanel = createDetailPanel<DiscussionDetailPayload>();
   const releasePanel = createDetailPanel<ReleaseDetailPayload>();
   const repoPanel = createDetailPanel<RepositoryDetailPayload>();
@@ -542,18 +544,13 @@ export function useDashboardDetails(currentRouteTab: Ref<string>) {
       return;
     }
 
-    const repositoryUrl = `https://api.github.com/repos/${owner}/${repo}`;
-
     showOnly(prPanel, [repoPanel]);
     await prPanel.load(
       async () => {
-        const pullRequest = await apiFetch<PullRequestDetailPayload>(
+        const pullRequest = await apiFetch<PullRequestDetailResponse>(
           `/api/pulls/${owner}/${repo}/${pullNumber}`
         );
-        return {
-          repository_url: repositoryUrl,
-          ...pullRequest,
-        };
+        return createPullRequestDetailViewModel(pullRequest, { owner, repo });
       },
       { logPrefix: 'Error fetching pull request:' }
     );

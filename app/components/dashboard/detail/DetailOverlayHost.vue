@@ -5,7 +5,7 @@ import { useI18n } from 'vue-i18n';
 
 import type { DiscussionDetailPayload } from '#shared/types/discussions';
 import type { IssueDetailPayload } from '#shared/types/issues';
-import type { PullRequestDetailPayload } from '#shared/types/pulls';
+import type { PullRequestDetailViewModel } from '#shared/types/pulls';
 import type { ReleaseDetailPayload } from '#shared/types/releases';
 import type { RepositoryDetailPayload } from '#shared/types/repos';
 import DiscussionDetail from '~/components/dashboard/detail/DiscussionDetail.vue';
@@ -28,7 +28,7 @@ interface ActiveDetailPane {
 
 const props = defineProps<{
   issue: IssueDetailPayload | null;
-  pullRequest: PullRequestDetailPayload | null;
+  pullRequest: PullRequestDetailViewModel | null;
   discussion: DiscussionDetailPayload | null;
   release: ReleaseDetailPayload | null;
   repository: RepositoryDetailPayload | null;

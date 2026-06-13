@@ -1,6 +1,48 @@
+import type { PullRequestReviewersSummary } from './pr-reviewers';
+
 /**
- * Pull Request types from GitHub API
+ * Pull Request types from the GitPulse pull request detail API.
  */
+
+export interface PullRequestUserSummary {
+  id?: number | string;
+  login: string;
+  avatar_url?: string | null;
+  html_url?: string | null;
+  url?: string | null;
+}
+
+export interface PullRequestTeamSummary {
+  id?: number | string;
+  node_id?: string;
+  slug?: string;
+  name?: string | null;
+  description?: string | null;
+  html_url?: string | null;
+  url?: string | null;
+}
+
+export interface PullRequestDetailLabel {
+  id?: number | string;
+  name: string;
+  color: string;
+  description?: string | null;
+}
+
+export interface PullRequestRepositorySummary {
+  id?: number;
+  name?: string;
+  full_name?: string;
+  url?: string;
+  owner?: PullRequestUserSummary;
+}
+
+export interface PullRequestBranchSummary {
+  ref?: string;
+  sha?: string;
+  label?: string;
+  repo?: PullRequestRepositorySummary | null;
+}
 
 export interface PullRequestDetailPayload {
   id: number;
@@ -13,83 +55,23 @@ export interface PullRequestDetailPayload {
   closed_at?: string | null;
   merged_at?: string | null;
   repository_url?: string;
+  html_url?: string;
 
   // Base and head branches
-  base?: {
-    ref: string;
-    sha: string;
-    repo?: {
-      id: number;
-      name: string;
-      full_name: string;
-      url: string;
-      owner?: {
-        login: string;
-        id: number;
-        avatar_url?: string;
-      };
-    };
-  };
-
-  head?: {
-    ref: string;
-    sha: string;
-    repo?: {
-      id: number;
-      name: string;
-      full_name: string;
-      url: string;
-      owner?: {
-        login: string;
-        id: number;
-        avatar_url?: string;
-      };
-    };
-  };
+  base?: PullRequestBranchSummary;
+  head?: PullRequestBranchSummary;
 
   // User info
-  user?: {
-    login: string;
-    id: number;
-    avatar_url?: string;
-  };
+  user?: PullRequestUserSummary;
+  assignee?: PullRequestUserSummary | null;
 
   // Labels
-  labels?: Array<{
-    id: number;
-    name: string;
-    color: string;
-    description?: string | null;
-  }>;
+  labels?: PullRequestDetailLabel[];
 
-  // Reviewers (added by our API)
-  reviewers?: {
-    requested?: Array<{
-      id: number | string;
-      login: string;
-      avatar_url?: string | null;
-    }>;
-    teams?: Array<{
-      id: number | string;
-      slug: string;
-      name: string;
-    }>;
-    approved?: Array<{
-      id: number | string;
-      login: string;
-      avatar_url?: string | null;
-    }>;
-    changesRequested?: Array<{
-      id: number | string;
-      login: string;
-      avatar_url?: string | null;
-    }>;
-    commented?: Array<{
-      id: number | string;
-      login: string;
-      avatar_url?: string | null;
-    }>;
-  };
+  // Reviewers
+  requested_reviewers?: PullRequestUserSummary[];
+  requested_teams?: PullRequestTeamSummary[];
+  reviewers?: PullRequestReviewersSummary;
 
   // Merge status
   mergeable?: boolean | null;
@@ -97,6 +79,15 @@ export interface PullRequestDetailPayload {
   merged?: boolean;
   draft?: boolean;
 
-  // Additional fields that may be present
-  [key: string]: unknown;
+  // Stats
+  commits?: number;
+  changed_files?: number;
+  additions?: number;
+  deletions?: number;
+}
+
+export type PullRequestDetailResponse = PullRequestDetailPayload;
+
+export interface PullRequestDetailViewModel extends PullRequestDetailPayload {
+  repository_url?: string;
 }

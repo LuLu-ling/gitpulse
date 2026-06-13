@@ -77,8 +77,8 @@
             :html-url="currentPullRequest?.html_url"
             :created-at="currentPullRequest?.created_at"
             :updated-at="currentPullRequest?.updated_at"
-            :merged-at="currentPullRequest?.merged_at"
-            :assignee="currentPullRequest?.assignee"
+            :merged-at="currentPullRequest?.merged_at || undefined"
+            :assignee="currentPullRequest?.assignee || undefined"
             :commits="currentPullRequest?.commits"
             :changed-files="currentPullRequest?.changed_files"
             :additions="currentPullRequest?.additions"
@@ -124,7 +124,11 @@
 import { EyeIcon } from 'lucide-vue-next';
 import { computed, ref, shallowRef, watch } from 'vue';
 
-import type { PullRequestDetailPayload } from '#shared/types/pulls';
+import type {
+  PullRequestDetailLabel,
+  PullRequestDetailResponse,
+  PullRequestDetailViewModel,
+} from '#shared/types/pulls';
 import PRActions from '~/components/dashboard/pr/PRActions.vue';
 import PRHeader from '~/components/dashboard/pr/PRHeader.vue';
 import PRLabels from '~/components/dashboard/pr/PRLabels.vue';
@@ -141,6 +145,7 @@ import type {
 } from '~/composables/usePRReviewers';
 import type { PRTimelineItem } from '~/composables/usePRTimelineEvents';
 import { normalizeRepoPermissions } from '~/utils/createEmptyRepoPermissions';
+import createPullRequestDetailViewModel from '~/utils/createPullRequestDetailViewModel';
 import formatPageMetaDescription from '~/utils/formatPageMetaDescription';
 import getFetchErrorMessage from '~/utils/getFetchErrorMessage';
 import parseGitHubRepoPath from '~/utils/parseGitHubRepoPath';
@@ -149,41 +154,6 @@ const props = defineProps<{
   pullRequest: PullRequestDetailViewModel;
   reviewActive?: boolean;
 }>();
-
-interface PullRequestDetailLabel {
-  id?: number | string;
-  name: string;
-  color: string;
-  description?: string | null;
-}
-
-interface PullRequestUserSummary {
-  id?: number | string;
-  login: string;
-  avatar_url?: string | null;
-}
-
-interface PullRequestTeamSummary {
-  id?: number | string;
-  node_id?: string;
-  slug?: string;
-  name?: string | null;
-  html_url?: string | null;
-  url?: string | null;
-}
-
-interface PullRequestDetailViewModel extends PullRequestDetailPayload {
-  html_url?: string;
-  head?: PullRequestDetailPayload['head'] & { label?: string };
-  requested_reviewers?: PullRequestUserSummary[];
-  requested_teams?: PullRequestTeamSummary[];
-  assignee?: PullRequestUserSummary;
-  commits?: number;
-  changed_files?: number;
-  additions?: number;
-  deletions?: number;
-  reviewers?: ReturnType<typeof createEmptyPRReviewersSummary>;
-}
 
 interface PRTimelineResponse {
   timeline?: PRTimelineItem[];
@@ -700,9 +670,12 @@ const fetchRepoPermissions = async () => {
 
   try {
     const { owner, repo } = repoInfo.value;
-    const permissionData = await apiFetch(`/api/repos/${owner}/${repo}/permissions`, {
-      method: 'GET',
-    });
+    const permissionData = await apiFetch<Parameters<typeof normalizeRepoPermissions>[0]>(
+      `/api/repos/${owner}/${repo}/permissions`,
+      {
+        method: 'GET',
+      }
+    );
 
     if (requestId !== permissionRequestId.value) {
       return;
@@ -734,7 +707,7 @@ const fetchPullRequestDetails = async () => {
     const { owner, repo } = repoInfo.value;
     const pullNumber = currentPullRequest.value.number;
 
-    const data = await apiFetch<PullRequestDetailViewModel>(
+    const data = await apiFetch<PullRequestDetailResponse>(
       `/api/pulls/${owner}/${repo}/${pullNumber}`,
       {
         method: 'GET',
@@ -742,8 +715,12 @@ const fetchPullRequestDetails = async () => {
     );
 
     if (requestId === detailRequestId.value && pullRequestIdentity === getPullRequestIdentity()) {
-      currentPullRequest.value = { ...basePullRequest, ...data };
-      loadReviewerSummary();
+      currentPullRequest.value = createPullRequestDetailViewModel(data, {
+        owner,
+        repo,
+        fallback: basePullRequest,
+      });
+      await loadReviewerSummary();
     }
   } catch (err: unknown) {
     console.error('Error fetching PR details:', err);
@@ -764,7 +741,7 @@ watch(
     if (newPullRequest) {
       fetchTimeline();
       fetchRepoPermissions();
-      if (hasHydratedPullRequestDetails(newPullRequest as Record<string, unknown>)) {
+      if (hasHydratedPullRequestDetails(newPullRequest)) {
         loadReviewerSummary();
         return;
       }
