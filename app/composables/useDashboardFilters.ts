@@ -85,6 +85,20 @@ export const dashboardFilterQueryKeys = [
 ] as const;
 
 type DashboardFilterQueryKey = (typeof dashboardFilterQueryKeys)[number];
+type DashboardScalarFilterKey = Exclude<keyof DashboardRouteFilters, 'labels'>;
+
+const dashboardScalarFilterKeys = [
+  'state',
+  'repo',
+  'author',
+  'reason',
+  'subjectType',
+  'subjectState',
+  'review',
+  'archived',
+  'sort',
+  'order',
+] as const satisfies readonly DashboardScalarFilterKey[];
 
 const STATE_VALUES = new Set<DashboardRouteState>([
   'all',
@@ -225,18 +239,8 @@ export const serializeDashboardRouteFilters = (filters: DashboardRouteFilters) =
 };
 
 export const hasDashboardRouteFilters = (filters: DashboardRouteFilters) => {
-  return Boolean(
-    filters.state ||
-    filters.repo ||
-    filters.author ||
-    filters.labels.length > 0 ||
-    filters.reason ||
-    filters.subjectType ||
-    filters.subjectState ||
-    filters.review ||
-    filters.archived ||
-    filters.sort ||
-    filters.order
+  return (
+    filters.labels.length > 0 || dashboardScalarFilterKeys.some((key) => Boolean(filters[key]))
   );
 };
 
@@ -314,18 +318,7 @@ export const clearDashboardSourceFilters = (
     labels: [...filters.labels],
   };
 
-  for (const key of [
-    'state',
-    'repo',
-    'author',
-    'reason',
-    'subjectType',
-    'subjectState',
-    'review',
-    'archived',
-    'sort',
-    'order',
-  ] as const) {
+  for (const key of dashboardScalarFilterKeys) {
     if (effectiveFilters[key]) {
       delete nextFilters[key];
     }
@@ -343,30 +336,11 @@ export const createDashboardFilterChips = (
 ): DashboardFilterChip[] => {
   const chips: DashboardFilterChip[] = [];
 
-  if (filters.state) {
-    chips.push({
-      key: 'state',
-      value: filters.state,
-      labelKey: 'dashboard.filters.chips.state',
-      labelValue: `dashboard.filters.options.${filters.state}`,
-    });
-  }
-
-  for (const key of [
-    'repo',
-    'author',
-    'reason',
-    'subjectType',
-    'subjectState',
-    'review',
-    'archived',
-    'sort',
-    'order',
-  ] as const) {
+  for (const key of dashboardScalarFilterKeys) {
     const value = filters[key];
     if (value) {
       const labelValue =
-        key === 'review' || key === 'sort' || key === 'order'
+        key === 'state' || key === 'review' || key === 'sort' || key === 'order'
           ? `dashboard.filters.options.${value}`
           : key === 'archived'
             ? `dashboard.filters.options.${archivedChipOptionByValue[value as GitHubSearchArchivedFilter]}`
@@ -615,18 +589,7 @@ export const mergeDashboardRouteFilterOverlay = (
     labels: overlayFilters.labels.length > 0 ? overlayFilters.labels : baseFilters.labels,
   };
 
-  for (const key of [
-    'state',
-    'repo',
-    'author',
-    'reason',
-    'subjectType',
-    'subjectState',
-    'review',
-    'archived',
-    'sort',
-    'order',
-  ] as const) {
+  for (const key of dashboardScalarFilterKeys) {
     const value = overlayFilters[key];
     if (value) {
       (nextFilters as Record<typeof key, typeof value>)[key] = value;
