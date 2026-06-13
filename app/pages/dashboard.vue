@@ -272,6 +272,8 @@ const { resolveDashboardUrlTarget, getDashboardUrlRoute, trackDashboardUrlNaviga
 const dashboardTabs: DashboardTab[] = ['notifications', 'issues', 'pulls', 'repos'];
 interface DashboardEntity {
   id: PropertyKey;
+  repository_url?: string | null;
+  number?: number | null;
   pull_request?: unknown;
   [key: string]: unknown;
 }

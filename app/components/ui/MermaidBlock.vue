@@ -73,7 +73,7 @@ async function closeViewer() {
 
 onMounted(() => render(props.code));
 watch(
-  () => [props.code, colorMode.value],
+  () => [props.code, colorMode.value] as const,
   ([code]) => render(code)
 );
 </script>

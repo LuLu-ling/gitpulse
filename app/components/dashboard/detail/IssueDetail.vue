@@ -265,9 +265,12 @@ const fetchRepoPermissions = async () => {
   permissionRequestId.value = requestId;
   loadingPermission.value = true;
   try {
-    const permissionData = await apiFetch(`/api/repos/${owner}/${repo}/permissions`, {
-      method: 'GET',
-    });
+    const permissionData = await apiFetch<Parameters<typeof normalizeRepoPermissions>[0]>(
+      `/api/repos/${owner}/${repo}/permissions`,
+      {
+        method: 'GET',
+      }
+    );
 
     if (requestId !== permissionRequestId.value || issueIdentity !== getIssueIdentity()) return;
 

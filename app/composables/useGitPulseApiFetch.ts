@@ -10,6 +10,10 @@ import {
 
 export function useGitPulseApiFetch() {
   const requestFetch = useRequestFetch();
+  const apiFetch = requestFetch as <T = unknown, R extends ResponseType = 'json'>(
+    request: FetchRequest,
+    options?: FetchOptions<R>
+  ) => Promise<T>;
   const csrfCookie = useCookie<string | null | undefined>(CSRF_COOKIE_NAME, {
     readonly: true,
   });
@@ -20,23 +24,23 @@ export function useGitPulseApiFetch() {
   ) => {
     const method = normalizeMethod(options.method);
     if (SAFE_METHODS.has(method)) {
-      return requestFetch<T, R>(request, options);
+      return apiFetch<T, R>(request, options);
     }
 
     if (!isSameOriginApiUrl(request)) {
-      return requestFetch<T, R>(request, options);
+      return apiFetch<T, R>(request, options);
     }
 
     const token = csrfCookie.value;
     if (!token) {
       console.warn(`[csrf] missing client cookie for ${method} ${String(request)}`);
-      return requestFetch<T, R>(request, options);
+      return apiFetch<T, R>(request, options);
     }
 
     const headers = new Headers(options.headers as HeadersInit | undefined);
     headers.set(CSRF_HEADER_NAME, token);
 
-    return requestFetch<T, R>(request, {
+    return apiFetch<T, R>(request, {
       ...options,
       headers,
     });

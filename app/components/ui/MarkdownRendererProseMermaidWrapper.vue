@@ -44,7 +44,7 @@ function extractCodeText(node: ComarkNode | undefined): string | null {
   return collectText(codeNode.slice(2));
 }
 
-function collectText(nodes: ComarkNode[]): string {
+function collectText(nodes: unknown[]): string {
   return nodes
     .map((node) => {
       if (typeof node === 'string') {
