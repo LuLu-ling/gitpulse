@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <NuxtLinkLocale :to="target" class="is-flex is-justify-content-center">
     <slot />
   </NuxtLinkLocale>

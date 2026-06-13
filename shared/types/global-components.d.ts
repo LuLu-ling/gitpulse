@@ -1,4 +1,4 @@
-﻿import SimpleBar from 'simplebar-vue';
+import SimpleBar from 'simplebar-vue';
 
 declare module '@vue/runtime-core' {
   interface GlobalComponents {

@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <a
     v-if="canNavigate"
     href="#"

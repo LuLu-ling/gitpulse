@@ -1,4 +1,4 @@
-﻿import { onUnmounted, ref } from 'vue';
+import { onUnmounted, ref } from 'vue';
 
 interface DashboardNotification {
   id?: number | string;

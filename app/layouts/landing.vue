@@ -1,4 +1,4 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
 import LandingNavbar from '~/components/layouts/LandingNavbar.vue';
 </script>
 

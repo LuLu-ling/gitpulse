@@ -1,4 +1,4 @@
-﻿import parseGitHubRepoPath from '~/utils/parseGitHubRepoPath';
+import parseGitHubRepoPath from '~/utils/parseGitHubRepoPath';
 
 export default function (url: string) {
   const repoPath = parseGitHubRepoPath(url);

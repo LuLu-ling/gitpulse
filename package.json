@@ -16,7 +16,8 @@
     "lint": "bunx oxlint ./ --type-aware --ignore-pattern extension/",
     "lint:fix": "bunx oxlint ./ --fix --type-aware --ignore-pattern extension/",
     "fmt": "bunx oxfmt ./",
-    "fmt:check": "bunx oxfmt --check ./"
+    "fmt:check": "bunx oxfmt --check ./",
+    "fmt:staged": "oxfmt --write"
   },
   "dependencies": {
     "@comark/nuxt": "^0.4.0",
@@ -44,6 +45,7 @@
     "xss": "^1.0.15"
   },
   "devDependencies": {
+    "@j178/prek": "^0.4.4",
     "@nuxtjs/i18n": "^10.4.0",
     "@types/node": "^25.9.3",
     "oxfmt": "^0.54.0",

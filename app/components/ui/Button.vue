@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <component :is="component" v-bind="bindProps" :class="classes">
     <slot />
   </component>

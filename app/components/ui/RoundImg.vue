@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="logo-image-wrapper" :style="style">
     <NuxtImg :src="src" :alt="alt" class="logo-image" loading="eager" />
   </div>
