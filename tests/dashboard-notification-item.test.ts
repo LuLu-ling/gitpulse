@@ -21,9 +21,7 @@ describe('dashboard notification item subject number display', () => {
     );
 
     expect(notificationItemSource).toContain('v-if="showSubjectNumber"');
-    expect(notificationItemSource).toContain(
-      'shouldShowNotificationSubjectNumber(currentNotification.value.subject)'
-    );
+    expect(notificationItemSource).toContain('shouldShowNotificationSubjectNumber(subject.value)');
     expect(notificationItemSource).not.toContain('v-if="currentNotification.subject?.number"');
   });
 });
