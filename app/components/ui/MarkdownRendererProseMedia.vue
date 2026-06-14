@@ -2,6 +2,8 @@
 import type { ComarkElement } from 'comark';
 import { computed, inject, useAttrs } from 'vue';
 
+import { resolveMarkdownColorModeSourceMedia } from '#shared/utils/markdown-color-mode-source-media';
+
 import {
   buildRepoRawFileUrl,
   isSafeMarkdownResourceUrl,
@@ -22,10 +24,12 @@ const props = defineProps<{
   srcset?: string;
   poster?: string;
   alt?: string;
+  media?: string;
 }>();
 
 const attrs = useAttrs();
 const runtimeConfig = useRuntimeConfig();
+const colorMode = useColorMode();
 const markdownRepoContext = inject(markdownRepoContextKey, null);
 
 const tag = computed(() => {
@@ -66,6 +70,10 @@ const resolvedAttrs = computed(() => ({
   ),
   poster: resolveResourceUrl(props.poster),
   alt: tag.value === 'img' ? (props.alt ?? '') : props.alt,
+  media:
+    tag.value === 'source'
+      ? resolveMarkdownColorModeSourceMedia(props.media, colorMode.value)
+      : props.media,
 }));
 </script>
 
