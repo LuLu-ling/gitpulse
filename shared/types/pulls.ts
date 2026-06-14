@@ -1,4 +1,5 @@
 import type { PullRequestReviewersSummary } from './pr-reviewers';
+import type { ReactionSummaryItem } from './reactions';
 
 /**
  * Pull Request types from the GitPulse pull request detail API.
@@ -67,6 +68,7 @@ export interface PullRequestDetailPayload {
 
   // Labels
   labels?: PullRequestDetailLabel[];
+  reactions?: ReactionSummaryItem[];
 
   // Reviewers
   requested_reviewers?: PullRequestUserSummary[];

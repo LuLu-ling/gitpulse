@@ -102,6 +102,12 @@
     "noActivity": "No activity yet",
     "noCommentBody": "No comment body"
   },
+  "reactions": {
+    "addReaction": "Add reaction",
+    "reactionCount": "{reaction}: {count}",
+    "loadFailed": "Failed to load reactions",
+    "updateFailed": "Failed to update reactions"
+  },
   "detailLabels": {
     "title": "Labels",
     "edit": "Edit labels",

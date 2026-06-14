@@ -82,6 +82,16 @@
         />
         <p v-else>{{ t('prReview.noDescription') }}</p>
       </div>
+      <ReactionBar
+        v-if="repoOwner && repoName && pullRequest?.number"
+        class="header-reactions"
+        target-kind="issue"
+        :owner="repoOwner"
+        :repo="repoName"
+        :target-id="pullRequest.number"
+        :initial-items="pullRequest.reactions"
+        initial-items-include-viewer-state
+      />
     </div>
   </div>
 </template>
@@ -99,6 +109,8 @@ import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { formatDurationFromNow } from '#imports';
+import type { ReactionSummaryItem } from '#shared/types/reactions';
+import ReactionBar from '~/components/dashboard/reactions/ReactionBar.vue';
 import GitHubAvatar from '~/components/ui/GitHubAvatar.vue';
 import MarkdownRenderer from '~/components/ui/MarkdownRenderer.vue';
 
@@ -124,6 +136,7 @@ interface PullRequestHeaderPullRequest {
   };
   created_at?: string;
   body?: string | null;
+  reactions?: ReactionSummaryItem[];
 }
 
 const props = defineProps<{
@@ -291,5 +304,9 @@ const handleRepoClick = async () => {
 .header-author__time {
   font-size: 0.8rem;
   color: var(--gitpulse-text-muted);
+}
+
+.header-reactions {
+  margin-top: 0.75rem;
 }
 </style>

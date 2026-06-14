@@ -1,3 +1,5 @@
+import type { ReactionSummaryItem } from './reactions';
+
 export interface ReleaseAuthor {
   login?: string;
   avatar_url?: string;
@@ -32,4 +34,5 @@ export interface ReleaseDetailPayload {
   author?: ReleaseAuthor | null;
   assets?: ReleaseAsset[];
   repository_url?: string;
+  reactions?: ReactionSummaryItem[];
 }

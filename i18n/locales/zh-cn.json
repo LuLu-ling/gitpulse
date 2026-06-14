@@ -102,6 +102,12 @@
     "noActivity": "暂无活动",
     "noCommentBody": "无评论内容"
   },
+  "reactions": {
+    "addReaction": "添加表情",
+    "reactionCount": "{reaction}: {count}",
+    "loadFailed": "加载表情失败",
+    "updateFailed": "更新表情失败"
+  },
   "detailLabels": {
     "title": "标签",
     "edit": "编辑标签",

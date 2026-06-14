@@ -1,5 +1,6 @@
 import { computed, toValue, type MaybeRefOrGetter } from 'vue';
 
+import type { ReactionSummaryItem } from '#shared/types/reactions';
 import type {
   TimelineActor,
   TimelineCommit,
@@ -17,6 +18,7 @@ export interface IssueTimelineItem {
   createdAt?: string;
   body?: string;
   url?: string;
+  reactions?: ReactionSummaryItem[];
   timelineSource?: string;
   degraded?: boolean;
   displayText?: string;

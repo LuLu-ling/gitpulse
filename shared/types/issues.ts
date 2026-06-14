@@ -2,6 +2,8 @@
  * Issue detail payload from the GitHub API.
  */
 
+import type { ReactionSummaryItem } from './reactions';
+
 export interface IssueDetailLabel {
   id?: number | string;
   name: string;
@@ -35,6 +37,7 @@ export interface IssueDetailPayload {
   } | null;
 
   labels?: IssueDetailLabel[];
+  reactions?: ReactionSummaryItem[];
 
   [key: string]: unknown;
 }

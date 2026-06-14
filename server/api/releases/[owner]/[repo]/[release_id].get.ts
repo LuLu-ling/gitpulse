@@ -1,3 +1,6 @@
+import { getGitHubSessionContext, throwGitHubRouteError } from '#server/utils/github-auth-utils';
+import { fetchReleaseReactionSummary } from '#server/utils/github-reaction-utils';
+
 export default definePrivateApiCoalescedEventHandler(async (event) => {
   try {
     const { owner, repo, release_id } = event.context.params as {
@@ -14,17 +17,32 @@ export default definePrivateApiCoalescedEventHandler(async (event) => {
       });
     }
 
-    const octokit = await getGitHubClient(event);
+    const { octokit, userLogin } = await getGitHubSessionContext(event);
 
-    const release = await octokit.request('GET /repos/{owner}/{repo}/releases/{release_id}', {
-      owner,
-      repo,
-      release_id: releaseId,
-    });
+    const [release, reactionSummary] = await Promise.all([
+      octokit.request('GET /repos/{owner}/{repo}/releases/{release_id}', {
+        owner,
+        repo,
+        release_id: releaseId,
+      }),
+      fetchReleaseReactionSummary(
+        octokit,
+        {
+          owner,
+          repo,
+          targetId: releaseId,
+        },
+        userLogin
+      ).catch((error: unknown) => {
+        console.warn('Failed to fetch GitHub release reactions:', error);
+        return { items: [] };
+      }),
+    ]);
 
     return {
       ...release.data,
       repository_url: `https://api.github.com/repos/${owner}/${repo}`,
+      reactions: reactionSummary.items,
     };
   } catch (error: unknown) {
     console.error('Error fetching GitHub release:', error);

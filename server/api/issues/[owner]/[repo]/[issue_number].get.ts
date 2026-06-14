@@ -1,3 +1,6 @@
+import { getGitHubSessionContext, throwGitHubRouteError } from '#server/utils/github-auth-utils';
+import { fetchIssueReactionSummary } from '#server/utils/github-reaction-utils';
+
 export default definePrivateApiCoalescedEventHandler(async (event) => {
   try {
     const { owner, repo, issue_number } = event.context.params as {
@@ -14,15 +17,32 @@ export default definePrivateApiCoalescedEventHandler(async (event) => {
       });
     }
 
-    const octokit = await getGitHubClient(event);
+    const { octokit, userLogin } = await getGitHubSessionContext(event);
 
-    const issue = await octokit.request('GET /repos/{owner}/{repo}/issues/{issue_number}', {
-      owner,
-      repo,
-      issue_number: issueNumber,
-    });
+    const [issue, reactionSummary] = await Promise.all([
+      octokit.request('GET /repos/{owner}/{repo}/issues/{issue_number}', {
+        owner,
+        repo,
+        issue_number: issueNumber,
+      }),
+      fetchIssueReactionSummary(
+        octokit,
+        {
+          owner,
+          repo,
+          targetId: issueNumber,
+        },
+        userLogin
+      ).catch((error: unknown) => {
+        console.warn('Failed to fetch GitHub issue reactions:', error);
+        return { items: [] };
+      }),
+    ]);
 
-    return issue.data;
+    return {
+      ...issue.data,
+      reactions: reactionSummary.items,
+    };
   } catch (error: unknown) {
     console.error('Error fetching GitHub issue:', error);
     throwGitHubRouteError(error, 'Failed to fetch issue');

@@ -1,5 +1,6 @@
 import { computed, toValue, type MaybeRefOrGetter } from 'vue';
 
+import type { ReactionSummaryItem } from '#shared/types/reactions';
 import parseGitHubMarkdownTarget from '~/utils/parseGitHubMarkdownTarget';
 import parseGitHubRepoPath from '~/utils/parseGitHubRepoPath';
 
@@ -103,6 +104,7 @@ export interface PRTimelineItem {
   displayText?: string;
   body?: string;
   url?: string;
+  reactions?: ReactionSummaryItem[];
   state?: string;
   actor?: TimelineActor;
   author?: TimelineActor;

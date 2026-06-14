@@ -4,6 +4,8 @@
     :empty-text="localizedEmptyText"
     :repo-owner="props.repoOwner"
     :repo-name="props.repoName"
+    :enable-reactions="props.item.kind === 'comment' || props.item.kind === 'review-comment'"
+    :reaction-target-kind="reactionTargetKind"
   />
 </template>
 
@@ -23,4 +25,7 @@ const props = defineProps<{
 
 const { t } = useI18n();
 const localizedEmptyText = computed(() => props.emptyText ?? t('detailTimeline.noCommentBody'));
+const reactionTargetKind = computed(() =>
+  props.item.kind === 'review-comment' ? 'pull-review-comment' : undefined
+);
 </script>

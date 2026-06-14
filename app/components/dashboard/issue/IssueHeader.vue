@@ -67,6 +67,16 @@
         />
         <p v-else>{{ t('issueDetail.noDescription') }}</p>
       </div>
+      <ReactionBar
+        v-if="repoOwner && repoName && issue?.number"
+        class="header-reactions"
+        target-kind="issue"
+        :owner="repoOwner"
+        :repo="repoName"
+        :target-id="issue.number"
+        :initial-items="issue.reactions"
+        initial-items-include-viewer-state
+      />
     </div>
   </div>
 </template>
@@ -77,6 +87,8 @@ import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { formatDurationFromNow } from '#imports';
+import type { ReactionSummaryItem } from '#shared/types/reactions';
+import ReactionBar from '~/components/dashboard/reactions/ReactionBar.vue';
 import GitHubAvatar from '~/components/ui/GitHubAvatar.vue';
 import MarkdownRenderer from '~/components/ui/MarkdownRenderer.vue';
 
@@ -100,6 +112,7 @@ interface IssueHeaderIssue {
   } | null;
   created_at?: string;
   body?: string | null;
+  reactions?: ReactionSummaryItem[];
 }
 
 const props = defineProps<{
@@ -230,5 +243,9 @@ const handleRepoClick = async () => {
 .header-author__time {
   font-size: 0.8rem;
   color: var(--gitpulse-text-muted);
+}
+
+.header-reactions {
+  margin-top: 0.75rem;
 }
 </style>

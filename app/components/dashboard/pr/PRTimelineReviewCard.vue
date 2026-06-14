@@ -5,6 +5,7 @@
     :empty-text="t('detailTimeline.noCommentBody')"
     :repo-owner="repoOwner"
     :repo-name="repoName"
+    :enable-reactions="false"
   />
   <div
     v-else

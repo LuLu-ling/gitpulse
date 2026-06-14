@@ -1,3 +1,5 @@
+import { getGitHubSessionContext, throwGitHubRouteError } from '#server/utils/github-auth-utils';
+import { fetchIssueReactionSummary } from '#server/utils/github-reaction-utils';
 import { createEmptyPRReviewerSummary } from '#server/utils/pr-reviewers-utils';
 
 export default definePrivateApiCoalescedEventHandler(async (event) => {
@@ -16,17 +18,32 @@ export default definePrivateApiCoalescedEventHandler(async (event) => {
       });
     }
 
-    const octokit = await getGitHubClient(event);
+    const { octokit, userLogin } = await getGitHubSessionContext(event);
 
-    const pullRequest = await octokit.request('GET /repos/{owner}/{repo}/pulls/{pull_number}', {
-      owner,
-      repo,
-      pull_number: pullNumber,
-    });
+    const [pullRequest, reactionSummary] = await Promise.all([
+      octokit.request('GET /repos/{owner}/{repo}/pulls/{pull_number}', {
+        owner,
+        repo,
+        pull_number: pullNumber,
+      }),
+      fetchIssueReactionSummary(
+        octokit,
+        {
+          owner,
+          repo,
+          targetId: pullNumber,
+        },
+        userLogin
+      ).catch((error: unknown) => {
+        console.warn('Failed to fetch GitHub pull request reactions:', error);
+        return { items: [] };
+      }),
+    ]);
 
     return {
       ...pullRequest.data,
       reviewers: createEmptyPRReviewerSummary(),
+      reactions: reactionSummary.items,
     };
   } catch (error: unknown) {
     console.error('Error fetching GitHub pull request:', error);

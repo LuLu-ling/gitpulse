@@ -11,6 +11,7 @@ import {
 import { GitHubIcon } from 'vue3-simple-icons';
 
 import type { ReleaseAsset, ReleaseDetailPayload } from '#shared/types/releases';
+import ReactionBar from '~/components/dashboard/reactions/ReactionBar.vue';
 import GitHubAvatar from '~/components/ui/GitHubAvatar.vue';
 import MarkdownRenderer from '~/components/ui/MarkdownRenderer.vue';
 import formatPageMetaDescription from '~/utils/formatPageMetaDescription';
@@ -182,6 +183,17 @@ usePageMeta(
           />
           <p v-else class="release-body__empty">{{ t('releaseDetail.noDescription') }}</p>
         </article>
+
+        <ReactionBar
+          v-if="repoOwner && repoName && release.id"
+          class="release-body__reactions"
+          target-kind="release"
+          :owner="repoOwner"
+          :repo="repoName"
+          :target-id="release.id"
+          :initial-items="release.reactions"
+          initial-items-include-viewer-state
+        />
       </div>
 
       <aside class="column detail-sidebar-column">
@@ -397,6 +409,10 @@ usePageMeta(
 .release-body {
   max-width: 100%;
   overflow-wrap: anywhere;
+}
+
+.release-body__reactions {
+  margin-top: 0.75rem;
 }
 
 .release-body__empty,

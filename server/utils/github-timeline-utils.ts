@@ -1,5 +1,8 @@
 import type { Octokit } from '@octokit/core';
 
+import type { ReactionContent, ReactionSummaryItem } from '#shared/types/reactions';
+import { ISSUE_COMMENT_REACTION_CONTENTS } from '#shared/utils/reactions';
+
 import { parseLinkHeader } from './github-pagination';
 
 type GitHubClient = Octokit;
@@ -118,6 +121,8 @@ interface SortableTimelineItem {
 }
 
 type BaseTimelineItem = Omit<SortableTimelineItem, 'kind'>;
+
+const reactionContentKeys: ReactionContent[] = ISSUE_COMMENT_REACTION_CONTENTS;
 
 interface RestUserLike {
   login?: string;
@@ -244,6 +249,31 @@ function getResponseHasNextPage(response: {
   const links = parseLinkHeader(getResponseLinkHeader(response));
 
   return Boolean(links.next);
+}
+
+function mapReactionAggregate(value: unknown): ReactionSummaryItem[] {
+  if (!value || typeof value !== 'object') {
+    return [];
+  }
+
+  const reactions = value as Record<string, unknown>;
+
+  return reactionContentKeys.flatMap((content) => {
+    const count = Number(reactions[content]);
+
+    if (!Number.isSafeInteger(count) || count < 1) {
+      return [];
+    }
+
+    return [
+      {
+        content,
+        count,
+        viewerHasReacted: false,
+        viewerReactionId: null,
+      },
+    ];
+  });
 }
 
 export async function fetchPaginatedArray<T>(
@@ -495,6 +525,7 @@ export function normalizeIssueTimelineEvent(
         author: mapActor(rawEvent.actor ?? rawEvent.user),
         body: rawEvent.body ?? '',
         url: rawEvent.html_url,
+        reactions: mapReactionAggregate(rawEvent.reactions),
       };
     case 'cross-referenced':
       return {
