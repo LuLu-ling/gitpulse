@@ -1,0 +1,21 @@
+default_install_hook_types = ["pre-commit"]
+default_stages = ["pre-commit"]
+
+[[repos]]
+repo = "local"
+
+[[repos.hooks]]
+id = "oxfmt-check"
+name = "oxfmt check"
+language = "system"
+entry = "bun run fmt:check"
+pass_filenames = false
+always_run = true
+
+[[repos.hooks]]
+id = "oxlint-check"
+name = "oxlint check"
+language = "system"
+entry = "bun run lint"
+pass_filenames = false
+always_run = true
