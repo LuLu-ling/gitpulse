@@ -229,6 +229,7 @@
   />
 
   <FilterModal
+    v-if="hasOpenedFilterDrawer"
     :open="isFilterDrawerOpen"
     :current-tab="activeFilterSource"
     :filters="visibleDashboardFilters"
@@ -274,7 +275,6 @@ import DashboardLoadingList from '~/components/dashboard/DashboardLoadingList.vu
 import DashboardPagination from '~/components/dashboard/DashboardPagination.vue';
 import DetailOverlayHost from '~/components/dashboard/detail/DetailOverlayHost.vue';
 import DashboardAdvancedFilters from '~/components/dashboard/filters/DashboardAdvancedFilters.vue';
-import FilterModal from '~/components/dashboard/filters/FilterModal.vue';
 import FilterPills from '~/components/dashboard/filters/FilterPills.vue';
 import FloatingRefreshButton from '~/components/dashboard/FloatingRefreshButton.vue';
 import TabSidebar from '~/components/dashboard/tab-sidebar/TabSidebar.vue';
@@ -307,6 +307,9 @@ const AsyncIssuePrNotificationItem = defineAsyncComponent(
 );
 const AsyncSearchItem = defineAsyncComponent(() => import('~/components/dashboard/SearchItem.vue'));
 const AsyncRepoItem = defineAsyncComponent(() => import('~/components/dashboard/RepoItem.vue'));
+const FilterModal = defineAsyncComponent(
+  () => import('~/components/dashboard/filters/FilterModal.vue')
+);
 const RepoFileView = defineAsyncComponent(
   () => import('~/components/dashboard/repo-files/RepoFileView.vue')
 );
@@ -453,6 +456,7 @@ const {
 
 const { filters: dashboardFilters, updateFilters, clearSourceFilters } = useDashboardFilters();
 const isFilterDrawerOpen = shallowRef(false);
+const hasOpenedFilterDrawer = shallowRef(false);
 const showErrorDetails = shallowRef(false);
 const userLogin = computed(() => user.value?.login);
 const filterSourceStates = computed(() => ({
@@ -464,6 +468,13 @@ const filterSourceStates = computed(() => ({
 const notificationFilterAdapter = computed(
   () => filterSourceStates.value.notifications.notificationAdapter
 );
+
+watch(isFilterDrawerOpen, (open) => {
+  if (open) {
+    hasOpenedFilterDrawer.value = true;
+  }
+});
+
 const issuePrFetchOptions = computed(() => {
   const issuePrQuery = filterSourceStates.value.issues.issuePrQuery;
   if (!issuePrQuery) {
