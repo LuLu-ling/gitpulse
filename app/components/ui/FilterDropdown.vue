@@ -548,6 +548,9 @@ watch(
   max-height: 280px;
   margin: 0;
   padding: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
   overflow-y: auto;
   overscroll-behavior: contain;
   list-style: none;
@@ -555,7 +558,7 @@ watch(
 
 .filter-dropdown-separator {
   height: 1px;
-  margin: 4px 0;
+  margin: 2px 0;
   background: var(--gitpulse-border);
 }
 
