@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import 'simplebar-vue/dist/simplebar.min.css';
 import SimpleBar from 'simplebar-vue';
 </script>
 

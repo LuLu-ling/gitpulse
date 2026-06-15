@@ -262,6 +262,8 @@ import {
   RefreshCwIcon,
   SearchIcon,
 } from 'lucide-vue-next';
+
+import 'simplebar-vue/dist/simplebar.min.css';
 import SimpleBar from 'simplebar-vue';
 import { defineAsyncComponent, computed, shallowRef, watch } from 'vue';
 import type { LocationQueryRaw } from 'vue-router';
