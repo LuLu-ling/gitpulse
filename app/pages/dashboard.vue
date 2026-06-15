@@ -193,7 +193,7 @@
   </div>
 
   <DetailOverlayHost
-    v-if="!showFileBrowsingView"
+    v-if="hasOpenedDetailOverlay && !showFileBrowsingView"
     :issue="currentIssue"
     :pull-request="currentPR"
     :discussion="currentDiscussion"
@@ -273,7 +273,6 @@ import ActivityBar from '~/components/dashboard/activity-bar/ActivityBar.vue';
 import DashboardLayout from '~/components/dashboard/DashboardLayout.vue';
 import DashboardLoadingList from '~/components/dashboard/DashboardLoadingList.vue';
 import DashboardPagination from '~/components/dashboard/DashboardPagination.vue';
-import DetailOverlayHost from '~/components/dashboard/detail/DetailOverlayHost.vue';
 import DashboardAdvancedFilters from '~/components/dashboard/filters/DashboardAdvancedFilters.vue';
 import FilterPills from '~/components/dashboard/filters/FilterPills.vue';
 import FloatingRefreshButton from '~/components/dashboard/FloatingRefreshButton.vue';
@@ -307,6 +306,9 @@ const AsyncIssuePrNotificationItem = defineAsyncComponent(
 );
 const AsyncSearchItem = defineAsyncComponent(() => import('~/components/dashboard/SearchItem.vue'));
 const AsyncRepoItem = defineAsyncComponent(() => import('~/components/dashboard/RepoItem.vue'));
+const DetailOverlayHost = defineAsyncComponent(
+  () => import('~/components/dashboard/detail/DetailOverlayHost.vue')
+);
 const FilterModal = defineAsyncComponent(
   () => import('~/components/dashboard/filters/FilterModal.vue')
 );
@@ -456,6 +458,7 @@ const {
 
 const { filters: dashboardFilters, updateFilters, clearSourceFilters } = useDashboardFilters();
 const isFilterDrawerOpen = shallowRef(false);
+const hasOpenedDetailOverlay = shallowRef(false);
 const hasOpenedFilterDrawer = shallowRef(false);
 const showErrorDetails = shallowRef(false);
 const userLogin = computed(() => user.value?.login);
@@ -885,6 +888,16 @@ const {
   currentDetailFreshnessUrl,
   refreshCurrentDetail,
 } = useDashboardDetails(currentRouteTabId);
+
+watch(
+  hasVisibleDetail,
+  (visible) => {
+    if (visible) {
+      hasOpenedDetailOverlay.value = true;
+    }
+  },
+  { immediate: true }
+);
 
 const openSearchResult = async (item: DashboardEntity) => {
   if (isPullRequestResult(item)) {
