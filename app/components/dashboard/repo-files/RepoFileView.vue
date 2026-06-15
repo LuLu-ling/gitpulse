@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import githubDark from '@shikijs/themes/github-dark';
-import githubLight from '@shikijs/themes/github-light';
 import {
   ArrowLeftIcon,
   CheckIcon,
@@ -15,8 +13,8 @@ import {
   PanelLeftOpenIcon,
   WrapTextIcon,
 } from 'lucide-vue-next';
-import type { BundledLanguage, HighlighterCore } from 'shiki';
-import { bundledLanguages } from 'shiki/langs';
+import type { HighlighterCore, ThemeRegistration } from 'shiki';
+import type { BundledLanguage } from 'shiki/langs';
 import { computed, nextTick, onActivated, onMounted, ref, shallowRef, watch } from 'vue';
 import type { LocationQueryRaw } from 'vue-router';
 
@@ -161,6 +159,15 @@ const highlighter = shallowRef<HighlighterCore | null>(null);
 const highlightedHtml = ref('');
 const highlightLoading = ref(false);
 const loadedHighlighterLanguages = new Set<string>();
+let bundledLanguagesPromise: Promise<BundledLanguages> | null = null;
+let highlighterThemesPromise: Promise<RepoFileHighlighterThemes> | null = null;
+
+type BundledLanguages = (typeof import('shiki/langs'))['bundledLanguages'];
+
+interface RepoFileHighlighterThemes {
+  githubLight: ThemeRegistration;
+  githubDark: ThemeRegistration;
+}
 
 const fileBytes = computed(() => {
   if (!fileContent.value) return new Uint8Array();
@@ -303,9 +310,38 @@ const resolveLanguage = (ext: string): string => {
   return map[ext] || 'text';
 };
 
+const loadBundledLanguages = (): Promise<BundledLanguages> => {
+  if (!bundledLanguagesPromise) {
+    bundledLanguagesPromise = import('shiki/langs').then((module) => module.bundledLanguages);
+    bundledLanguagesPromise.catch(() => {
+      bundledLanguagesPromise = null;
+    });
+  }
+
+  return bundledLanguagesPromise;
+};
+
+const loadHighlighterThemes = (): Promise<RepoFileHighlighterThemes> => {
+  if (!highlighterThemesPromise) {
+    highlighterThemesPromise = Promise.all([
+      import('@shikijs/themes/github-light'),
+      import('@shikijs/themes/github-dark'),
+    ]).then(([githubLightModule, githubDarkModule]) => ({
+      githubLight: githubLightModule.default,
+      githubDark: githubDarkModule.default,
+    }));
+    highlighterThemesPromise.catch(() => {
+      highlighterThemesPromise = null;
+    });
+  }
+
+  return highlighterThemesPromise;
+};
+
 const loadLanguageRegistration = async (language: string) => {
   if (language === 'text' || loadedHighlighterLanguages.has(language)) return;
 
+  const bundledLanguages = await loadBundledLanguages();
   const loadLanguage = bundledLanguages[language as BundledLanguage];
   if (!loadLanguage) return;
 
@@ -322,10 +358,13 @@ const initHighlighter = async (language: string) => {
   }
 
   try {
-    const { createHighlighter } = await import('shiki');
+    const [{ createHighlighter }, themes] = await Promise.all([
+      import('shiki'),
+      loadHighlighterThemes(),
+    ]);
 
     highlighter.value = await createHighlighter({
-      themes: [githubLight, githubDark],
+      themes: [themes.githubLight, themes.githubDark],
       langs: [],
     });
     await loadLanguageRegistration(language);
@@ -347,6 +386,7 @@ const highlightCode = async () => {
     await initHighlighter(language);
     if (!highlighter.value) return;
 
+    const themes = await loadHighlighterThemes();
     const code = decodedContent.value;
 
     // Limit highlighting to prevent freezing on huge files
@@ -358,8 +398,8 @@ const highlightCode = async () => {
     highlightedHtml.value = highlighter.value.codeToHtml(code, {
       lang: language,
       themes: {
-        light: githubLight,
-        dark: githubDark,
+        light: themes.githubLight,
+        dark: themes.githubDark,
       },
       transformers: [
         {
