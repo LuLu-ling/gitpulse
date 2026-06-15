@@ -277,7 +277,6 @@ import DashboardAdvancedFilters from '~/components/dashboard/filters/DashboardAd
 import FilterModal from '~/components/dashboard/filters/FilterModal.vue';
 import FilterPills from '~/components/dashboard/filters/FilterPills.vue';
 import FloatingRefreshButton from '~/components/dashboard/FloatingRefreshButton.vue';
-import RepoFileView from '~/components/dashboard/repo-files/RepoFileView.vue';
 import TabSidebar from '~/components/dashboard/tab-sidebar/TabSidebar.vue';
 import QuickActions from '~/components/dashboard/widgets/QuickActions.vue';
 import WidgetsPanel from '~/components/dashboard/widgets/WidgetsPanel.vue';
@@ -308,6 +307,9 @@ const AsyncIssuePrNotificationItem = defineAsyncComponent(
 );
 const AsyncSearchItem = defineAsyncComponent(() => import('~/components/dashboard/SearchItem.vue'));
 const AsyncRepoItem = defineAsyncComponent(() => import('~/components/dashboard/RepoItem.vue'));
+const RepoFileView = defineAsyncComponent(
+  () => import('~/components/dashboard/repo-files/RepoFileView.vue')
+);
 
 const { loggedIn, ready: sessionReady, user } = useUserSession();
 const { t } = useI18n();
