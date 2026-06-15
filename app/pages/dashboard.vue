@@ -270,11 +270,6 @@ import { defineAsyncComponent, computed, shallowRef, watch } from 'vue';
 import type { LocationQueryRaw } from 'vue-router';
 
 import ActivityBar from '~/components/dashboard/activity-bar/ActivityBar.vue';
-import {
-  loadDetailOverlayHost,
-  loadFilterModal,
-  loadRepoFileView,
-} from '~/components/dashboard/dashboard-lazy-loaders';
 import DashboardLayout from '~/components/dashboard/DashboardLayout.vue';
 import DashboardLoadingList from '~/components/dashboard/DashboardLoadingList.vue';
 import DashboardPagination from '~/components/dashboard/DashboardPagination.vue';
@@ -318,6 +313,9 @@ const AsyncIssuePrNotificationItem = defineAsyncComponent(
 );
 const AsyncSearchItem = defineAsyncComponent(() => import('~/components/dashboard/SearchItem.vue'));
 const AsyncRepoItem = defineAsyncComponent(() => import('~/components/dashboard/RepoItem.vue'));
+const loadDetailOverlayHost = () => import('~/components/dashboard/detail/DetailOverlayHost.vue');
+const loadFilterModal = () => import('~/components/dashboard/filters/FilterModal.vue');
+const loadRepoFileView = () => import('~/components/dashboard/repo-files/RepoFileView.vue');
 const DetailOverlayHost = defineAsyncComponent(loadDetailOverlayHost);
 const FilterModal = defineAsyncComponent(loadFilterModal);
 const RepoFileView = defineAsyncComponent(loadRepoFileView);
@@ -519,16 +517,12 @@ const scheduleDashboardInteractionChunkPrefetch = () => {
 
   hasPrefetchedDashboardInteractionChunks.value = true;
 
-  const prefetch = () => {
-    prefetchDashboardInteractionChunks();
-  };
-
   if (window.requestIdleCallback) {
-    window.requestIdleCallback(prefetch, { timeout: 5000 });
+    window.requestIdleCallback(prefetchDashboardInteractionChunks, { timeout: 5000 });
     return;
   }
 
-  window.setTimeout(prefetch, 2000);
+  window.setTimeout(prefetchDashboardInteractionChunks, 2000);
 };
 
 const issuePrFetchOptions = computed(() => {
