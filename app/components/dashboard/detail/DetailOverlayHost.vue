@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Loader2Icon } from 'lucide-vue-next';
+import { Loader2Icon } from '@lucide/vue';
 import { computed, defineAsyncComponent, shallowRef, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 

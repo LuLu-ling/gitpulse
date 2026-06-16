@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { MonitorIcon, MoonIcon, SunIcon } from 'lucide-vue-next';
+import { MonitorIcon, MoonIcon, SunIcon } from '@lucide/vue';
 
 const colorMode = useColorMode();
 const { t } = useI18n();

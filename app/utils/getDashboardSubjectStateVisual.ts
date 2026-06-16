@@ -6,7 +6,7 @@ import {
   GitPullRequestIcon,
   MessagesSquareIcon,
   TagIcon,
-} from 'lucide-vue-next';
+} from '@lucide/vue';
 import type { Component } from 'vue';
 
 import type { NotificationSubjectState } from '#shared/types/notifications';

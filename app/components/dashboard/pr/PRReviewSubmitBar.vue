@@ -7,7 +7,7 @@ import {
   MessageSquareIcon,
   Trash2Icon,
   XCircleIcon,
-} from 'lucide-vue-next';
+} from '@lucide/vue';
 import { shallowRef } from 'vue';
 
 import type { PRReviewDraftComment, PRReviewEvent } from '~/composables/usePRReview';

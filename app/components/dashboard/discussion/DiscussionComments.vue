@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { AlertCircleIcon, MessageSquareIcon } from 'lucide-vue-next';
+import { AlertCircleIcon, MessageSquareIcon } from '@lucide/vue';
 
 import type { DiscussionComment } from '#shared/types/discussions';
 import DiscussionCommentCard from '~/components/dashboard/discussion/DiscussionCommentCard.vue';

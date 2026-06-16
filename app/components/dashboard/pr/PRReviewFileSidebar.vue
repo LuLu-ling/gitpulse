@@ -8,7 +8,7 @@ import {
   NetworkIcon,
   PanelLeftCloseIcon,
   PanelLeftOpenIcon,
-} from 'lucide-vue-next';
+} from '@lucide/vue';
 import { computed, ref } from 'vue';
 
 import type { PRReviewDraftComment, PRReviewFile } from '~/composables/usePRReview';

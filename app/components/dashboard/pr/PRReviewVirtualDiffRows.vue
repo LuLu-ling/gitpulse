@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { CheckIcon, XIcon } from 'lucide-vue-next';
+import { CheckIcon, XIcon } from '@lucide/vue';
 import {
   computed,
   nextTick,

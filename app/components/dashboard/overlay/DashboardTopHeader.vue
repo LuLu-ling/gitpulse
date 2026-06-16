@@ -23,7 +23,7 @@
 </template>
 
 <script setup lang="ts">
-import { ArrowLeftIcon, HomeIcon } from 'lucide-vue-next';
+import { ArrowLeftIcon, HomeIcon } from '@lucide/vue';
 import { GitHubIcon } from 'vue3-simple-icons';
 
 import LanguageSwitcher from '~/components/LanguageSwitcher.vue';

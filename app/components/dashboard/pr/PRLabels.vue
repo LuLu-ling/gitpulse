@@ -121,14 +121,7 @@
 </template>
 
 <script setup lang="ts">
-import {
-  AlertCircleIcon,
-  CheckIcon,
-  Loader2Icon,
-  PencilIcon,
-  TagIcon,
-  XIcon,
-} from 'lucide-vue-next';
+import { AlertCircleIcon, CheckIcon, Loader2Icon, PencilIcon, TagIcon, XIcon } from '@lucide/vue';
 import { onUnmounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 

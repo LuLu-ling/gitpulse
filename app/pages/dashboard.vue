@@ -262,7 +262,7 @@ import {
   GitPullRequestIcon,
   RefreshCwIcon,
   SearchIcon,
-} from 'lucide-vue-next';
+} from '@lucide/vue';
 
 import 'simplebar-vue/dist/simplebar.min.css';
 import SimpleBar from 'simplebar-vue';

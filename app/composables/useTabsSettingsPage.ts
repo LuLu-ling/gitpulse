@@ -9,7 +9,7 @@ import {
   GitPullRequestIcon,
   ShieldAlertIcon,
   XCircleIcon,
-} from 'lucide-vue-next';
+} from '@lucide/vue';
 import { computed, nextTick, onBeforeUnmount, reactive, ref, shallowRef, watch } from 'vue';
 
 import {

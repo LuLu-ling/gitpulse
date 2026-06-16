@@ -12,7 +12,7 @@ import {
   PanelLeftCloseIcon,
   PanelLeftOpenIcon,
   WrapTextIcon,
-} from 'lucide-vue-next';
+} from '@lucide/vue';
 import type { HighlighterCore, ThemeRegistration } from 'shiki';
 import type { BundledLanguage } from 'shiki/langs';
 import { computed, nextTick, onActivated, ref, shallowRef, watch } from 'vue';

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { MinusIcon, PlusIcon, RotateCcwIcon, XIcon } from 'lucide-vue-next';
+import { MinusIcon, PlusIcon, RotateCcwIcon, XIcon } from '@lucide/vue';
 import {
   computed,
   nextTick,

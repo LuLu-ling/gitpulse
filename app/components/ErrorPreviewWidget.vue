@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ConstructionIcon } from 'lucide-vue-next';
+import { ConstructionIcon } from '@lucide/vue';
 import { onBeforeUnmount, onMounted, shallowRef, useTemplateRef } from 'vue';
 
 interface ErrorPreset {

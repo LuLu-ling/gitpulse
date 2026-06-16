@@ -1,6 +1,6 @@
 <script setup lang="ts">
+import { CheckIcon, ClipboardIcon } from '@lucide/vue';
 import type { ComarkNode } from 'comark';
-import { CheckIcon, ClipboardIcon } from 'lucide-vue-next';
 import { computed, defineAsyncComponent, onBeforeUnmount, ref, shallowRef } from 'vue';
 import type { StyleValue } from 'vue';
 

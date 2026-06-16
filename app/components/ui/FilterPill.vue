@@ -40,7 +40,7 @@
 </template>
 
 <script setup lang="ts">
-import { ChevronDownIcon } from 'lucide-vue-next';
+import { ChevronDownIcon } from '@lucide/vue';
 import { computed, onBeforeUnmount, onMounted, ref, shallowRef } from 'vue';
 
 const props = withDefaults(

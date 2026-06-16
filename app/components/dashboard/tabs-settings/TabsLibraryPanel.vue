@@ -15,7 +15,7 @@ import {
   SparklesIcon,
   Trash2Icon,
   XIcon,
-} from 'lucide-vue-next';
+} from '@lucide/vue';
 import { VueDraggable } from 'vue-draggable-plus';
 
 import type { TabsSettingsPageState } from '~/composables/useTabsSettingsPage';

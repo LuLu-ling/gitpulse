@@ -62,7 +62,7 @@
 </template>
 
 <script setup lang="ts">
-import { LoaderCircleIcon, SmilePlusIcon } from 'lucide-vue-next';
+import { LoaderCircleIcon, SmilePlusIcon } from '@lucide/vue';
 import { computed, onBeforeUnmount, onMounted, shallowRef, useTemplateRef, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 

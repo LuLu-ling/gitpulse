@@ -18,7 +18,7 @@ import {
   UserIcon,
   UsersIcon,
   XIcon,
-} from 'lucide-vue-next';
+} from '@lucide/vue';
 import { GitHubIcon } from 'vue3-simple-icons';
 
 import SearchResultPreview from '~/components/dashboard/SearchResultPreview.vue';

@@ -36,7 +36,7 @@
 </template>
 
 <script setup lang="ts">
-import { Loader2Icon } from 'lucide-vue-next';
+import { Loader2Icon } from '@lucide/vue';
 
 import DashboardTopHeader from '~/components/dashboard/overlay/DashboardTopHeader.vue';
 

@@ -41,7 +41,7 @@
 </template>
 
 <script setup lang="ts">
-import { ChevronLeftIcon, ChevronRightIcon } from 'lucide-vue-next';
+import { ChevronLeftIcon, ChevronRightIcon } from '@lucide/vue';
 import { computed } from 'vue';
 
 interface PaginationMeta {

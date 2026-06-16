@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ArrowLeftIcon } from 'lucide-vue-next';
+import { ArrowLeftIcon } from '@lucide/vue';
 import { nextTick, ref, shallowRef, watch } from 'vue';
 
 import type { AutocompleteSuggestion } from '~/components/ui/FilterAutocomplete.vue';

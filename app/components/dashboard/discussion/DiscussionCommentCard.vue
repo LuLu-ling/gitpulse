@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { CheckCircle2Icon, MessageSquareIcon, MessageSquareReplyIcon } from 'lucide-vue-next';
+import { CheckCircle2Icon, MessageSquareIcon, MessageSquareReplyIcon } from '@lucide/vue';
 import { computed, shallowRef } from 'vue';
 import { useI18n } from 'vue-i18n';
 

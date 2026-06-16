@@ -110,7 +110,7 @@ import {
   UserPlusIcon,
   Users2Icon,
   UsersIcon,
-} from 'lucide-vue-next';
+} from '@lucide/vue';
 import { ref, computed } from 'vue';
 
 import { formatDurationFromNow } from '#imports';

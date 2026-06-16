@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { SlidersHorizontalIcon, ChevronRightIcon } from 'lucide-vue-next';
+import { SlidersHorizontalIcon, ChevronRightIcon } from '@lucide/vue';
 import { ref } from 'vue';
 
 import FilterAutocomplete from '~/components/ui/FilterAutocomplete.vue';

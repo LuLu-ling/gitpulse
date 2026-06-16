@@ -6,7 +6,7 @@ import {
   CircleMinusIcon,
   GitMergeIcon,
   LayoutGridIcon,
-} from 'lucide-vue-next';
+} from '@lucide/vue';
 import { computed } from 'vue';
 
 import FilterSegmentedControl from '~/components/ui/FilterSegmentedControl.vue';

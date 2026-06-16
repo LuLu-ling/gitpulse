@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { SearchIcon } from 'lucide-vue-next';
+import { SearchIcon } from '@lucide/vue';
 import { nextTick, useTemplateRef, watch } from 'vue';
 
 import type { AutocompleteSuggestion } from './autocomplete';

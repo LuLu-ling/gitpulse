@@ -1,4 +1,4 @@
-import { BellIcon, BookMarkedIcon, CircleDotIcon, GitPullRequestIcon } from 'lucide-vue-next';
+import { BellIcon, BookMarkedIcon, CircleDotIcon, GitPullRequestIcon } from '@lucide/vue';
 import type { Component } from 'vue';
 import { computed, ref } from 'vue';
 

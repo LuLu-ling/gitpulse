@@ -54,7 +54,7 @@
 </template>
 
 <script setup lang="ts">
-import { KeyRoundIcon, LockKeyholeIcon, UnlockIcon } from 'lucide-vue-next';
+import { KeyRoundIcon, LockKeyholeIcon, UnlockIcon } from '@lucide/vue';
 import { ref } from 'vue';
 
 import Button from '~/components/ui/Button.vue';

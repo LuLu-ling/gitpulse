@@ -85,7 +85,7 @@
 </template>
 
 <script setup lang="ts">
-import { PlusIcon, MinusIcon, SlidersHorizontalIcon } from 'lucide-vue-next';
+import { PlusIcon, MinusIcon, SlidersHorizontalIcon } from '@lucide/vue';
 import type { Component, CSSProperties } from 'vue';
 import { computed, onMounted, shallowRef } from 'vue';
 

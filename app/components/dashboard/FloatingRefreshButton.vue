@@ -24,7 +24,7 @@
 </template>
 
 <script setup lang="ts">
-import { RefreshCwIcon, SparklesIcon } from 'lucide-vue-next';
+import { RefreshCwIcon, SparklesIcon } from '@lucide/vue';
 
 defineProps<{
   hasNewContent?: boolean;

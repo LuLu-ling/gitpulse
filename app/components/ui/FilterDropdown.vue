@@ -124,7 +124,7 @@
 </template>
 
 <script setup lang="ts">
-import { CheckIcon, ChevronDownIcon, SearchIcon, XIcon } from 'lucide-vue-next';
+import { CheckIcon, ChevronDownIcon, SearchIcon, XIcon } from '@lucide/vue';
 import type { Component } from 'vue';
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, shallowRef, useId, watch } from 'vue';
 

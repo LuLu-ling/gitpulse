@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { LayersIcon, PlusIcon } from 'lucide-vue-next';
+import { LayersIcon, PlusIcon } from '@lucide/vue';
 
 import TabsEditorDrawer from '~/components/dashboard/tabs-settings/TabsEditorDrawer.vue';
 import TabsLibraryPanel from '~/components/dashboard/tabs-settings/TabsLibraryPanel.vue';

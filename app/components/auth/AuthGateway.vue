@@ -73,7 +73,7 @@
 </template>
 
 <script setup lang="ts">
-import { KeyRoundIcon } from 'lucide-vue-next';
+import { KeyRoundIcon } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 import { GitHubIcon } from 'vue3-simple-icons';
 

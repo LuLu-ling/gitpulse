@@ -37,7 +37,7 @@
 </template>
 
 <script setup lang="ts">
-import { LayoutDashboardIcon, LogOutIcon } from 'lucide-vue-next';
+import { LayoutDashboardIcon, LogOutIcon } from '@lucide/vue';
 
 import Button from '~/components/ui/Button.vue';
 import GitHubAvatar from '~/components/ui/GitHubAvatar.vue';

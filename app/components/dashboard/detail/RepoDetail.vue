@@ -11,7 +11,7 @@ import {
   Loader2Icon,
   StarIcon,
   XIcon,
-} from 'lucide-vue-next';
+} from '@lucide/vue';
 import { computed, onMounted, onUnmounted, ref, watch, type Component } from 'vue';
 import type { LocationQueryRaw } from 'vue-router';
 import { GitHubIcon } from 'vue3-simple-icons';

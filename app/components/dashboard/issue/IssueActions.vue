@@ -80,7 +80,7 @@ import {
   Loader2Icon,
   UnlockIcon,
   XIcon,
-} from 'lucide-vue-next';
+} from '@lucide/vue';
 import { onUnmounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 

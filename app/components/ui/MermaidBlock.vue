@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Maximize2Icon } from 'lucide-vue-next';
+import { Maximize2Icon } from '@lucide/vue';
 import { computed, nextTick, onMounted, shallowRef, useId, watch } from 'vue';
 
 import { estimateMermaidPreviewHeight } from '#shared/utils/mermaid-preview-height';

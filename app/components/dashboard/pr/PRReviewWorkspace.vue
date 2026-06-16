@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ArrowLeftIcon, GitPullRequestIcon, HomeIcon, MessageSquareIcon } from 'lucide-vue-next';
+import { ArrowLeftIcon, GitPullRequestIcon, HomeIcon, MessageSquareIcon } from '@lucide/vue';
 import { computed, shallowRef } from 'vue';
 
 import PRReviewDiffViewer from '~/components/dashboard/pr/PRReviewDiffViewer.vue';

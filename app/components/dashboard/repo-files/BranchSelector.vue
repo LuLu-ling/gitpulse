@@ -1,11 +1,5 @@
 <script setup lang="ts">
-import {
-  CheckIcon,
-  ChevronDownIcon,
-  GitBranchIcon,
-  Loader2Icon,
-  SearchIcon,
-} from 'lucide-vue-next';
+import { CheckIcon, ChevronDownIcon, GitBranchIcon, Loader2Icon, SearchIcon } from '@lucide/vue';
 import { computed, nextTick, onBeforeUnmount, shallowRef, useTemplateRef, watch } from 'vue';
 
 import type { RepoBranch } from '~/composables/useRepoFiles';

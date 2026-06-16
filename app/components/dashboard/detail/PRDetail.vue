@@ -123,7 +123,7 @@
 </template>
 
 <script setup lang="ts">
-import { EyeIcon } from 'lucide-vue-next';
+import { EyeIcon } from '@lucide/vue';
 import { computed, defineAsyncComponent, ref, shallowRef, watch } from 'vue';
 
 import type {

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { PaletteIcon, SearchIcon, TypeIcon } from 'lucide-vue-next';
+import { PaletteIcon, SearchIcon, TypeIcon } from '@lucide/vue';
 import { computed, nextTick, onMounted, shallowRef, useTemplateRef } from 'vue';
 
 import type { AppFontId, CodeFontId } from '#shared/types/user-settings';

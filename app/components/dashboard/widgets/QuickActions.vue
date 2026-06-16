@@ -26,7 +26,7 @@
 </template>
 
 <script setup lang="ts">
-import { ExternalLinkIcon } from 'lucide-vue-next';
+import { ExternalLinkIcon } from '@lucide/vue';
 import { computed } from 'vue';
 
 const { t } = useI18n();

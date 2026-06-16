@@ -119,7 +119,7 @@
 </template>
 
 <script setup lang="ts">
-import { CheckIcon, Loader2Icon, SearchIcon, TypeIcon, XIcon } from 'lucide-vue-next';
+import { CheckIcon, Loader2Icon, SearchIcon, TypeIcon, XIcon } from '@lucide/vue';
 import { computed, nextTick, ref, shallowRef, watch } from 'vue';
 
 import { normalizeSystemFontFamily } from '#shared/utils/user-settings';

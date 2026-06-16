@@ -77,7 +77,7 @@ import {
   GitMergeIcon,
   GitPullRequestClosedIcon,
   GitPullRequestIcon,
-} from 'lucide-vue-next';
+} from '@lucide/vue';
 
 import { formatDurationFromNow, getRepoName } from '#imports';
 import getTextColorFromBackground from '~/utils/getTextColorFromBackground';

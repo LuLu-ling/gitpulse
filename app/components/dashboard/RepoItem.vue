@@ -50,7 +50,7 @@
 </template>
 
 <script setup lang="ts">
-import { EyeIcon, GitForkIcon, LockIcon, StarIcon } from 'lucide-vue-next';
+import { EyeIcon, GitForkIcon, LockIcon, StarIcon } from '@lucide/vue';
 import { computed } from 'vue';
 
 interface RepositoryListItem {

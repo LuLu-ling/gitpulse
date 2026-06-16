@@ -7,7 +7,7 @@ import {
   GitBranchIcon,
   PackageIcon,
   TagIcon,
-} from 'lucide-vue-next';
+} from '@lucide/vue';
 import { GitHubIcon } from 'vue3-simple-icons';
 
 import type { ReleaseAsset, ReleaseDetailPayload } from '#shared/types/releases';

@@ -58,7 +58,7 @@ import {
   InboxIcon,
   SettingsIcon,
   UserIcon,
-} from 'lucide-vue-next';
+} from '@lucide/vue';
 
 import GitHubAvatar from '~/components/ui/GitHubAvatar.vue';
 

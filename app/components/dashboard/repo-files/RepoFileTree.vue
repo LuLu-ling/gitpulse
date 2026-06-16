@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { FileIcon, FolderIcon, Loader2Icon } from 'lucide-vue-next';
+import { FileIcon, FolderIcon, Loader2Icon } from '@lucide/vue';
 import { computed } from 'vue';
 import type { LocationQueryRaw } from 'vue-router';
 
