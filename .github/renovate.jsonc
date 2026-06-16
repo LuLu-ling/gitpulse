@@ -5,7 +5,7 @@
     {
       "description": "Do not update Vue or Nuxt through Renovate.",
       "matchPackageNames": ["vue", "nuxt"],
-      "enabled": false,
-    },
-  ],
+      "enabled": false
+    }
+  ]
 }

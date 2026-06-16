@@ -3,5 +3,6 @@
   "trailingComma": "es5",
   "tabWidth": 2,
   "singleQuote": true,
-  "sortImports": true
+  "sortImports": true,
+  "ignorePatterns": [".github/renovate.jsonc"]
 }
