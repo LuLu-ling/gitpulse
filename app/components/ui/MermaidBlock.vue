@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { Maximize2Icon } from 'lucide-vue-next';
-import { nextTick, onMounted, shallowRef, useId, watch } from 'vue';
+import { computed, nextTick, onMounted, shallowRef, useId, watch } from 'vue';
 
+import { estimateMermaidPreviewHeight } from '#shared/utils/mermaid-preview-height';
 import MermaidViewerModal from '~/components/ui/MermaidViewerModal.vue';
 
 const props = defineProps<{
@@ -23,6 +24,9 @@ let renderSequence = 0;
 // useId() is Vue 3.5+ — generates a stable, unique id per component instance.
 const instanceId = useId();
 const renderId = `mermaid-${instanceId.replace(/[^a-zA-Z0-9-]/g, '-')}`;
+const previewStyle = computed(() => ({
+  '--mermaid-preview-height': `${estimateMermaidPreviewHeight(props.code)}px`,
+}));
 
 async function render(code: string) {
   if (!import.meta.client) return;
@@ -80,30 +84,37 @@ watch(
 
 <template>
   <ClientOnly>
-    <!-- Skeleton placeholder while loading — reserved height prevents layout shift -->
-    <template v-if="state.kind === 'loading'">
-      <div class="mermaid-skeleton" />
-    </template>
+    <template v-if="state.kind === 'loading' || state.kind === 'success'">
+      <div
+        class="mermaid-block"
+        :class="{ 'mermaid-block--loading': state.kind === 'loading' }"
+        :style="previewStyle"
+      >
+        <div v-if="state.kind === 'loading'" class="mermaid-skeleton" />
 
-    <!-- Successful SVG render — v-html, no DOMPurify overlay (securityLevel:'strict' is sufficient) -->
-    <template v-else-if="state.kind === 'success'">
-      <div class="mermaid-block">
-        <button
-          class="mermaid-block__open button is-small"
-          type="button"
-          :aria-label="t('markdown.mermaid.openViewer')"
-          :title="t('markdown.mermaid.openViewer')"
-          @click="openViewer"
-        >
-          <Maximize2Icon :size="14" aria-hidden="true" />
-          <span>{{ t('markdown.mermaid.openViewer') }}</span>
-        </button>
+        <!-- Successful SVG render — v-html, no DOMPurify overlay (securityLevel:'strict' is sufficient) -->
+        <template v-else>
+          <button
+            class="mermaid-block__open button is-small"
+            type="button"
+            :aria-label="t('markdown.mermaid.openViewer')"
+            :title="t('markdown.mermaid.openViewer')"
+            @click="openViewer"
+          >
+            <Maximize2Icon :size="14" aria-hidden="true" />
+            <span>{{ t('markdown.mermaid.openViewer') }}</span>
+          </button>
 
-        <!-- eslint-disable-next-line vue/no-v-html -->
-        <div class="mermaid-output" v-html="state.svg" />
+          <!-- eslint-disable-next-line vue/no-v-html -->
+          <div class="mermaid-output" v-html="state.svg" />
+        </template>
       </div>
 
-      <MermaidViewerModal v-if="isViewerOpen" :code="code" @close="closeViewer" />
+      <MermaidViewerModal
+        v-if="state.kind === 'success' && isViewerOpen"
+        :code="code"
+        @close="closeViewer"
+      />
     </template>
 
     <!-- Silent fallback for parse errors / oversized source -->
@@ -119,20 +130,20 @@ watch(
 </template>
 
 <style scoped lang="scss">
-.mermaid-skeleton {
-  width: 100%;
-  min-height: 160px;
-  background-color: var(--gitpulse-skeleton-bg);
-  border-radius: 4px;
-}
-
 .mermaid-block {
   position: relative;
   overflow: hidden;
   margin: 1rem 0;
+  min-height: min(var(--mermaid-preview-height), 70vh);
   border: 1px solid var(--gitpulse-border);
   border-radius: 6px;
   background-color: var(--gitpulse-markdown-bg);
+}
+
+.mermaid-skeleton {
+  width: 100%;
+  min-height: min(var(--mermaid-preview-height), 70vh);
+  background-color: var(--gitpulse-skeleton-bg);
 }
 
 .mermaid-block__open {
@@ -163,7 +174,8 @@ watch(
 }
 
 .mermaid-output {
-  overflow-x: auto;
+  overflow: auto;
+  max-height: min(var(--mermaid-preview-height), 70vh);
   padding: 1rem;
 }
 
