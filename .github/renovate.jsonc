@@ -1,0 +1,11 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "packageRules": [
+    {
+      "description": "Do not update Vue or Nuxt through Renovate.",
+      "matchPackageNames": ["vue", "nuxt"],
+      "enabled": false,
+    },
+  ],
+}
