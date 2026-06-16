@@ -551,12 +551,6 @@ const dashboardListLoading = computed(
   () => !hasCompletedInitialDashboardLoad.value || loading.value
 );
 
-watch(hasCompletedInitialDashboardLoad, (loaded) => {
-  if (loaded) {
-    scheduleDashboardInteractionChunkPrefetch();
-  }
-});
-
 const { customTabs, getCustomTabById } = useCustomTabs();
 
 const {
@@ -951,6 +945,12 @@ watch(
   },
   { immediate: true }
 );
+
+watch([hasCompletedInitialDashboardLoad, hasVisibleDetail], ([loaded, detailVisible]) => {
+  if (loaded && !detailVisible) {
+    scheduleDashboardInteractionChunkPrefetch();
+  }
+});
 
 const openSearchResult = async (item: DashboardEntity) => {
   if (isPullRequestResult(item)) {
