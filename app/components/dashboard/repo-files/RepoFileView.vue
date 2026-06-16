@@ -18,6 +18,7 @@ import type { BundledLanguage } from 'shiki/langs';
 import { computed, nextTick, onActivated, ref, shallowRef, watch } from 'vue';
 import type { LocationQueryRaw } from 'vue-router';
 
+import type { ShikiDarkThemeId, ShikiLightThemeId } from '#shared/types/user-settings';
 import FloatingRefreshButton from '~/components/dashboard/FloatingRefreshButton.vue';
 import BranchSelector from '~/components/dashboard/repo-files/BranchSelector.vue';
 import type { RepoContentItem } from '~/composables/useRepoFiles';
@@ -53,6 +54,7 @@ const { t } = useI18n();
 const localePath = useLocalePath();
 const apiFetch = useGitPulseApiFetch();
 const router = useRouter();
+const { settings } = useUserSettings();
 const {
   canGoBack,
   currentEntry,
@@ -159,14 +161,22 @@ const highlighter = shallowRef<HighlighterCore | null>(null);
 const highlightedHtml = ref('');
 const highlightLoading = ref(false);
 const loadedHighlighterLanguages = new Set<string>();
+const loadedHighlighterThemeKeys = new Set<string>();
+const highlighterThemePromises = new Map<string, Promise<RepoFileHighlighterThemes>>();
+const highlightRequestId = ref(0);
 let bundledLanguagesPromise: Promise<BundledLanguages> | null = null;
-let highlighterThemesPromise: Promise<RepoFileHighlighterThemes> | null = null;
 
 type BundledLanguages = (typeof import('shiki/langs'))['bundledLanguages'];
 
+interface RepoFileThemeSelection {
+  light: ShikiLightThemeId;
+  dark: ShikiDarkThemeId;
+}
+
 interface RepoFileHighlighterThemes {
-  githubLight: ThemeRegistration;
-  githubDark: ThemeRegistration;
+  key: string;
+  light: ThemeRegistration;
+  dark: ThemeRegistration;
 }
 
 const fileBytes = computed(() => {
@@ -239,6 +249,10 @@ const sortedDirectoryContents = computed(() => {
 });
 
 const itemCount = computed(() => directoryContents.value.length);
+const currentThemeSelection = computed<RepoFileThemeSelection>(() => ({
+  light: settings.value.appearance.shikiLightTheme,
+  dark: settings.value.appearance.shikiDarkTheme,
+}));
 
 const formatFileSize = (bytes: number): string => {
   if (bytes === 0) return '0 B';
@@ -321,21 +335,29 @@ const loadBundledLanguages = (): Promise<BundledLanguages> => {
   return bundledLanguagesPromise;
 };
 
-const loadHighlighterThemes = (): Promise<RepoFileHighlighterThemes> => {
-  if (!highlighterThemesPromise) {
-    highlighterThemesPromise = Promise.all([
-      import('@shikijs/themes/github-light'),
-      import('@shikijs/themes/github-dark'),
-    ]).then(([githubLightModule, githubDarkModule]) => ({
-      githubLight: githubLightModule.default,
-      githubDark: githubDarkModule.default,
-    }));
-    highlighterThemesPromise.catch(() => {
-      highlighterThemesPromise = null;
-    });
+const getThemeSelectionKey = ({ light, dark }: RepoFileThemeSelection) => `${light}:${dark}`;
+
+const loadHighlighterThemes = (
+  selection: RepoFileThemeSelection
+): Promise<RepoFileHighlighterThemes> => {
+  const key = getThemeSelectionKey(selection);
+  let themes = highlighterThemePromises.get(key);
+
+  if (!themes) {
+    themes = Promise.all([loadShikiTheme(selection.light), loadShikiTheme(selection.dark)])
+      .then(([light, dark]) => ({
+        key,
+        light,
+        dark,
+      }))
+      .catch((err) => {
+        highlighterThemePromises.delete(key);
+        throw err;
+      });
+    highlighterThemePromises.set(key, themes);
   }
 
-  return highlighterThemesPromise;
+  return themes;
 };
 
 const loadLanguageRegistration = async (language: string) => {
@@ -351,22 +373,26 @@ const loadLanguageRegistration = async (language: string) => {
   loadedHighlighterLanguages.add(language);
 };
 
-const initHighlighter = async (language: string) => {
+const initHighlighter = async (language: string, themes: RepoFileHighlighterThemes) => {
   if (highlighter.value) {
-    await loadLanguageRegistration(language);
+    const themeRegistration = loadedHighlighterThemeKeys.has(themes.key)
+      ? Promise.resolve()
+      : highlighter.value.loadTheme(themes.light, themes.dark).then(() => {
+          loadedHighlighterThemeKeys.add(themes.key);
+        });
+
+    await Promise.all([themeRegistration, loadLanguageRegistration(language)]);
     return;
   }
 
   try {
-    const [{ createHighlighter }, themes] = await Promise.all([
-      import('shiki'),
-      loadHighlighterThemes(),
-    ]);
+    const { createHighlighter } = await import('shiki');
 
     highlighter.value = await createHighlighter({
-      themes: [themes.githubLight, themes.githubDark],
+      themes: [themes.light, themes.dark],
       langs: [],
     });
+    loadedHighlighterThemeKeys.add(themes.key);
     await loadLanguageRegistration(language);
   } catch (err) {
     console.error('Failed to initialize highlighter:', err);
@@ -374,8 +400,12 @@ const initHighlighter = async (language: string) => {
 };
 
 const highlightCode = async () => {
+  const requestId = highlightRequestId.value + 1;
+  highlightRequestId.value = requestId;
+
   if (!fileContent.value || isBinaryFile.value) {
     highlightedHtml.value = '';
+    highlightLoading.value = false;
     return;
   }
 
@@ -383,23 +413,25 @@ const highlightCode = async () => {
 
   try {
     const language = resolveLanguage(fileExtension.value);
-    await initHighlighter(language);
+    const themes = await loadHighlighterThemes(currentThemeSelection.value);
+    await initHighlighter(language, themes);
     if (!highlighter.value) return;
 
-    const themes = await loadHighlighterThemes();
     const code = decodedContent.value;
 
     // Limit highlighting to prevent freezing on huge files
     if (code.length > 500_000) {
+      if (requestId !== highlightRequestId.value) return;
+
       highlightedHtml.value = '';
       return;
     }
 
-    highlightedHtml.value = highlighter.value.codeToHtml(code, {
+    const html = highlighter.value.codeToHtml(code, {
       lang: language,
       themes: {
-        light: themes.githubLight,
-        dark: themes.githubDark,
+        light: themes.light,
+        dark: themes.dark,
       },
       transformers: [
         {
@@ -409,10 +441,17 @@ const highlightCode = async () => {
         },
       ],
     });
+    if (requestId !== highlightRequestId.value) return;
+
+    highlightedHtml.value = html;
   } catch {
+    if (requestId !== highlightRequestId.value) return;
+
     highlightedHtml.value = '';
   } finally {
-    highlightLoading.value = false;
+    if (requestId === highlightRequestId.value) {
+      highlightLoading.value = false;
+    }
   }
 };
 
@@ -838,7 +877,11 @@ watch(
 );
 
 watch(
-  fileContent,
+  () => [
+    fileContent.value,
+    settings.value.appearance.shikiLightTheme,
+    settings.value.appearance.shikiDarkTheme,
+  ],
   () => {
     highlightCode();
   },
@@ -1791,10 +1834,13 @@ onActivated(() => {
   font-size: 0.82rem;
   line-height: 1.6;
 
+  :deep(.shiki) {
+    min-height: 100%;
+  }
+
   :deep(pre) {
     margin: 0;
     padding: 0.75rem;
-    background: transparent !important;
   }
 
   :deep(code) {
@@ -1830,6 +1876,7 @@ onActivated(() => {
   font-family: var(--gitpulse-code-font-family);
   font-size: 0.82rem;
   line-height: 1.6;
+  color: var(--bulma-text-strong, var(--gitpulse-text-strong));
 }
 
 .repo-file-view__code-table {
@@ -1882,5 +1929,16 @@ onActivated(() => {
   .repo-file-view__grid {
     grid-template-columns: var(--file-sidebar-width, 12rem) minmax(0, 1fr);
   }
+}
+</style>
+
+<style lang="scss">
+html[data-color-mode='dark'] .repo-file-view__code .shiki {
+  background-color: var(--shiki-dark-bg, var(--gitpulse-surface)) !important;
+  color: var(--shiki-dark, var(--gitpulse-text-strong)) !important;
+}
+
+html[data-color-mode='dark'] .repo-file-view__code .shiki span {
+  color: var(--shiki-dark, inherit) !important;
 }
 </style>
