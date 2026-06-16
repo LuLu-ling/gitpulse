@@ -2,6 +2,7 @@ import type { ComputedRef, Ref, WatchStopHandle } from 'vue';
 import { computed, readonly, watch } from 'vue';
 
 import type {
+  UserAppearanceSettings,
   UserFontSettings,
   UserSettings,
   UserSettingsPatch,
@@ -43,6 +44,7 @@ export interface UserSettingsStore {
   loadSettings: (options?: { force?: boolean }) => Promise<UserSettings | null>;
   updateSettings: (patch: UserSettingsPatch) => Promise<UserSettings | null>;
   updateFonts: (fonts: Partial<UserFontSettings>) => Promise<UserSettings | null>;
+  updateAppearance: (appearance: Partial<UserAppearanceSettings>) => Promise<UserSettings | null>;
   handleLoginChanged: () => void;
   ensureLoginWatcher: () => void;
 }
@@ -358,6 +360,10 @@ export function createUserSettingsActions({
     return updateSettings({ fonts: nextFonts });
   };
 
+  const updateAppearance = (appearance: Partial<UserAppearanceSettings>) => {
+    return updateSettings({ appearance });
+  };
+
   const handleLoginChanged = () => {
     syncActiveLogin();
   };
@@ -391,6 +397,7 @@ export function createUserSettingsActions({
     loadSettings,
     updateSettings,
     updateFonts,
+    updateAppearance,
     handleLoginChanged,
     ensureLoginWatcher,
   };

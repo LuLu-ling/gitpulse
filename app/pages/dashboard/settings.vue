@@ -2,21 +2,31 @@
 import { PaletteIcon, SearchIcon, TypeIcon } from '@lucide/vue';
 import { computed, nextTick, onMounted, shallowRef, useTemplateRef } from 'vue';
 
-import type { AppFontId, CodeFontId } from '#shared/types/user-settings';
+import type {
+  AppFontId,
+  CodeFontId,
+  ShikiDarkThemeId,
+  ShikiLightThemeId,
+} from '#shared/types/user-settings';
 import { normalizeSystemFontFamily } from '#shared/utils/user-settings';
 import FloatingRefreshButton from '~/components/dashboard/FloatingRefreshButton.vue';
 import DashboardOverlayFrame from '~/components/dashboard/overlay/DashboardOverlayFrame.vue';
+import FilterDropdown from '~/components/ui/FilterDropdown.vue';
+import type { FilterOption } from '~/components/ui/FilterDropdown.vue';
 import FontPickerModal from '~/components/ui/FontPickerModal.vue';
 import {
   builtinAppFontOptions,
   builtinCodeFontOptions,
+  shikiDarkThemeOptions,
+  shikiLightThemeOptions,
   useUserSettings,
 } from '~/composables/useUserSettings';
 
 const { t } = useI18n();
 const localePath = useLocalePath();
 const router = useRouter();
-const { settings, loading, saving, error, loadSettings, updateFonts } = useUserSettings();
+const { settings, loading, saving, error, loadSettings, updateFonts, updateAppearance } =
+  useUserSettings();
 const settingsRefresh = useRefreshableView({
   refresh: () => loadSettings({ force: true }),
   enabled: computed(() => !saving.value),
@@ -56,6 +66,16 @@ const bundledCodeFontOptions = builtinCodeFontOptions.map((f) => ({
   id: f.id,
   label: f.label,
   source: 'bundled' as const,
+}));
+
+const shikiLightDropdownOptions: FilterOption[] = shikiLightThemeOptions.map((theme) => ({
+  value: theme.id,
+  label: theme.label,
+}));
+
+const shikiDarkDropdownOptions: FilterOption[] = shikiDarkThemeOptions.map((theme) => ({
+  value: theme.id,
+  label: theme.label,
 }));
 
 // Current font display names
@@ -103,6 +123,18 @@ const applyCodeFontFromModal = (fontId: string) => {
     }
   } else if (builtinCodeFontOptions.some((f) => f.id === fontId)) {
     void updateFonts({ codeFont: fontId as CodeFontId });
+  }
+};
+
+const applyLightShikiTheme = (themeId: string) => {
+  if (shikiLightThemeOptions.some((theme) => theme.id === themeId)) {
+    void updateAppearance({ shikiLightTheme: themeId as ShikiLightThemeId });
+  }
+};
+
+const applyDarkShikiTheme = (themeId: string) => {
+  if (shikiDarkThemeOptions.some((theme) => theme.id === themeId)) {
+    void updateAppearance({ shikiDarkTheme: themeId as ShikiDarkThemeId });
   }
 };
 
@@ -199,7 +231,7 @@ onMounted(() => {
             <span class="settings__nav-label">{{ t('dashboard.settings.pageTitle') }}</span>
             <div class="settings__nav-item is-active">
               <TypeIcon :size="15" />
-              <span>{{ t('dashboard.settings.fontsTitle') }}</span>
+              <span>{{ t('dashboard.settings.appearanceTitle') }}</span>
             </div>
           </div>
         </nav>
@@ -213,8 +245,8 @@ onMounted(() => {
               <PaletteIcon :size="20" />
             </div>
             <div>
-              <h1 class="settings__title">{{ t('dashboard.settings.fontsTitle') }}</h1>
-              <p class="settings__desc">{{ t('dashboard.settings.pageKicker') }}</p>
+              <h1 class="settings__title">{{ t('dashboard.settings.appearanceTitle') }}</h1>
+              <p class="settings__desc">{{ t('dashboard.settings.appearanceDescription') }}</p>
             </div>
           </div>
 
@@ -279,6 +311,44 @@ onMounted(() => {
                   >
                     <SearchIcon :size="14" />
                   </button>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- Code Highlighting -->
+          <section class="settings__section">
+            <h2 class="settings__section-title">
+              {{ t('dashboard.settings.codeHighlightSection') }}
+            </h2>
+            <div class="settings__font-card">
+              <div class="settings__font-field">
+                <label class="settings__label">
+                  {{ t('dashboard.settings.shikiLightThemeLabel') }}
+                </label>
+                <div class="settings__dropdown-row">
+                  <FilterDropdown
+                    :model-value="settings.appearance.shikiLightTheme"
+                    :options="shikiLightDropdownOptions"
+                    :placeholder="t('dashboard.settings.shikiLightThemeLabel')"
+                    :aria-label="t('dashboard.settings.shikiLightThemeLabel')"
+                    @update:model-value="applyLightShikiTheme"
+                  />
+                </div>
+              </div>
+
+              <div class="settings__font-field">
+                <label class="settings__label">
+                  {{ t('dashboard.settings.shikiDarkThemeLabel') }}
+                </label>
+                <div class="settings__dropdown-row">
+                  <FilterDropdown
+                    :model-value="settings.appearance.shikiDarkTheme"
+                    :options="shikiDarkDropdownOptions"
+                    :placeholder="t('dashboard.settings.shikiDarkThemeLabel')"
+                    :aria-label="t('dashboard.settings.shikiDarkThemeLabel')"
+                    @update:model-value="applyDarkShikiTheme"
+                  />
                 </div>
               </div>
             </div>
@@ -563,6 +633,22 @@ onMounted(() => {
   font-weight: 500;
   outline: none;
   box-shadow: 0 0 0 3px var(--gitpulse-accent-soft);
+}
+
+.settings__dropdown-row {
+  display: flex;
+  min-width: 0;
+
+  :deep(.filter-dropdown),
+  :deep(.filter-dropdown-trigger) {
+    width: 100%;
+  }
+
+  :deep(.filter-dropdown-trigger) {
+    justify-content: space-between;
+    height: 2.35rem;
+    background: var(--gitpulse-surface-muted);
+  }
 }
 
 .settings__font-picker-btn {

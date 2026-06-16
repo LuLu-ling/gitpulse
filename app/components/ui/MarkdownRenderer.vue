@@ -8,10 +8,12 @@ import type { BundledLanguage } from 'shiki/langs';
 import type { DefineComponent } from 'vue';
 import { computed, provide, shallowRef } from 'vue';
 
+import type { ShikiDarkThemeId, ShikiLightThemeId } from '#shared/types/user-settings';
 import MarkdownRendererProseA from '~/components/ui/MarkdownRendererProseA.vue';
 import MarkdownRendererProseMedia from '~/components/ui/MarkdownRendererProseMedia.vue';
 import MarkdownRendererProseMermaidWrapper from '~/components/ui/MarkdownRendererProseMermaidWrapper.vue';
 import useGitHubAutolinks from '~/composables/useGitHubAutolinks';
+import { loadShikiTheme, useUserSettings } from '~/composables/useUserSettings';
 
 import { markdownRepoContextKey } from '../../utils/markdownRepoPathUtils';
 
@@ -26,6 +28,7 @@ const props = defineProps<{
 const ast = shallowRef<ComarkTree | null>(null);
 const renderRequestId = shallowRef(0);
 const { applyGitHubAutolinks } = useGitHubAutolinks();
+const { settings } = useUserSettings();
 const markdownPlugins = createMarkdownPlugins();
 const markdownRepoContext = computed(() => ({
   owner: props.repoOwner,
@@ -57,27 +60,34 @@ interface MarkdownCodeBlockInfo {
 
 interface MarkdownHighlighterRuntime {
   highlightCodeBlocks: typeof highlightCodeBlocks;
-  githubLight: ThemeRegistration;
-  githubDark: ThemeRegistration;
+}
+
+interface MarkdownShikiThemeSelection {
+  light: ShikiLightThemeId;
+  dark: ShikiDarkThemeId;
+}
+
+interface MarkdownShikiThemes {
+  light: ThemeRegistration;
+  dark: ThemeRegistration;
 }
 
 type BundledLanguages = (typeof import('shiki/langs'))['bundledLanguages'];
 
 async function highlightMarkdownCodeBlocks(
   tree: ComarkTree,
-  languageNames: Set<string>
+  languageNames: Set<string>,
+  themeSelection: MarkdownShikiThemeSelection
 ): Promise<ComarkTree> {
-  const [languages, highlighterRuntime] = await Promise.all([
+  const [languages, highlighterRuntime, themes] = await Promise.all([
     loadMarkdownLanguages(languageNames),
     loadMarkdownHighlighterRuntime(),
+    loadMarkdownShikiThemes(themeSelection),
   ]);
 
   const highlightedTree = highlightQueue.then(() =>
     highlighterRuntime.highlightCodeBlocks(tree, {
-      themes: {
-        light: highlighterRuntime.githubLight,
-        dark: highlighterRuntime.githubDark,
-      },
+      themes,
       registerDefaultLanguages: false,
       registerDefaultThemes: false,
       languages,
@@ -97,21 +107,29 @@ async function highlightMarkdownCodeBlocks(
 
 function loadMarkdownHighlighterRuntime(): Promise<MarkdownHighlighterRuntime> {
   if (!markdownHighlighterRuntimePromise) {
-    markdownHighlighterRuntimePromise = Promise.all([
-      import('comark/plugins/highlight'),
-      import('@shikijs/themes/github-light'),
-      import('@shikijs/themes/github-dark'),
-    ]).then(([highlightModule, githubLightModule, githubDarkModule]) => ({
-      highlightCodeBlocks: highlightModule.highlightCodeBlocks,
-      githubLight: githubLightModule.default,
-      githubDark: githubDarkModule.default,
-    }));
+    markdownHighlighterRuntimePromise = import('comark/plugins/highlight').then(
+      (highlightModule) => ({
+        highlightCodeBlocks: highlightModule.highlightCodeBlocks,
+      })
+    );
     markdownHighlighterRuntimePromise.catch(() => {
       markdownHighlighterRuntimePromise = null;
     });
   }
 
   return markdownHighlighterRuntimePromise;
+}
+
+function loadMarkdownShikiThemes({
+  light,
+  dark,
+}: MarkdownShikiThemeSelection): Promise<MarkdownShikiThemes> {
+  return Promise.all([loadShikiTheme(light), loadShikiTheme(dark)]).then(
+    ([lightTheme, darkTheme]) => ({
+      light: lightTheme,
+      dark: darkTheme,
+    })
+  );
 }
 
 async function loadMarkdownLanguages(languages: Set<string>): Promise<LanguageRegistration[]> {
@@ -198,8 +216,16 @@ const rendererComponents: Record<string, string | DefineComponent<any, any, any>
 };
 
 watch(
-  () => [props.value, props.repoOwner, props.repoName, props.basePath, props.branch],
-  async ([value, repoOwner, repoName]) => {
+  () => [
+    props.value,
+    props.repoOwner,
+    props.repoName,
+    props.basePath,
+    props.branch,
+    settings.value.appearance.shikiLightTheme,
+    settings.value.appearance.shikiDarkTheme,
+  ],
+  async ([value, repoOwner, repoName, , , shikiLightTheme, shikiDarkTheme]) => {
     const requestId = renderRequestId.value + 1;
     renderRequestId.value = requestId;
 
@@ -213,7 +239,10 @@ watch(
     });
     const codeBlockInfo = inspectMarkdownCodeBlocks(parsedMarkdown);
     const renderedMarkdown = codeBlockInfo.hasHighlightableCodeBlocks
-      ? await highlightMarkdownCodeBlocks(parsedMarkdown, codeBlockInfo.languages)
+      ? await highlightMarkdownCodeBlocks(parsedMarkdown, codeBlockInfo.languages, {
+          light: shikiLightTheme as ShikiLightThemeId,
+          dark: shikiDarkTheme as ShikiDarkThemeId,
+        })
       : parsedMarkdown;
 
     await applyGitHubAutolinks(renderedMarkdown, {

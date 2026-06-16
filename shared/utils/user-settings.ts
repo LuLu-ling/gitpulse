@@ -14,6 +14,9 @@ import type {
 import type {
   AppFontId,
   CodeFontId,
+  ShikiDarkThemeId,
+  ShikiLightThemeId,
+  UserAppearanceSettings,
   UserFontSettings,
   UserSettings,
 } from '#shared/types/user-settings';
@@ -37,10 +40,17 @@ import {
   TAB_GROUP_SOURCES,
   type TabGroup,
 } from '../types/tab-groups';
-import { APP_FONT_IDS, CODE_FONT_IDS } from '../types/user-settings';
+import {
+  APP_FONT_IDS,
+  CODE_FONT_IDS,
+  SHIKI_DARK_THEME_IDS,
+  SHIKI_LIGHT_THEME_IDS,
+} from '../types/user-settings';
 
 const APP_FONTS = new Set<AppFontId>(APP_FONT_IDS);
 const CODE_FONTS = new Set<CodeFontId>(CODE_FONT_IDS);
+const SHIKI_LIGHT_THEMES = new Set<ShikiLightThemeId>(SHIKI_LIGHT_THEME_IDS);
+const SHIKI_DARK_THEMES = new Set<ShikiDarkThemeId>(SHIKI_DARK_THEME_IDS);
 
 const REQUIRED_BUILTIN_GROUP: TabGroup = {
   id: BUILTIN_TAB_GROUP_ID,
@@ -53,6 +63,11 @@ const REQUIRED_BUILTIN_GROUP: TabGroup = {
 export const DEFAULT_USER_FONT_SETTINGS: UserFontSettings = {
   appFont: 'harmonyos-sans',
   codeFont: 'maple-mono',
+};
+
+export const DEFAULT_USER_APPEARANCE_SETTINGS: UserAppearanceSettings = {
+  shikiLightTheme: 'github-light',
+  shikiDarkTheme: 'github-dark',
 };
 
 const hasOwn = (value: object, key: string) => {
@@ -112,6 +127,7 @@ export function createDefaultUserSettings(): UserSettings {
   return {
     version: 1,
     fonts: { ...DEFAULT_USER_FONT_SETTINGS },
+    appearance: { ...DEFAULT_USER_APPEARANCE_SETTINGS },
     tabGroups: createDefaultTabGroups(),
     customTabs: [],
   };
@@ -377,11 +393,32 @@ export function normalizeUserFontSettings(
   };
 }
 
+export function normalizeUserAppearanceSettings(
+  value: unknown,
+  fallback: UserAppearanceSettings = DEFAULT_USER_APPEARANCE_SETTINGS
+): UserAppearanceSettings {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return { ...fallback };
+  }
+
+  const candidate = value as Partial<UserAppearanceSettings>;
+
+  return {
+    shikiLightTheme: SHIKI_LIGHT_THEMES.has(candidate.shikiLightTheme as ShikiLightThemeId)
+      ? (candidate.shikiLightTheme as ShikiLightThemeId)
+      : fallback.shikiLightTheme,
+    shikiDarkTheme: SHIKI_DARK_THEMES.has(candidate.shikiDarkTheme as ShikiDarkThemeId)
+      ? (candidate.shikiDarkTheme as ShikiDarkThemeId)
+      : fallback.shikiDarkTheme,
+  };
+}
+
 export function normalizeUserSettings(value: unknown, fallback = createDefaultUserSettings()) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     return {
       ...fallback,
       fonts: { ...fallback.fonts },
+      appearance: { ...fallback.appearance },
       tabGroups: cloneTabGroups(fallback.tabGroups),
       customTabs: cloneCustomTabs(fallback.customTabs),
     };
@@ -392,6 +429,7 @@ export function normalizeUserSettings(value: unknown, fallback = createDefaultUs
   return {
     version: 1 as const,
     fonts: normalizeUserFontSettings(candidate.fonts, fallback.fonts),
+    appearance: normalizeUserAppearanceSettings(candidate.appearance, fallback.appearance),
     tabGroups: normalizeTabGroups(candidate.tabGroups, fallback.tabGroups),
     customTabs: normalizeCustomTabs(candidate.customTabs, fallback.customTabs),
     updatedAt: normalizeString(candidate.updatedAt),
@@ -411,6 +449,12 @@ export function mergeUserSettingsPatch(current: UserSettings, patch: unknown) {
     fonts: hasOwn(candidate, 'fonts')
       ? normalizeUserFontSettings({ ...base.fonts, ...candidate.fonts }, base.fonts)
       : { ...base.fonts },
+    appearance: hasOwn(candidate, 'appearance')
+      ? normalizeUserAppearanceSettings(
+          { ...base.appearance, ...candidate.appearance },
+          base.appearance
+        )
+      : { ...base.appearance },
     tabGroups: hasOwn(candidate, 'tabGroups')
       ? normalizeTabGroups(candidate.tabGroups, base.tabGroups)
       : cloneTabGroups(base.tabGroups),

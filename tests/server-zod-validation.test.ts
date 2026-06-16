@@ -125,6 +125,10 @@ describe('server Zod request validation', () => {
         codeFont: 'maple-mono',
         appSystemFont: '  Inter  ',
       },
+      appearance: {
+        shikiLightTheme: 'vitesse-light',
+        shikiDarkTheme: 'nord',
+      },
       tabGroups: [
         {
           id: 'default',
@@ -165,6 +169,10 @@ describe('server Zod request validation', () => {
         codeFont: 'maple-mono',
         appSystemFont: 'Inter',
       },
+      appearance: {
+        shikiLightTheme: 'vitesse-light',
+        shikiDarkTheme: 'nord',
+      },
       tabGroups: [
         {
           id: 'default',
@@ -202,6 +210,9 @@ describe('server Zod request validation', () => {
     expect(() => parseUserSettingsPatchBody({ fonts: { appFont: 'invalid' } })).toThrow(
       'Invalid settings request body'
     );
+    expect(() =>
+      parseUserSettingsPatchBody({ appearance: { shikiLightTheme: 'github-dark' } })
+    ).toThrow('Invalid settings request body');
     expect(() =>
       parseUserSettingsPatchBody({
         tabGroups: [{ id: 'default', name: 'General', extra: true }],

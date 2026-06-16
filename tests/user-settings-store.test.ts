@@ -140,6 +140,44 @@ describe('user settings store', () => {
     expect(harness.requestState.value.error).toBe('write failed');
   });
 
+  test('persists appearance settings with optimistic save normalization', async () => {
+    const harness = createHarness('octocat');
+    markLoaded(harness);
+
+    const save = harness.store.updateAppearance({
+      shikiLightTheme: 'vitesse-light',
+      shikiDarkTheme: 'nord',
+    });
+    await tick();
+
+    expect(harness.settings.value.appearance).toEqual({
+      shikiLightTheme: 'vitesse-light',
+      shikiDarkTheme: 'nord',
+    });
+    expect(harness.saveRequests).toHaveLength(1);
+    expect(harness.saveRequests[0]?.patch).toEqual({
+      appearance: {
+        shikiLightTheme: 'vitesse-light',
+        shikiDarkTheme: 'nord',
+      },
+    });
+
+    harness.saveRequests[0]?.deferred.resolve(
+      createSettings({
+        appearance: {
+          shikiLightTheme: 'vitesse-light',
+          shikiDarkTheme: 'nord',
+        },
+      })
+    );
+    await expect(save).resolves.toMatchObject({
+      appearance: {
+        shikiLightTheme: 'vitesse-light',
+        shikiDarkTheme: 'nord',
+      },
+    });
+  });
+
   test('does not run queued saves for a previous login after a login switch', async () => {
     const harness = createHarness('octocat');
     markLoaded(harness);

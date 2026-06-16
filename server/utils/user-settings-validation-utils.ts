@@ -15,11 +15,18 @@ import {
   GITHUB_SEARCH_VISIBILITY_FILTERS,
 } from '#shared/types/custom-search';
 import { TAB_GROUP_SOURCES } from '#shared/types/tab-groups';
-import { APP_FONT_IDS, CODE_FONT_IDS } from '#shared/types/user-settings';
+import {
+  APP_FONT_IDS,
+  CODE_FONT_IDS,
+  SHIKI_DARK_THEME_IDS,
+  SHIKI_LIGHT_THEME_IDS,
+} from '#shared/types/user-settings';
 import { normalizeSystemFontFamily } from '#shared/utils/user-settings';
 
 const appFontSchema = z.enum(APP_FONT_IDS);
 const codeFontSchema = z.enum(CODE_FONT_IDS);
+const shikiLightThemeSchema = z.enum(SHIKI_LIGHT_THEME_IDS);
+const shikiDarkThemeSchema = z.enum(SHIKI_DARK_THEME_IDS);
 const fontFamilySchema = z
   .string()
   .trim()
@@ -39,6 +46,15 @@ const fontSettingsPatchSchema = z
   })
   .refine((fonts) => Object.keys(fonts).length > 0, {
     message: 'At least one font setting is required',
+  });
+
+const appearanceSettingsPatchSchema = z
+  .strictObject({
+    shikiLightTheme: shikiLightThemeSchema.optional(),
+    shikiDarkTheme: shikiDarkThemeSchema.optional(),
+  })
+  .refine((appearance) => Object.keys(appearance).length > 0, {
+    message: 'At least one appearance setting is required',
   });
 
 const tabGroupSchema = z.strictObject({
@@ -117,6 +133,7 @@ const customTabSchema = z
 export const userSettingsPatchSchema = z
   .strictObject({
     fonts: fontSettingsPatchSchema.optional(),
+    appearance: appearanceSettingsPatchSchema.optional(),
     tabGroups: z.array(tabGroupSchema).optional(),
     customTabs: z.array(customTabSchema).optional(),
   })

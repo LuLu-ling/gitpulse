@@ -8,6 +8,12 @@ export {
   type BuiltinFontOption,
 } from './user-settings/fonts';
 export {
+  loadShikiTheme,
+  shikiDarkThemeOptions,
+  shikiLightThemeOptions,
+  type ShikiThemeOption,
+} from './user-settings/shiki-themes';
+export {
   createUserSettingsApi,
   type UserSettingsApi,
   type UserSettingsApiFetch,
