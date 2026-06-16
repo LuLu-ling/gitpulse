@@ -282,6 +282,36 @@ export function useRepoFiles() {
     }
   };
 
+  const isActiveDefaultBranchTarget = (target: RepoTarget, path: string) => {
+    const currentTarget = activeRepoTarget.value;
+
+    return (
+      currentTarget?.owner === target.owner &&
+      currentTarget.repo === target.repo &&
+      activePath.value === path &&
+      !activeBranch.value
+    );
+  };
+
+  const loadDefaultBranchContent = async (target: RepoTarget, path: string) => {
+    loading.value = true;
+
+    const metadataPromise = loadRepoMetadata(target.owner, target.repo);
+    const contentPromise = loadContent(target.owner, target.repo, path, '');
+    const loadedDefaultBranch = await metadataPromise;
+
+    if (!loadedDefaultBranch) {
+      await contentPromise;
+      return;
+    }
+
+    await contentPromise;
+
+    if (isActiveDefaultBranchTarget(target, path)) {
+      currentBranch.value = loadedDefaultBranch;
+    }
+  };
+
   const hasLoadedContent = (target: RepoTarget, path: string, branch: string) => {
     return (
       contentRepoKey.value === buildRepoKey(target.owner, target.repo) &&
@@ -323,7 +353,15 @@ export function useRepoFiles() {
 
   const loadRepoFiles = async (target: RepoTarget, path: string, branch: string) => {
     error.value = '';
-    if (metadataRepoKey.value !== buildRepoKey(target.owner, target.repo) || !defaultBranch.value) {
+    const repoKey = buildRepoKey(target.owner, target.repo);
+    const hasRepoMetadata = metadataRepoKey.value === repoKey && Boolean(defaultBranch.value);
+
+    if (!hasRepoMetadata && !branch) {
+      await loadDefaultBranchContent(target, path);
+      return;
+    }
+
+    if (!hasRepoMetadata) {
       loading.value = true;
     }
 

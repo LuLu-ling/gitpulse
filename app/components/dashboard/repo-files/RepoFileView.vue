@@ -863,6 +863,7 @@ watch(
       !loading.value &&
       currentPath.value &&
       treeNodes.value.length === 0 &&
+      !treeLoading.value &&
       canonicalBranch.value
     ) {
       await loadRootTree();
