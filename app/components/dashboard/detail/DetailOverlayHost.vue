@@ -20,6 +20,7 @@ import {
 
 type DetailPaneType = 'issue' | 'pull-request' | 'discussion' | 'release' | 'repository';
 type DetailSummaryTone = 'open' | 'closed' | 'merged';
+type DetailSubjectType = 'issue' | 'pull-request' | 'discussion';
 
 interface ActiveDetailPane {
   type: DetailPaneType;
@@ -35,6 +36,7 @@ interface DetailSummary {
   number?: number | string;
   state?: string;
   stateTone?: DetailSummaryTone;
+  subjectType?: DetailSubjectType;
   visible?: boolean;
 }
 
@@ -192,6 +194,7 @@ const detailSummary = computed<DetailSummary | null>(() => {
       number: props.issue.number,
       state,
       stateTone: getStateTone(state),
+      subjectType: 'issue',
       visible: isCompactHeaderVisible.value,
     };
   }
@@ -207,14 +210,19 @@ const detailSummary = computed<DetailSummary | null>(() => {
 
     return {
       ...summary,
+      subjectType: 'pull-request',
       visible: isCompactHeaderVisible.value,
     };
   }
 
   if (pane.type === 'discussion' && props.discussion) {
+    const isAnswered = props.discussion.isAnswered;
     return {
       title: props.discussion.title || t('discussionDetail.titleFallback'),
       number: props.discussion.number,
+      state: isAnswered ? 'answered' : 'unanswered',
+      stateTone: isAnswered ? 'open' : 'closed',
+      subjectType: 'discussion',
       visible: isCompactHeaderVisible.value,
     };
   }

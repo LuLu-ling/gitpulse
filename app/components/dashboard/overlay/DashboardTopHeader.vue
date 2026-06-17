@@ -19,6 +19,7 @@
               class="dashboard-top-header__summary-state"
               :class="detailStateClass"
             >
+              <component :is="detailStateIcon" v-if="detailStateIcon" :size="12" />
               {{ detailState }}
             </span>
             <span v-if="detailNumberLabel" class="dashboard-top-header__summary-number">
@@ -42,8 +43,18 @@
 </template>
 
 <script setup lang="ts">
-import { ArrowLeftIcon, HomeIcon } from '@lucide/vue';
-import { computed } from 'vue';
+import {
+  ArrowLeftIcon,
+  CheckCircle2Icon,
+  CircleDotIcon,
+  CircleMinusIcon,
+  GitMergeIcon,
+  GitPullRequestClosedIcon,
+  GitPullRequestIcon,
+  HomeIcon,
+  MessageSquareIcon,
+} from '@lucide/vue';
+import { type Component, computed } from 'vue';
 import { GitHubIcon } from 'vue3-simple-icons';
 
 import LanguageSwitcher from '~/components/LanguageSwitcher.vue';
@@ -51,12 +62,14 @@ import ColorModeToggle from '~/components/ui/ColorModeToggle.vue';
 import LinkIcon from '~/components/ui/LinkIcon.vue';
 
 type DetailSummaryTone = 'open' | 'closed' | 'merged';
+type DetailSubjectType = 'issue' | 'pull-request' | 'discussion';
 
 interface DetailSummary {
   title?: string;
   number?: number | string;
   state?: string;
   stateTone?: DetailSummaryTone;
+  subjectType?: DetailSubjectType;
   visible?: boolean;
 }
 
@@ -80,6 +93,27 @@ const detailState = computed(() => props.detailSummary?.state?.trim() ?? '');
 const detailStateClass = computed(() => {
   const tone = props.detailSummary?.stateTone ?? 'closed';
   return `is-${tone}`;
+});
+
+const detailStateIcon = computed<Component | null>(() => {
+  const subjectType = props.detailSummary?.subjectType;
+  const stateTone = props.detailSummary?.stateTone;
+  const state = detailState.value;
+
+  if (subjectType === 'pull-request') {
+    if (stateTone === 'merged' || state === 'merged') return GitMergeIcon;
+    if (stateTone === 'open' || state === 'open') return GitPullRequestIcon;
+    return GitPullRequestClosedIcon;
+  }
+
+  if (subjectType === 'discussion') {
+    if (stateTone === 'open' || state === 'answered') return CheckCircle2Icon;
+    return MessageSquareIcon;
+  }
+
+  // Default: issue
+  if (stateTone === 'open' || state === 'open') return CircleDotIcon;
+  return CircleMinusIcon;
 });
 
 const detailNumberLabel = computed(() => {
@@ -163,6 +197,9 @@ const isDetailSummaryVisible = computed(() => {
 }
 
 .dashboard-top-header__summary-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
   text-transform: capitalize;
 
   &.is-open {

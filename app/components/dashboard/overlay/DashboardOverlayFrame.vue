@@ -46,6 +46,7 @@ interface DetailSummary {
   number?: number | string;
   state?: string;
   stateTone?: 'open' | 'closed' | 'merged';
+  subjectType?: 'issue' | 'pull-request' | 'discussion';
   visible?: boolean;
 }
 
