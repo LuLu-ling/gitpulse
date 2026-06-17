@@ -14,10 +14,13 @@ import type {
 import type {
   AppFontId,
   CodeFontId,
+  NotificationReadMarkDelaySeconds,
+  NotificationReadMarkMode,
   ShikiDarkThemeId,
   ShikiLightThemeId,
   UserAppearanceSettings,
   UserFontSettings,
+  UserNotificationBehaviorSettings,
   UserSettings,
 } from '#shared/types/user-settings';
 
@@ -43,12 +46,20 @@ import {
 import {
   APP_FONT_IDS,
   CODE_FONT_IDS,
+  NOTIFICATION_READ_MARK_DELAY_SECONDS,
+  NOTIFICATION_READ_MARK_MODE_IDS,
   SHIKI_DARK_THEME_IDS,
   SHIKI_LIGHT_THEME_IDS,
 } from '../types/user-settings';
 
 const APP_FONTS = new Set<AppFontId>(APP_FONT_IDS);
 const CODE_FONTS = new Set<CodeFontId>(CODE_FONT_IDS);
+const NOTIFICATION_READ_MARK_MODES = new Set<NotificationReadMarkMode>(
+  NOTIFICATION_READ_MARK_MODE_IDS
+);
+const NOTIFICATION_READ_MARK_DELAYS = new Set<NotificationReadMarkDelaySeconds>(
+  NOTIFICATION_READ_MARK_DELAY_SECONDS
+);
 const SHIKI_LIGHT_THEMES = new Set<ShikiLightThemeId>(SHIKI_LIGHT_THEME_IDS);
 const SHIKI_DARK_THEMES = new Set<ShikiDarkThemeId>(SHIKI_DARK_THEME_IDS);
 
@@ -68,6 +79,11 @@ export const DEFAULT_USER_FONT_SETTINGS: UserFontSettings = {
 export const DEFAULT_USER_APPEARANCE_SETTINGS: UserAppearanceSettings = {
   shikiLightTheme: 'github-light',
   shikiDarkTheme: 'github-dark',
+};
+
+export const DEFAULT_USER_NOTIFICATION_BEHAVIOR_SETTINGS: UserNotificationBehaviorSettings = {
+  readMarkMode: 'delayed',
+  readMarkDelaySeconds: 10,
 };
 
 const hasOwn = (value: object, key: string) => {
@@ -128,6 +144,7 @@ export function createDefaultUserSettings(): UserSettings {
     version: 1,
     fonts: { ...DEFAULT_USER_FONT_SETTINGS },
     appearance: { ...DEFAULT_USER_APPEARANCE_SETTINGS },
+    notificationBehavior: { ...DEFAULT_USER_NOTIFICATION_BEHAVIOR_SETTINGS },
     tabGroups: createDefaultTabGroups(),
     customTabs: [],
   };
@@ -413,12 +430,37 @@ export function normalizeUserAppearanceSettings(
   };
 }
 
+export function normalizeUserNotificationBehaviorSettings(
+  value: unknown,
+  fallback: UserNotificationBehaviorSettings = DEFAULT_USER_NOTIFICATION_BEHAVIOR_SETTINGS
+): UserNotificationBehaviorSettings {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return { ...fallback };
+  }
+
+  const candidate = value as Partial<UserNotificationBehaviorSettings>;
+
+  return {
+    readMarkMode: NOTIFICATION_READ_MARK_MODES.has(
+      candidate.readMarkMode as NotificationReadMarkMode
+    )
+      ? (candidate.readMarkMode as NotificationReadMarkMode)
+      : fallback.readMarkMode,
+    readMarkDelaySeconds: NOTIFICATION_READ_MARK_DELAYS.has(
+      candidate.readMarkDelaySeconds as NotificationReadMarkDelaySeconds
+    )
+      ? (candidate.readMarkDelaySeconds as NotificationReadMarkDelaySeconds)
+      : fallback.readMarkDelaySeconds,
+  };
+}
+
 export function normalizeUserSettings(value: unknown, fallback = createDefaultUserSettings()) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     return {
       ...fallback,
       fonts: { ...fallback.fonts },
       appearance: { ...fallback.appearance },
+      notificationBehavior: { ...fallback.notificationBehavior },
       tabGroups: cloneTabGroups(fallback.tabGroups),
       customTabs: cloneCustomTabs(fallback.customTabs),
     };
@@ -430,6 +472,10 @@ export function normalizeUserSettings(value: unknown, fallback = createDefaultUs
     version: 1 as const,
     fonts: normalizeUserFontSettings(candidate.fonts, fallback.fonts),
     appearance: normalizeUserAppearanceSettings(candidate.appearance, fallback.appearance),
+    notificationBehavior: normalizeUserNotificationBehaviorSettings(
+      candidate.notificationBehavior,
+      fallback.notificationBehavior
+    ),
     tabGroups: normalizeTabGroups(candidate.tabGroups, fallback.tabGroups),
     customTabs: normalizeCustomTabs(candidate.customTabs, fallback.customTabs),
     updatedAt: normalizeString(candidate.updatedAt),
@@ -455,6 +501,12 @@ export function mergeUserSettingsPatch(current: UserSettings, patch: unknown) {
           base.appearance
         )
       : { ...base.appearance },
+    notificationBehavior: hasOwn(candidate, 'notificationBehavior')
+      ? normalizeUserNotificationBehaviorSettings(
+          { ...base.notificationBehavior, ...candidate.notificationBehavior },
+          base.notificationBehavior
+        )
+      : { ...base.notificationBehavior },
     tabGroups: hasOwn(candidate, 'tabGroups')
       ? normalizeTabGroups(candidate.tabGroups, base.tabGroups)
       : cloneTabGroups(base.tabGroups),

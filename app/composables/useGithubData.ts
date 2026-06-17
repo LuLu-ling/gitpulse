@@ -94,6 +94,11 @@ interface NotificationStreamCache {
   lastMatchesPerRawPage: number | null;
 }
 
+interface ActiveNotificationCacheContext {
+  queryKey: string;
+  page: number;
+}
+
 const defaultPerPage = 20;
 const notificationApiPerPage = 50;
 const notificationInitialBatchSize = 3;
@@ -175,6 +180,57 @@ const buildNotificationQueryKey = (
     subject_type: localFilters.subjectType,
     subject_state: localFilters.subjectState,
   });
+};
+
+const parseNotificationQueryParams = (queryKey: string) => {
+  return new URLSearchParams(queryKey === 'default' ? '' : queryKey);
+};
+
+const getReadStateFromQueryParams = (params: URLSearchParams) => {
+  const readState = params.get('read_state');
+  return readState === 'read' || readState === 'unread' ? readState : undefined;
+};
+
+const isUnreadOnlyNotificationQueryKey = (queryKey: string) => {
+  const params = parseNotificationQueryParams(queryKey);
+  return params.get('all') !== 'true' && getReadStateFromQueryParams(params) !== 'read';
+};
+
+const getNotificationLocalFiltersFromQueryKey = (
+  queryKey: string
+): NotificationFilterAdapter['local'] => {
+  const params = parseNotificationQueryParams(queryKey);
+  return {
+    readState: getReadStateFromQueryParams(params),
+    repo: params.get('repo') ?? undefined,
+    author: undefined,
+    labels: [],
+    reason: params.get('reason') ?? undefined,
+    subjectType: params.get('subject_type') ?? undefined,
+    subjectState:
+      params.get('subject_state') === 'open' ||
+      params.get('subject_state') === 'closed' ||
+      params.get('subject_state') === 'merged'
+        ? (params.get('subject_state') as 'open' | 'closed' | 'merged')
+        : undefined,
+  };
+};
+
+const updateNotificationItemsReadState = (
+  items: DashboardNotification[],
+  threadId: string,
+  options: { remove?: boolean } = {}
+) => {
+  let changed = false;
+  const nextItems = items.flatMap((item) => {
+    if (String(item.id) !== threadId) return [item];
+
+    changed = true;
+    if (options.remove) return [];
+    return item.unread ? [{ ...item, unread: false }] : [item];
+  });
+
+  return changed ? nextItems : items;
 };
 
 const createNotificationStreamCache = (): NotificationStreamCache => ({
@@ -356,8 +412,10 @@ export function useGithubData() {
   const activeRequestId = ref(0);
   const activeNotificationRequestId = ref(0);
   const activeNotificationStateRequestId = ref(0);
+  const activeNotificationCacheContext = ref<ActiveNotificationCacheContext | null>(null);
   const pageCache = ref(createPageCache());
   const notificationStreamCache = ref<Record<string, NotificationStreamCache>>({});
+  const pendingNotificationReadThreadIds = new Set<string>();
   const pageCacheOrder = {
     notifications: [] as string[],
     notificationPages: {} as Record<string, number[]>,
@@ -453,7 +511,13 @@ export function useGithubData() {
     );
   };
 
-  const applyNotificationsData = (data: PaginatedDashboardResponse<DashboardNotification>) => {
+  const applyNotificationsData = (
+    data: PaginatedDashboardResponse<DashboardNotification>,
+    context?: ActiveNotificationCacheContext
+  ) => {
+    if (context) {
+      activeNotificationCacheContext.value = context;
+    }
     notifications.value = data.items;
     pagination.value.notifications = data.pagination;
   };
@@ -499,7 +563,7 @@ export function useGithubData() {
       if (!queryCache) return;
 
       queryCache[page] = enrichedData;
-      applyNotificationsData(enrichedData);
+      applyNotificationsData(enrichedData, { queryKey, page });
     } catch (err) {
       if (
         notificationRequestId !== activeNotificationRequestId.value ||
@@ -520,7 +584,7 @@ export function useGithubData() {
       if (!queryCache) return;
 
       queryCache[page] = erroredData;
-      applyNotificationsData(erroredData);
+      applyNotificationsData(erroredData, { queryKey, page });
       console.error('Error enriching notification subject states:', err);
     }
   };
@@ -646,7 +710,7 @@ export function useGithubData() {
 
     if (cachedData && !options.force) {
       touchNotificationCache(queryKey, page);
-      applyNotificationsData(cachedData);
+      applyNotificationsData(cachedData, { queryKey, page });
       if (shouldEnrichNotificationSubjectStates(cachedData.items)) {
         void enrichNotificationSubjectStates(
           queryKey,
@@ -682,7 +746,7 @@ export function useGithubData() {
 
       pageCache.value.notifications[queryKey][data.pagination.page] = pendingData;
       touchNotificationCache(queryKey, data.pagination.page);
-      applyNotificationsData(pendingData);
+      applyNotificationsData(pendingData, { queryKey, page: data.pagination.page });
       void enrichNotificationSubjectStates(
         queryKey,
         data.pagination.page,
@@ -731,7 +795,7 @@ export function useGithubData() {
 
     if (cachedData && cachedPageIsFilled && !options.force) {
       touchNotificationCache(queryKey, page);
-      applyNotificationsData(cachedData);
+      applyNotificationsData(cachedData, { queryKey, page });
       error.value = null;
       loading.value = false;
       return;
@@ -756,7 +820,7 @@ export function useGithubData() {
       const data = buildNotificationDisplayPage(streamCache, page);
       pageCache.value.notifications[queryKey][page] = data;
       touchNotificationCache(queryKey, page);
-      applyNotificationsData(data);
+      applyNotificationsData(data, { queryKey, page });
     } catch (err) {
       if (requestId !== activeRequestId.value) return;
 
@@ -765,6 +829,106 @@ export function useGithubData() {
       if (requestId === activeRequestId.value) {
         loading.value = false;
       }
+    }
+  };
+
+  const updateCachedNotificationReadState = (threadId: string) => {
+    for (const [queryKey, queryCache] of Object.entries(pageCache.value.notifications)) {
+      const remove = isUnreadOnlyNotificationQueryKey(queryKey);
+      const nextQueryCache = { ...queryCache };
+      let changed = false;
+
+      for (const [pageKey, cachedData] of Object.entries(queryCache)) {
+        const items = updateNotificationItemsReadState(cachedData.items, threadId, { remove });
+        if (items !== cachedData.items) {
+          nextQueryCache[Number(pageKey)] = {
+            ...cachedData,
+            items,
+          };
+          changed = true;
+        }
+      }
+
+      if (changed) {
+        pageCache.value.notifications[queryKey] = nextQueryCache;
+      }
+    }
+
+    for (const [queryKey, streamCache] of Object.entries(notificationStreamCache.value)) {
+      const remove = isUnreadOnlyNotificationQueryKey(queryKey);
+      const nextRawPages = { ...streamCache.rawPages };
+      let changed = false;
+
+      for (const [pageKey, rawPage] of Object.entries(streamCache.rawPages)) {
+        const items = updateNotificationItemsReadState(rawPage.items, threadId, { remove });
+        if (items !== rawPage.items) {
+          nextRawPages[Number(pageKey)] = {
+            ...rawPage,
+            items,
+          };
+          changed = true;
+        }
+      }
+
+      if (!changed) continue;
+
+      const nextStreamCache: NotificationStreamCache = {
+        ...streamCache,
+        rawPages: nextRawPages,
+      };
+      rebuildNotificationFilteredItems(
+        nextStreamCache,
+        getNotificationLocalFiltersFromQueryKey(queryKey)
+      );
+      notificationStreamCache.value[queryKey] = nextStreamCache;
+
+      const queryCache = pageCache.value.notifications[queryKey];
+      if (!queryCache) continue;
+
+      const nextQueryCache = { ...queryCache };
+      for (const pageKey of Object.keys(queryCache)) {
+        const page = Number(pageKey);
+        nextQueryCache[page] = buildNotificationDisplayPage(nextStreamCache, page);
+      }
+      pageCache.value.notifications[queryKey] = nextQueryCache;
+    }
+
+    const activeContext = activeNotificationCacheContext.value;
+    if (!activeContext) {
+      notifications.value = updateNotificationItemsReadState(notifications.value, threadId);
+      return;
+    }
+
+    const cachedData = pageCache.value.notifications[activeContext.queryKey]?.[activeContext.page];
+    if (cachedData) {
+      applyNotificationsData(cachedData);
+      return;
+    }
+
+    notifications.value = updateNotificationItemsReadState(notifications.value, threadId, {
+      remove: isUnreadOnlyNotificationQueryKey(activeContext.queryKey),
+    });
+  };
+
+  const markNotificationAsRead = async (notification: DashboardNotification) => {
+    if (!notification.unread) return false;
+
+    const threadId = String(notification.id);
+    if (pendingNotificationReadThreadIds.has(threadId)) return false;
+
+    pendingNotificationReadThreadIds.add(threadId);
+
+    try {
+      await apiFetch(`/api/notifications/${encodeURIComponent(threadId)}`, {
+        method: 'PATCH',
+      });
+      updateCachedNotificationReadState(threadId);
+      return true;
+    } catch (err) {
+      console.error('Failed to mark notification as read:', err);
+      return false;
+    } finally {
+      pendingNotificationReadThreadIds.delete(threadId);
     }
   };
 
@@ -973,5 +1137,6 @@ export function useGithubData() {
     fetchPulls,
     fetchRepos,
     fetchCustomTab,
+    markNotificationAsRead,
   };
 }

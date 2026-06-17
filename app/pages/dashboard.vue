@@ -99,9 +99,12 @@
                     v-for="notification in filteredNotifications"
                     :key="notification.id"
                     class="mb-4 mr-4"
-                    @click="openNotification(notification)"
+                    @click="handleNotificationOpen(notification)"
                   >
-                    <AsyncNotificationItem :notification="notification" />
+                    <AsyncNotificationItem
+                      :notification="notification"
+                      :mark-as-read="markNotificationAsReadFromDashboard"
+                    />
                   </div>
                 </template>
 
@@ -268,9 +271,10 @@ import {
 
 import 'simplebar-vue/dist/simplebar.min.css';
 import SimpleBar from 'simplebar-vue';
-import { defineAsyncComponent, computed, shallowRef, watch } from 'vue';
+import { defineAsyncComponent, computed, onBeforeUnmount, shallowRef, watch } from 'vue';
 import type { LocationQueryRaw } from 'vue-router';
 
+import type { DashboardNotification } from '#shared/types/notifications';
 import ActivityBar from '~/components/dashboard/activity-bar/ActivityBar.vue';
 import DashboardLayout from '~/components/dashboard/DashboardLayout.vue';
 import DashboardLoadingList from '~/components/dashboard/DashboardLoadingList.vue';
@@ -460,8 +464,11 @@ const {
   fetchPulls,
   fetchRepos,
   fetchCustomTab,
+  markNotificationAsRead,
 } = useGithubData();
 
+const { settings } = useUserSettings();
+const { getNotificationDetails } = useUrlHelper();
 const { filters: dashboardFilters, updateFilters, clearSourceFilters } = useDashboardFilters();
 const isFilterDrawerOpen = shallowRef(false);
 const hasOpenedDetailOverlay = shallowRef(false);
@@ -947,6 +954,180 @@ watch(
   },
   { immediate: true }
 );
+
+type NotificationDetails = NonNullable<ReturnType<typeof getNotificationDetails>>;
+
+interface PendingNotificationRead {
+  notification: DashboardNotification;
+  detailKey: string;
+}
+
+const pendingNotificationRead = shallowRef<PendingNotificationRead | null>(null);
+const notificationReadTimers = new Map<string, ReturnType<typeof setTimeout>>();
+
+const notificationReadMarkMode = computed(() => settings.value.notificationBehavior.readMarkMode);
+const notificationReadMarkDelayMs = computed(
+  () => settings.value.notificationBehavior.readMarkDelaySeconds * 1000
+);
+
+const getNotificationThreadId = (notification: DashboardNotification) => {
+  return String(notification.id);
+};
+
+const buildNotificationDetailKey = (details: NotificationDetails) => {
+  if (details.isIssue) {
+    return `issue-${details.owner}-${details.repo}-${details.number}`;
+  }
+
+  if (details.isDiscussion) {
+    return `discussion-${details.owner}-${details.repo}-${details.number}`;
+  }
+
+  if (details.isRelease) {
+    return `release-${details.owner}-${details.repo}-id-${details.number}`;
+  }
+
+  return `pr-${details.owner}-${details.repo}-${details.number}`;
+};
+
+const clearNotificationReadTimer = (threadId: string) => {
+  const timer = notificationReadTimers.get(threadId);
+  if (!timer) return;
+
+  clearTimeout(timer);
+  notificationReadTimers.delete(threadId);
+};
+
+const clearNotificationReadTimers = () => {
+  for (const threadId of Array.from(notificationReadTimers.keys())) {
+    clearNotificationReadTimer(threadId);
+  }
+};
+
+const markNotificationAsReadFromDashboard = async (notification: DashboardNotification) => {
+  clearNotificationReadTimer(getNotificationThreadId(notification));
+  return markNotificationAsRead(notification);
+};
+
+const isPendingNotificationDetailLoaded = (detailKey: string) => {
+  if (detailKey === issueDetailKey.value) {
+    return isIssueDetailVisible.value && Boolean(currentIssue.value) && !loadingIssue.value;
+  }
+
+  if (detailKey === prDetailKey.value) {
+    return isPRDetailVisible.value && Boolean(currentPR.value) && !loadingPR.value;
+  }
+
+  if (detailKey === discussionDetailKey.value) {
+    return (
+      isDiscussionDetailVisible.value &&
+      Boolean(currentDiscussion.value) &&
+      !loadingDiscussion.value
+    );
+  }
+
+  if (detailKey === releaseDetailKey.value) {
+    return isReleaseDetailVisible.value && Boolean(currentRelease.value) && !loadingRelease.value;
+  }
+
+  return false;
+};
+
+const scheduleNotificationReadTimer = (notification: DashboardNotification) => {
+  const threadId = getNotificationThreadId(notification);
+  clearNotificationReadTimer(threadId);
+
+  const timer = setTimeout(() => {
+    notificationReadTimers.delete(threadId);
+    void markNotificationAsReadFromDashboard(notification);
+  }, notificationReadMarkDelayMs.value);
+
+  notificationReadTimers.set(threadId, timer);
+};
+
+const schedulePendingNotificationReadIfReady = () => {
+  const pending = pendingNotificationRead.value;
+  const mode = notificationReadMarkMode.value;
+  if (!pending || mode === 'manual') return;
+
+  if (!isPendingNotificationDetailLoaded(pending.detailKey)) return;
+
+  pendingNotificationRead.value = null;
+  if (mode === 'immediate') {
+    void markNotificationAsReadFromDashboard(pending.notification);
+    return;
+  }
+
+  scheduleNotificationReadTimer(pending.notification);
+};
+
+const handleNotificationAutoRead = (notification: DashboardNotification) => {
+  if (!notification.unread) return;
+
+  if (notificationReadMarkMode.value === 'manual') {
+    pendingNotificationRead.value = null;
+    return;
+  }
+
+  const details = getNotificationDetails(notification);
+  if (!details) return;
+
+  pendingNotificationRead.value = {
+    notification,
+    detailKey: buildNotificationDetailKey(details),
+  };
+  schedulePendingNotificationReadIfReady();
+};
+
+const handleNotificationOpen = (notification: DashboardNotification) => {
+  openNotification(notification);
+  handleNotificationAutoRead(notification);
+};
+
+watch(
+  [
+    pendingNotificationRead,
+    issueDetailKey,
+    prDetailKey,
+    discussionDetailKey,
+    releaseDetailKey,
+    loadingIssue,
+    loadingPR,
+    loadingDiscussion,
+    loadingRelease,
+    currentIssue,
+    currentPR,
+    currentDiscussion,
+    currentRelease,
+  ],
+  schedulePendingNotificationReadIfReady,
+  { flush: 'post' }
+);
+
+watch(notificationReadMarkMode, (mode) => {
+  if (mode === 'manual') {
+    pendingNotificationRead.value = null;
+    clearNotificationReadTimers();
+    return;
+  }
+
+  if (mode === 'immediate') {
+    clearNotificationReadTimers();
+  }
+
+  schedulePendingNotificationReadIfReady();
+});
+
+watch(hasVisibleDetail, (visible) => {
+  if (visible) return;
+
+  pendingNotificationRead.value = null;
+  clearNotificationReadTimers();
+});
+
+onBeforeUnmount(() => {
+  clearNotificationReadTimers();
+});
 
 watch([hasCompletedInitialDashboardLoad, hasVisibleDetail], ([loaded, detailVisible]) => {
   if (loaded && !detailVisible) {

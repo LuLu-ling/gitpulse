@@ -178,6 +178,44 @@ describe('user settings store', () => {
     });
   });
 
+  test('persists notification behavior settings with optimistic save normalization', async () => {
+    const harness = createHarness('octocat');
+    markLoaded(harness);
+
+    const save = harness.store.updateNotificationBehavior({
+      readMarkMode: 'immediate',
+      readMarkDelaySeconds: 15,
+    });
+    await tick();
+
+    expect(harness.settings.value.notificationBehavior).toEqual({
+      readMarkMode: 'immediate',
+      readMarkDelaySeconds: 15,
+    });
+    expect(harness.saveRequests).toHaveLength(1);
+    expect(harness.saveRequests[0]?.patch).toEqual({
+      notificationBehavior: {
+        readMarkMode: 'immediate',
+        readMarkDelaySeconds: 15,
+      },
+    });
+
+    harness.saveRequests[0]?.deferred.resolve(
+      createSettings({
+        notificationBehavior: {
+          readMarkMode: 'immediate',
+          readMarkDelaySeconds: 15,
+        },
+      })
+    );
+    await expect(save).resolves.toMatchObject({
+      notificationBehavior: {
+        readMarkMode: 'immediate',
+        readMarkDelaySeconds: 15,
+      },
+    });
+  });
+
   test('does not run queued saves for a previous login after a login switch', async () => {
     const harness = createHarness('octocat');
     markLoaded(harness);

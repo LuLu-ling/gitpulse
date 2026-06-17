@@ -18,6 +18,8 @@ import { TAB_GROUP_SOURCES } from '#shared/types/tab-groups';
 import {
   APP_FONT_IDS,
   CODE_FONT_IDS,
+  NOTIFICATION_READ_MARK_DELAY_SECONDS,
+  NOTIFICATION_READ_MARK_MODE_IDS,
   SHIKI_DARK_THEME_IDS,
   SHIKI_LIGHT_THEME_IDS,
 } from '#shared/types/user-settings';
@@ -25,6 +27,19 @@ import { normalizeSystemFontFamily } from '#shared/utils/user-settings';
 
 const appFontSchema = z.enum(APP_FONT_IDS);
 const codeFontSchema = z.enum(CODE_FONT_IDS);
+const notificationReadMarkModeSchema = z.enum(NOTIFICATION_READ_MARK_MODE_IDS);
+const notificationReadMarkDelaySecondsSchema = z
+  .number()
+  .int()
+  .refine(
+    (value): value is (typeof NOTIFICATION_READ_MARK_DELAY_SECONDS)[number] =>
+      NOTIFICATION_READ_MARK_DELAY_SECONDS.includes(
+        value as (typeof NOTIFICATION_READ_MARK_DELAY_SECONDS)[number]
+      ),
+    {
+      message: 'Invalid notification read delay',
+    }
+  );
 const shikiLightThemeSchema = z.enum(SHIKI_LIGHT_THEME_IDS);
 const shikiDarkThemeSchema = z.enum(SHIKI_DARK_THEME_IDS);
 const fontFamilySchema = z
@@ -55,6 +70,15 @@ const appearanceSettingsPatchSchema = z
   })
   .refine((appearance) => Object.keys(appearance).length > 0, {
     message: 'At least one appearance setting is required',
+  });
+
+const notificationBehaviorSettingsPatchSchema = z
+  .strictObject({
+    readMarkMode: notificationReadMarkModeSchema.optional(),
+    readMarkDelaySeconds: notificationReadMarkDelaySecondsSchema.optional(),
+  })
+  .refine((notificationBehavior) => Object.keys(notificationBehavior).length > 0, {
+    message: 'At least one notification behavior setting is required',
   });
 
 const tabGroupSchema = z.strictObject({
@@ -134,6 +158,7 @@ export const userSettingsPatchSchema = z
   .strictObject({
     fonts: fontSettingsPatchSchema.optional(),
     appearance: appearanceSettingsPatchSchema.optional(),
+    notificationBehavior: notificationBehaviorSettingsPatchSchema.optional(),
     tabGroups: z.array(tabGroupSchema).optional(),
     customTabs: z.array(customTabSchema).optional(),
   })

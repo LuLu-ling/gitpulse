@@ -1,12 +1,16 @@
 <script setup lang="ts">
-import { PaletteIcon, SearchIcon, TypeIcon } from '@lucide/vue';
+import { BellIcon, PaletteIcon, SearchIcon, TypeIcon } from '@lucide/vue';
+import type { Component } from 'vue';
 import { computed, nextTick, onMounted, shallowRef, useTemplateRef } from 'vue';
 
-import type {
-  AppFontId,
-  CodeFontId,
-  ShikiDarkThemeId,
-  ShikiLightThemeId,
+import {
+  NOTIFICATION_READ_MARK_DELAY_SECONDS,
+  type AppFontId,
+  type CodeFontId,
+  type NotificationReadMarkDelaySeconds,
+  type NotificationReadMarkMode,
+  type ShikiDarkThemeId,
+  type ShikiLightThemeId,
 } from '#shared/types/user-settings';
 import { normalizeSystemFontFamily } from '#shared/utils/user-settings';
 import FloatingRefreshButton from '~/components/dashboard/FloatingRefreshButton.vue';
@@ -25,8 +29,16 @@ import {
 const { t } = useI18n();
 const localePath = useLocalePath();
 const router = useRouter();
-const { settings, loading, saving, error, loadSettings, updateFonts, updateAppearance } =
-  useUserSettings();
+const {
+  settings,
+  loading,
+  saving,
+  error,
+  loadSettings,
+  updateFonts,
+  updateAppearance,
+  updateNotificationBehavior,
+} = useUserSettings();
 const settingsRefresh = useRefreshableView({
   refresh: () => loadSettings({ force: true }),
   enabled: computed(() => !saving.value),
@@ -40,6 +52,33 @@ const {
 
 // SEO: settings page title
 usePageMeta(t('dashboard.settings.pageTitle'));
+
+type SettingsCategory = 'appearance' | 'notifications';
+
+const activeSettingsCategory = shallowRef<SettingsCategory>('appearance');
+const settingsCategoryMeta = {
+  appearance: {
+    icon: PaletteIcon,
+    titleKey: 'dashboard.settings.appearanceTitle',
+    descriptionKey: 'dashboard.settings.appearanceDescription',
+  },
+  notifications: {
+    icon: BellIcon,
+    titleKey: 'dashboard.settings.notificationBehaviorTitle',
+    descriptionKey: 'dashboard.settings.notificationBehaviorDescription',
+  },
+} satisfies Record<
+  SettingsCategory,
+  {
+    icon: Component;
+    titleKey: string;
+    descriptionKey: string;
+  }
+>;
+
+const activeSettingsCategoryMeta = computed(
+  () => settingsCategoryMeta[activeSettingsCategory.value]
+);
 
 // Font picker modal state
 const showAppFontPicker = shallowRef(false);
@@ -77,6 +116,37 @@ const shikiDarkDropdownOptions: FilterOption[] = shikiDarkThemeOptions.map((them
   value: theme.id,
   label: theme.label,
 }));
+
+const notificationReadMarkModeOptions: FilterOption[] = [
+  {
+    value: 'delayed',
+    label: t('dashboard.settings.notificationReadMarkModeDelayed'),
+    description: t('dashboard.settings.notificationReadMarkModeDelayedDescription'),
+  },
+  {
+    value: 'immediate',
+    label: t('dashboard.settings.notificationReadMarkModeImmediate'),
+    description: t('dashboard.settings.notificationReadMarkModeImmediateDescription'),
+  },
+  {
+    value: 'manual',
+    label: t('dashboard.settings.notificationReadMarkModeManual'),
+    description: t('dashboard.settings.notificationReadMarkModeManualDescription'),
+  },
+];
+
+const notificationReadMarkDelayOptions: FilterOption[] = NOTIFICATION_READ_MARK_DELAY_SECONDS.map(
+  (seconds) => ({
+    value: String(seconds),
+    label: t('dashboard.settings.notificationReadMarkDelaySeconds', {
+      seconds: String(seconds),
+    }),
+  })
+);
+
+const showNotificationReadMarkDelay = computed(() => {
+  return settings.value.notificationBehavior.readMarkMode === 'delayed';
+});
 
 // Current font display names
 const currentAppFontName = computed(() => {
@@ -135,6 +205,21 @@ const applyLightShikiTheme = (themeId: string) => {
 const applyDarkShikiTheme = (themeId: string) => {
   if (shikiDarkThemeOptions.some((theme) => theme.id === themeId)) {
     void updateAppearance({ shikiDarkTheme: themeId as ShikiDarkThemeId });
+  }
+};
+
+const applyNotificationReadMarkMode = (mode: string) => {
+  if (mode === 'delayed' || mode === 'immediate' || mode === 'manual') {
+    void updateNotificationBehavior({ readMarkMode: mode as NotificationReadMarkMode });
+  }
+};
+
+const applyNotificationReadMarkDelay = (secondsValue: string) => {
+  const seconds = Number.parseInt(secondsValue, 10);
+  if (NOTIFICATION_READ_MARK_DELAY_SECONDS.includes(seconds as NotificationReadMarkDelaySeconds)) {
+    void updateNotificationBehavior({
+      readMarkDelaySeconds: seconds as NotificationReadMarkDelaySeconds,
+    });
   }
 };
 
@@ -229,10 +314,24 @@ onMounted(() => {
         <nav class="settings__nav">
           <div class="settings__nav-group">
             <span class="settings__nav-label">{{ t('dashboard.settings.pageTitle') }}</span>
-            <div class="settings__nav-item is-active">
+            <button
+              class="settings__nav-item"
+              :class="{ 'is-active': activeSettingsCategory === 'appearance' }"
+              type="button"
+              @click="activeSettingsCategory = 'appearance'"
+            >
               <TypeIcon :size="15" />
               <span>{{ t('dashboard.settings.appearanceTitle') }}</span>
-            </div>
+            </button>
+            <button
+              class="settings__nav-item"
+              :class="{ 'is-active': activeSettingsCategory === 'notifications' }"
+              type="button"
+              @click="activeSettingsCategory = 'notifications'"
+            >
+              <BellIcon :size="15" />
+              <span>{{ t('dashboard.settings.notificationBehaviorTitle') }}</span>
+            </button>
           </div>
         </nav>
       </aside>
@@ -242,117 +341,164 @@ onMounted(() => {
         <div class="settings__content">
           <div class="settings__header">
             <div class="settings__header-icon">
-              <PaletteIcon :size="20" />
+              <component :is="activeSettingsCategoryMeta.icon" :size="20" />
             </div>
             <div>
-              <h1 class="settings__title">{{ t('dashboard.settings.appearanceTitle') }}</h1>
-              <p class="settings__desc">{{ t('dashboard.settings.appearanceDescription') }}</p>
+              <h1 class="settings__title">{{ t(activeSettingsCategoryMeta.titleKey) }}</h1>
+              <p class="settings__desc">
+                {{ t(activeSettingsCategoryMeta.descriptionKey) }}
+              </p>
             </div>
           </div>
 
           <div v-if="error" class="settings__error">{{ error }}</div>
 
-          <!-- App Font -->
-          <section class="settings__section">
-            <h2 class="settings__section-title">{{ t('dashboard.settings.appFontSection') }}</h2>
-            <div class="settings__font-card">
-              <div class="settings__font-field">
-                <label class="settings__label">{{ t('dashboard.settings.appFontLabel') }}</label>
-                <div class="settings__font-input-row">
-                  <input
-                    v-if="editingAppFont"
-                    ref="appFontInput"
-                    v-model="appFontInput"
-                    class="settings__font-input"
-                    type="text"
-                    @blur="applyAppFontFromInput"
-                    @keydown="handleAppFontInputKeydown"
-                  />
-                  <span v-else class="settings__font-value" @click="startEditingAppFont">
-                    {{ currentAppFontName }}
-                  </span>
-                  <button
-                    class="settings__font-picker-btn"
-                    type="button"
-                    :aria-label="t('dashboard.settings.selectAppFont')"
-                    @click="showAppFontPicker = true"
-                  >
-                    <SearchIcon :size="14" />
-                  </button>
+          <template v-if="activeSettingsCategory === 'appearance'">
+            <!-- App Font -->
+            <section class="settings__section">
+              <h2 class="settings__section-title">
+                {{ t('dashboard.settings.appFontSection') }}
+              </h2>
+              <div class="settings__font-card">
+                <div class="settings__font-field">
+                  <label class="settings__label">{{ t('dashboard.settings.appFontLabel') }}</label>
+                  <div class="settings__font-input-row">
+                    <input
+                      v-if="editingAppFont"
+                      ref="appFontInput"
+                      v-model="appFontInput"
+                      class="settings__font-input"
+                      type="text"
+                      @blur="applyAppFontFromInput"
+                      @keydown="handleAppFontInputKeydown"
+                    />
+                    <span v-else class="settings__font-value" @click="startEditingAppFont">
+                      {{ currentAppFontName }}
+                    </span>
+                    <button
+                      class="settings__font-picker-btn"
+                      type="button"
+                      :aria-label="t('dashboard.settings.selectAppFont')"
+                      @click="showAppFontPicker = true"
+                    >
+                      <SearchIcon :size="14" />
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          </section>
+            </section>
 
-          <!-- Code Font -->
-          <section class="settings__section">
-            <h2 class="settings__section-title">{{ t('dashboard.settings.codeFontSection') }}</h2>
-            <div class="settings__font-card">
-              <div class="settings__font-field">
-                <label class="settings__label">{{ t('dashboard.settings.codeFontLabel') }}</label>
-                <div class="settings__font-input-row">
-                  <input
-                    v-if="editingCodeFont"
-                    ref="codeFontInput"
-                    v-model="codeFontInput"
-                    class="settings__font-input"
-                    type="text"
-                    @blur="applyCodeFontFromInput"
-                    @keydown="handleCodeFontInputKeydown"
-                  />
-                  <span v-else class="settings__font-value" @click="startEditingCodeFont">
-                    {{ currentCodeFontName }}
-                  </span>
-                  <button
-                    class="settings__font-picker-btn"
-                    type="button"
-                    :aria-label="t('dashboard.settings.selectCodeFont')"
-                    @click="showCodeFontPicker = true"
-                  >
-                    <SearchIcon :size="14" />
-                  </button>
+            <!-- Code Font -->
+            <section class="settings__section">
+              <h2 class="settings__section-title">
+                {{ t('dashboard.settings.codeFontSection') }}
+              </h2>
+              <div class="settings__font-card">
+                <div class="settings__font-field">
+                  <label class="settings__label">{{ t('dashboard.settings.codeFontLabel') }}</label>
+                  <div class="settings__font-input-row">
+                    <input
+                      v-if="editingCodeFont"
+                      ref="codeFontInput"
+                      v-model="codeFontInput"
+                      class="settings__font-input"
+                      type="text"
+                      @blur="applyCodeFontFromInput"
+                      @keydown="handleCodeFontInputKeydown"
+                    />
+                    <span v-else class="settings__font-value" @click="startEditingCodeFont">
+                      {{ currentCodeFontName }}
+                    </span>
+                    <button
+                      class="settings__font-picker-btn"
+                      type="button"
+                      :aria-label="t('dashboard.settings.selectCodeFont')"
+                      @click="showCodeFontPicker = true"
+                    >
+                      <SearchIcon :size="14" />
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          </section>
+            </section>
 
-          <!-- Code Highlighting -->
-          <section class="settings__section">
-            <h2 class="settings__section-title">
-              {{ t('dashboard.settings.codeHighlightSection') }}
-            </h2>
-            <div class="settings__font-card">
-              <div class="settings__font-field">
-                <label class="settings__label">
-                  {{ t('dashboard.settings.shikiLightThemeLabel') }}
-                </label>
-                <div class="settings__dropdown-row">
-                  <FilterDropdown
-                    :model-value="settings.appearance.shikiLightTheme"
-                    :options="shikiLightDropdownOptions"
-                    :placeholder="t('dashboard.settings.shikiLightThemeLabel')"
-                    :aria-label="t('dashboard.settings.shikiLightThemeLabel')"
-                    @update:model-value="applyLightShikiTheme"
-                  />
+            <!-- Code Highlighting -->
+            <section class="settings__section">
+              <h2 class="settings__section-title">
+                {{ t('dashboard.settings.codeHighlightSection') }}
+              </h2>
+              <div class="settings__font-card">
+                <div class="settings__font-field">
+                  <label class="settings__label">
+                    {{ t('dashboard.settings.shikiLightThemeLabel') }}
+                  </label>
+                  <div class="settings__dropdown-row">
+                    <FilterDropdown
+                      :model-value="settings.appearance.shikiLightTheme"
+                      :options="shikiLightDropdownOptions"
+                      :placeholder="t('dashboard.settings.shikiLightThemeLabel')"
+                      :aria-label="t('dashboard.settings.shikiLightThemeLabel')"
+                      @update:model-value="applyLightShikiTheme"
+                    />
+                  </div>
                 </div>
-              </div>
 
-              <div class="settings__font-field">
-                <label class="settings__label">
-                  {{ t('dashboard.settings.shikiDarkThemeLabel') }}
-                </label>
-                <div class="settings__dropdown-row">
-                  <FilterDropdown
-                    :model-value="settings.appearance.shikiDarkTheme"
-                    :options="shikiDarkDropdownOptions"
-                    :placeholder="t('dashboard.settings.shikiDarkThemeLabel')"
-                    :aria-label="t('dashboard.settings.shikiDarkThemeLabel')"
-                    @update:model-value="applyDarkShikiTheme"
-                  />
+                <div class="settings__font-field">
+                  <label class="settings__label">
+                    {{ t('dashboard.settings.shikiDarkThemeLabel') }}
+                  </label>
+                  <div class="settings__dropdown-row">
+                    <FilterDropdown
+                      :model-value="settings.appearance.shikiDarkTheme"
+                      :options="shikiDarkDropdownOptions"
+                      :placeholder="t('dashboard.settings.shikiDarkThemeLabel')"
+                      :aria-label="t('dashboard.settings.shikiDarkThemeLabel')"
+                      @update:model-value="applyDarkShikiTheme"
+                    />
+                  </div>
                 </div>
               </div>
-            </div>
-          </section>
+            </section>
+          </template>
+
+          <template v-else>
+            <section class="settings__section">
+              <h2 class="settings__section-title">
+                {{ t('dashboard.settings.notificationReadSection') }}
+              </h2>
+              <div class="settings__font-card">
+                <div class="settings__font-field">
+                  <label class="settings__label">
+                    {{ t('dashboard.settings.notificationReadMarkModeLabel') }}
+                  </label>
+                  <div class="settings__dropdown-row">
+                    <FilterDropdown
+                      :model-value="settings.notificationBehavior.readMarkMode"
+                      :options="notificationReadMarkModeOptions"
+                      :placeholder="t('dashboard.settings.notificationReadMarkModeLabel')"
+                      :aria-label="t('dashboard.settings.notificationReadMarkModeLabel')"
+                      @update:model-value="applyNotificationReadMarkMode"
+                    />
+                  </div>
+                </div>
+
+                <div v-if="showNotificationReadMarkDelay" class="settings__font-field">
+                  <label class="settings__label">
+                    {{ t('dashboard.settings.notificationReadMarkDelayLabel') }}
+                  </label>
+                  <div class="settings__dropdown-row">
+                    <FilterDropdown
+                      :model-value="String(settings.notificationBehavior.readMarkDelaySeconds)"
+                      :options="notificationReadMarkDelayOptions"
+                      :placeholder="t('dashboard.settings.notificationReadMarkDelayLabel')"
+                      :aria-label="t('dashboard.settings.notificationReadMarkDelayLabel')"
+                      @update:model-value="applyNotificationReadMarkDelay"
+                    />
+                  </div>
+                </div>
+              </div>
+            </section>
+          </template>
         </div>
       </main>
     </div>
@@ -475,14 +621,19 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  width: 100%;
   padding: 0.45rem 0.6rem 0.45rem 0.85rem;
   margin-left: 0.25rem;
   border-radius: 0 6px 6px 0;
+  border: 0;
   border-left: 2px solid transparent;
+  background: transparent;
   color: var(--gitpulse-text-muted);
+  font: inherit;
   font-size: 0.8rem;
   font-weight: 550;
-  cursor: default;
+  text-align: left;
+  cursor: pointer;
   transition:
     color 0.12s ease,
     border-color 0.12s ease;

@@ -4,6 +4,7 @@ import { computed, readonly, watch } from 'vue';
 import type {
   UserAppearanceSettings,
   UserFontSettings,
+  UserNotificationBehaviorSettings,
   UserSettings,
   UserSettingsPatch,
 } from '#shared/types/user-settings';
@@ -45,6 +46,9 @@ export interface UserSettingsStore {
   updateSettings: (patch: UserSettingsPatch) => Promise<UserSettings | null>;
   updateFonts: (fonts: Partial<UserFontSettings>) => Promise<UserSettings | null>;
   updateAppearance: (appearance: Partial<UserAppearanceSettings>) => Promise<UserSettings | null>;
+  updateNotificationBehavior: (
+    notificationBehavior: Partial<UserNotificationBehaviorSettings>
+  ) => Promise<UserSettings | null>;
   handleLoginChanged: () => void;
   ensureLoginWatcher: () => void;
 }
@@ -364,6 +368,12 @@ export function createUserSettingsActions({
     return updateSettings({ appearance });
   };
 
+  const updateNotificationBehavior = (
+    notificationBehavior: Partial<UserNotificationBehaviorSettings>
+  ) => {
+    return updateSettings({ notificationBehavior });
+  };
+
   const handleLoginChanged = () => {
     syncActiveLogin();
   };
@@ -398,6 +408,7 @@ export function createUserSettingsActions({
     updateSettings,
     updateFonts,
     updateAppearance,
+    updateNotificationBehavior,
     handleLoginChanged,
     ensureLoginWatcher,
   };

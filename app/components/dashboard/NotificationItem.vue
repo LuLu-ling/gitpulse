@@ -77,7 +77,7 @@
                 <button
                   v-if="currentNotification.unread"
                   class="mark-read-btn"
-                  @click.stop="markAsRead"
+                  @click.stop="handleMarkAsRead"
                   :disabled="markingAsRead"
                 >
                   <CheckIcon v-if="!markingAsRead" :size="16" />
@@ -122,6 +122,7 @@ import shouldShowNotificationSubjectNumber from '~/utils/shouldShowNotificationS
 
 const props = defineProps<{
   notification: DashboardNotification;
+  markAsRead?: (notification: DashboardNotification) => Promise<boolean> | boolean;
 }>();
 
 const { locale } = useI18n();
@@ -198,7 +199,7 @@ const subjectStateTitle = computed(() => {
   return subjectVisual.value.label;
 });
 
-const markAsRead = async () => {
+const handleMarkAsRead = async () => {
   if (markingAsRead.value || !currentNotification.value.unread) return;
 
   markingAsRead.value = true;
@@ -206,6 +207,13 @@ const markAsRead = async () => {
   const threadId = String(currentNotification.value.id);
 
   try {
+    if (props.markAsRead) {
+      if (await props.markAsRead(props.notification)) {
+        isLocallyRead.value = true;
+      }
+      return;
+    }
+
     const { error } = await useFetch(`/api/notifications/${threadId}`, {
       method: 'PATCH',
     });

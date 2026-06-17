@@ -129,6 +129,10 @@ describe('server Zod request validation', () => {
         shikiLightTheme: 'vitesse-light',
         shikiDarkTheme: 'nord',
       },
+      notificationBehavior: {
+        readMarkMode: 'delayed',
+        readMarkDelaySeconds: 15,
+      },
       tabGroups: [
         {
           id: 'default',
@@ -173,6 +177,10 @@ describe('server Zod request validation', () => {
         shikiLightTheme: 'vitesse-light',
         shikiDarkTheme: 'nord',
       },
+      notificationBehavior: {
+        readMarkMode: 'delayed',
+        readMarkDelaySeconds: 15,
+      },
       tabGroups: [
         {
           id: 'default',
@@ -212,6 +220,16 @@ describe('server Zod request validation', () => {
     );
     expect(() =>
       parseUserSettingsPatchBody({ appearance: { shikiLightTheme: 'github-dark' } })
+    ).toThrow('Invalid settings request body');
+    expect(() =>
+      parseUserSettingsPatchBody({
+        notificationBehavior: { readMarkMode: 'unknown' },
+      })
+    ).toThrow('Invalid settings request body');
+    expect(() =>
+      parseUserSettingsPatchBody({
+        notificationBehavior: { readMarkDelaySeconds: 11 },
+      })
     ).toThrow('Invalid settings request body');
     expect(() =>
       parseUserSettingsPatchBody({
