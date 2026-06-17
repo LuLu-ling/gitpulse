@@ -10,7 +10,7 @@
           width="108"
           height="108"
           loading="eager"
-          fetch-priority="high"
+          :preload="{ fetchPriority: 'high' }"
         />
       </div>
 
