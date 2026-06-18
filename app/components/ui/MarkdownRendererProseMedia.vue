@@ -28,6 +28,9 @@ const props = defineProps<{
   media?: string;
 }>();
 
+type ImageLoading = 'eager' | 'lazy';
+type ImageDecoding = 'auto' | 'async' | 'sync';
+
 const attrs = useAttrs();
 const runtimeConfig = useRuntimeConfig();
 const colorMode = useColorMode();
@@ -68,6 +71,14 @@ function hasAttrValue(value: unknown, expected: string) {
   return typeof value === 'string' && value.toLowerCase() === expected;
 }
 
+function resolveImageLoading(value: unknown): ImageLoading {
+  return value === 'eager' ? 'eager' : 'lazy';
+}
+
+function resolveImageDecoding(value: unknown): ImageDecoding {
+  return value === 'auto' || value === 'sync' || value === 'async' ? value : 'async';
+}
+
 const shouldDeferImage = computed(
   () =>
     tag.value === 'img' &&
@@ -98,8 +109,8 @@ const resolvedAttrs = computed(() => {
 
   return {
     ...resolved,
-    loading: attrs.loading ?? 'lazy',
-    decoding: attrs.decoding ?? 'async',
+    loading: resolveImageLoading(attrs.loading),
+    decoding: resolveImageDecoding(attrs.decoding),
   };
 });
 

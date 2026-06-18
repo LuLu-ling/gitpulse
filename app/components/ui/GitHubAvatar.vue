@@ -13,6 +13,7 @@ type GitHubAvatarVariant = 'plain' | 'raised';
 type GitHubAvatarLoading = 'eager' | 'lazy';
 type GitHubAvatarFetchPriority = 'high' | 'low' | 'auto';
 type GitHubAvatarPreload = boolean | { fetchPriority?: GitHubAvatarFetchPriority };
+type NuxtImagePreload = boolean | { fetchPriority: GitHubAvatarFetchPriority };
 
 const props = withDefaults(
   defineProps<{
@@ -55,10 +56,17 @@ const imageHeight = computed(() => props.height ?? props.size);
 const imageDisplaySize = computed(() =>
   resolveGitHubAvatarDisplaySize(imageWidth.value, imageHeight.value)
 );
-const imageSrc = computed(() => createSizedGitHubAvatarUrl(props.src, imageDisplaySize.value));
+const imageSrc = computed(
+  () => createSizedGitHubAvatarUrl(props.src, imageDisplaySize.value) ?? undefined
+);
 const shouldDeferImage = computed(() => props.loading !== 'eager');
 const imageShouldLoad = useDeferredElementLoad(avatarElement, shouldDeferImage, imageSrc);
 const fallbackLabel = computed(() => props.alt?.trim() || 'GitHub avatar');
+const resolvedPreload = computed<NuxtImagePreload | undefined>(() => {
+  if (props.preload === undefined || typeof props.preload === 'boolean') return props.preload;
+  if (!props.preload.fetchPriority) return undefined;
+  return { fetchPriority: props.preload.fetchPriority };
+});
 </script>
 
 <template>
@@ -81,7 +89,7 @@ const fallbackLabel = computed(() => props.alt?.trim() || 'GitHub avatar');
       :height="imageHeight"
       :loading="loading"
       :fetchpriority="fetchPriority"
-      :preload="preload"
+      :preload="resolvedPreload"
       class="github-avatar__image"
     />
     <span v-else class="github-avatar__fallback" role="img" :aria-label="fallbackLabel">
