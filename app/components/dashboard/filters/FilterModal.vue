@@ -13,6 +13,10 @@ import type {
   DashboardRouteFilters,
 } from '~/composables/useDashboardFilters';
 import createFocusTrapController from '~/utils/createFocusTrapController';
+import {
+  DASHBOARD_NOTIFICATION_SUBJECT_TYPES,
+  getDashboardSubjectTypeVisual,
+} from '~/utils/getDashboardSubjectStateVisual';
 
 const props = defineProps<{
   open: boolean;
@@ -48,6 +52,11 @@ const labelItems = computed(() =>
   (props.labelSuggestions ?? []).map((label) => ({ value: label }))
 );
 
+const isTodoTab = computed(() => props.currentTab === 'todos');
+const isNotificationSubjectFilterTab = computed(() => {
+  return props.currentTab === 'notifications' || props.currentTab === 'todos';
+});
+
 const stateOptions = computed<SegmentedOption[]>(() => {
   if (props.currentTab === 'notifications') {
     return [
@@ -75,6 +84,29 @@ const stateOptions = computed<SegmentedOption[]>(() => {
 });
 
 const selectedState = computed(() => localFilters.value.state ?? '');
+const selectedTodoSort = computed(() =>
+  localFilters.value.sort === 'updated' ? 'updated' : 'added'
+);
+const selectedTodoOrder = computed(() => localFilters.value.order ?? 'desc');
+
+const todoSortOptions = computed<SegmentedOption[]>(() => [
+  { value: 'added', label: t('dashboard.filters.options.added') },
+  { value: 'updated', label: t('dashboard.filters.options.updated') },
+]);
+
+const todoOrderOptions = computed<SegmentedOption[]>(() => [
+  { value: 'desc', label: t('dashboard.filters.options.desc') },
+  { value: 'asc', label: t('dashboard.filters.options.asc') },
+]);
+
+const subjectTypeOptions = computed(() => [
+  { value: '', label: t('dashboard.filters.options.any') },
+  ...DASHBOARD_NOTIFICATION_SUBJECT_TYPES.map((subjectType) => ({
+    value: subjectType.value,
+    label: t(subjectType.labelKey),
+    icon: getDashboardSubjectTypeVisual(subjectType.value).icon,
+  })),
+]);
 
 const handleKeydown = (event: KeyboardEvent) => {
   if (event.key === 'Escape') {
@@ -169,6 +201,30 @@ watch(
             />
           </section>
 
+          <section v-if="isTodoTab" class="filter-modal__section">
+            <h3 class="filter-modal__section-title">
+              {{ t('dashboard.filters.sort') }}
+            </h3>
+            <FilterSegmentedControl
+              :options="todoSortOptions"
+              :model-value="selectedTodoSort"
+              :aria-label="t('dashboard.filters.sort')"
+              @update:model-value="updateLocalFilter('sort', $event)"
+            />
+          </section>
+
+          <section v-if="isTodoTab" class="filter-modal__section">
+            <h3 class="filter-modal__section-title">
+              {{ t('dashboard.filters.order') }}
+            </h3>
+            <FilterSegmentedControl
+              :options="todoOrderOptions"
+              :model-value="selectedTodoOrder"
+              :aria-label="t('dashboard.filters.order')"
+              @update:model-value="updateLocalFilter('order', $event)"
+            />
+          </section>
+
           <section v-if="currentTab !== 'repos'" class="filter-modal__section">
             <h3 class="filter-modal__section-title">
               {{ t('dashboard.filters.repo') }}
@@ -181,8 +237,22 @@ watch(
             />
           </section>
 
+          <section v-if="isNotificationSubjectFilterTab" class="filter-modal__section">
+            <h3 class="filter-modal__section-title">
+              {{ t('dashboard.filters.subjectType') }}
+            </h3>
+            <FilterDropdown
+              :model-value="localFilters.subjectType ?? ''"
+              :options="subjectTypeOptions"
+              :placeholder="t('dashboard.filters.options.any')"
+              @update:model-value="updateLocalFilter('subjectType', $event)"
+            />
+          </section>
+
           <section
-            v-if="currentTab !== 'repos' && currentTab !== 'notifications'"
+            v-if="
+              currentTab !== 'repos' && currentTab !== 'notifications' && currentTab !== 'todos'
+            "
             class="filter-modal__section"
           >
             <h3 class="filter-modal__section-title">
@@ -197,7 +267,9 @@ watch(
           </section>
 
           <details
-            v-if="currentTab !== 'repos' && currentTab !== 'notifications'"
+            v-if="
+              currentTab !== 'repos' && currentTab !== 'notifications' && currentTab !== 'todos'
+            "
             class="filter-modal__collapsible"
             :open="advancedOpen || undefined"
             @toggle="advancedOpen = ($event.target as HTMLDetailsElement).open"

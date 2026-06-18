@@ -117,6 +117,7 @@ const createDefaultPaginationMeta = (): DashboardPaginationMeta => ({
 });
 
 const createPaginationState = (): Record<DashboardTab, DashboardPaginationMeta> => ({
+  todos: createDefaultPaginationMeta(),
   notifications: createDefaultPaginationMeta(),
   issues: createDefaultPaginationMeta(),
   pulls: createDefaultPaginationMeta(),
@@ -350,8 +351,10 @@ const applyNotificationSubjectStates = (
     const result = statesByKey.get(target.key);
     return {
       ...item,
+      updated_at: result?.updatedAt ?? item.updated_at,
       subject: {
         ...item.subject,
+        title: result?.title ?? item.subject?.title,
         state: result?.state,
         labels: result?.labels,
         authorLogin: result?.authorLogin,

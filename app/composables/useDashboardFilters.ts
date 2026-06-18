@@ -15,6 +15,9 @@ import parseGitHubRepoPath from '../utils/parseGitHubRepoPath';
 import type { DashboardTab } from './useDashboardTabs';
 
 export type DashboardRouteState = 'all' | 'unread' | 'read' | 'open' | 'closed' | 'merged';
+export type DashboardIssuePrSort = Exclude<GitHubSearchSort, 'best-match'>;
+export type DashboardTodoSort = 'added' | 'updated';
+export type DashboardRouteSort = DashboardIssuePrSort | DashboardTodoSort;
 
 export interface DashboardRouteFilters {
   state?: DashboardRouteState;
@@ -26,7 +29,7 @@ export interface DashboardRouteFilters {
   subjectState?: 'open' | 'closed' | 'merged';
   review?: Exclude<GitHubSearchReviewFilter, 'any'>;
   archived?: GitHubSearchArchivedFilter;
-  sort?: Exclude<GitHubSearchSort, 'best-match'>;
+  sort?: DashboardRouteSort;
   order?: GitHubSearchOrder;
 }
 
@@ -39,7 +42,7 @@ export interface DashboardFilterChip {
 
 export type DashboardFilterSource = Extract<
   DashboardTab,
-  'notifications' | 'issues' | 'pulls' | 'repos'
+  'todos' | 'notifications' | 'issues' | 'pulls' | 'repos'
 >;
 
 export interface NotificationFilterAdapter {
@@ -115,13 +118,15 @@ const REVIEW_VALUES = new Set<Exclude<GitHubSearchReviewFilter, 'any'>>([
   'changes_requested',
 ]);
 const ARCHIVED_VALUES = new Set<GitHubSearchArchivedFilter>(['exclude', 'include', 'only']);
-const SORT_VALUES = new Set<Exclude<GitHubSearchSort, 'best-match'>>([
+const GITHUB_SORT_VALUES = new Set<DashboardIssuePrSort>([
   'comments',
   'reactions',
   'interactions',
   'created',
   'updated',
 ]);
+const TODO_SORT_VALUES = new Set<DashboardTodoSort>(['added', 'updated']);
+const ROUTE_SORT_VALUES = new Set<DashboardRouteSort>([...GITHUB_SORT_VALUES, 'added']);
 const ISSUE_STATE_VALUES = new Set<DashboardRouteState>(['all', 'open', 'closed', 'merged']);
 const SUBJECT_STATE_VALUES = new Set<NonNullable<DashboardRouteFilters['subjectState']>>([
   'open',
@@ -132,6 +137,14 @@ const archivedChipOptionByValue: Record<GitHubSearchArchivedFilter, string> = {
   exclude: 'excludeArchived',
   include: 'includeArchived',
   only: 'onlyArchived',
+};
+
+const isGitHubSort = (sort: DashboardRouteFilters['sort']): sort is DashboardIssuePrSort => {
+  return GITHUB_SORT_VALUES.has(sort as DashboardIssuePrSort);
+};
+
+const isTodoSort = (sort: DashboardRouteFilters['sort']): sort is DashboardTodoSort => {
+  return TODO_SORT_VALUES.has(sort as DashboardTodoSort);
 };
 
 const createEmptyDashboardRouteFilters = (): DashboardRouteFilters => ({ labels: [] });
@@ -209,8 +222,8 @@ export const parseDashboardRouteFilters = (
     archived: ARCHIVED_VALUES.has(archived as GitHubSearchArchivedFilter)
       ? (archived as GitHubSearchArchivedFilter)
       : undefined,
-    sort: SORT_VALUES.has(sort as Exclude<GitHubSearchSort, 'best-match'>)
-      ? (sort as Exclude<GitHubSearchSort, 'best-match'>)
+    sort: ROUTE_SORT_VALUES.has(sort as DashboardRouteSort)
+      ? (sort as DashboardRouteSort)
       : undefined,
     order: order === 'asc' || order === 'desc' ? order : undefined,
   };
@@ -256,6 +269,21 @@ export const createDashboardEffectiveFilters = (
 
   effective.repo = filters.repo;
 
+  if (source === 'todos') {
+    effective.subjectType = filters.subjectType;
+    effective.sort = isTodoSort(filters.sort) ? filters.sort : undefined;
+    effective.order = filters.order;
+
+    if (effective.sort === 'added') {
+      delete effective.sort;
+    }
+    if (effective.order === 'desc') {
+      delete effective.order;
+    }
+
+    return effective;
+  }
+
   if (source === 'notifications') {
     if (filters.state === 'all' || filters.state === 'unread' || filters.state === 'read') {
       effective.state = filters.state;
@@ -276,7 +304,7 @@ export const createDashboardEffectiveFilters = (
   }
 
   effective.archived = filters.archived;
-  effective.sort = filters.sort;
+  effective.sort = isGitHubSort(filters.sort) ? filters.sort : undefined;
   effective.order = filters.order;
 
   if (effective.state === 'open') {
@@ -396,9 +424,10 @@ export const buildBuiltinIssuePrFilterQuery = (
   filters: DashboardRouteFilters,
   userLogin?: string
 ): GitHubSearchQuery => {
+  const sort = isGitHubSort(filters.sort) ? filters.sort : undefined;
   const sharedQuery = {
     archived: filters.archived ?? ('exclude' as const),
-    sort: filters.sort ?? ('updated' as const),
+    sort: sort ?? ('updated' as const),
     order: filters.order ?? ('desc' as const),
     ...(userLogin ? { involves: userLogin } : {}),
     ...(filters.repo ? { repo: filters.repo } : {}),
@@ -435,7 +464,7 @@ export const buildCustomTabOverlayQuery = (
   if (filters.author) nextQuery.author = filters.author;
   if (filters.labels.length > 0) nextQuery.labels = filters.labels;
   if (filters.archived) nextQuery.archived = filters.archived;
-  if (filters.sort) nextQuery.sort = filters.sort;
+  if (isGitHubSort(filters.sort)) nextQuery.sort = filters.sort;
   if (filters.order) nextQuery.order = filters.order;
   if (filters.review && nextQuery.type === 'pulls') nextQuery.review = filters.review;
 
@@ -542,8 +571,8 @@ export const createDashboardFiltersFromCustomTabQuery = (
     filters.archived = query.archived;
   }
 
-  if (SORT_VALUES.has(query.sort as Exclude<GitHubSearchSort, 'best-match'>)) {
-    filters.sort = query.sort as Exclude<GitHubSearchSort, 'best-match'>;
+  if (GITHUB_SORT_VALUES.has(query.sort as DashboardIssuePrSort)) {
+    filters.sort = query.sort as DashboardIssuePrSort;
   }
 
   if (query.order === 'asc' || query.order === 'desc') {

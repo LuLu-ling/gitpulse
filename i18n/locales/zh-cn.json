@@ -278,6 +278,7 @@
         "excludeArchived": "排除已归档",
         "includeArchived": "包含已归档",
         "onlyArchived": "仅已归档",
+        "added": "加入时间",
         "updated": "更新时间",
         "created": "创建时间",
         "comments": "评论数",
@@ -305,7 +306,10 @@
         "release": "发布",
         "commit": "提交",
         "checkSuite": "检查套件",
-        "securityAlert": "安全警报"
+        "securityAlert": "安全警报",
+        "repositoryVulnerabilityAlert": "安全警报",
+        "workflowRun": "工作流运行",
+        "repositoryInvitation": "仓库邀请"
       }
     },
     "actions": {
@@ -514,7 +518,15 @@
     },
     "notifications": {
       "empty": "暂无通知。",
-      "emptyFiltered": "当前筛选条件下没有匹配的通知。"
+      "emptyFiltered": "当前筛选条件下没有匹配的通知。",
+      "reasonAction": "通知原因",
+      "markAsReadAction": "标记为已读"
+    },
+    "todos": {
+      "empty": "暂无待办通知。",
+      "emptyFiltered": "当前筛选条件下没有匹配的待办通知。",
+      "addAction": "加入待办事项",
+      "removeAction": "从待办事项移除"
     },
     "widgets": {
       "stats": {

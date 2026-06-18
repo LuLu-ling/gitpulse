@@ -37,8 +37,8 @@
           </figure>
         </div>
         <div class="dashboard-list-card__content">
-          <div class="is-flex is-align-items-flex-start">
-            <div class="dashboard-list-card__text-stack">
+          <div class="notification-card__content-frame">
+            <div class="dashboard-list-card__text-stack notification-card__text-stack">
               <p class="title is-6 mb-1 dashboard-list-card__subject">
                 {{ subjectTitle }}
               </p>
@@ -69,21 +69,43 @@
                 }}
               </p>
             </div>
-            <div class="notification-card__actions ml-3">
-              <div class="notification-card__reason-slot">
-                <component :is="reasonIcon" :size="22" class="notification-card__reason-icon" />
-              </div>
-              <div class="notification-card__mark-read-slot">
+
+            <div v-if="showActionColumn" class="notification-card__action-column ml-3">
+              <div v-if="showReason" class="notification-card__actions">
                 <button
-                  v-if="currentNotification.unread"
-                  class="mark-read-btn"
-                  @click.stop="handleMarkAsRead"
+                  v-if="reasonMarksAsRead"
+                  class="notification-card__reason-control notification-card__reason-control--action"
+                  type="button"
+                  :title="markAsReadTitle"
+                  :aria-label="markAsReadTitle"
                   :disabled="markingAsRead"
+                  @click.stop="handleMarkAsRead"
                 >
-                  <CheckIcon v-if="!markingAsRead" :size="16" />
-                  <LoadingIcon v-else :spinning="true" />
+                  <component :is="reasonIcon" :size="18" class="notification-card__reason-icon" />
+                  <span class="notification-card__reason-read-hint" aria-hidden="true">
+                    <Transition name="notification-read-icon" mode="out-in">
+                      <CheckIcon v-if="!markingAsRead" key="check" :size="8" />
+                      <LoadingIcon v-else key="loading" :spinning="true" :size="8" />
+                    </Transition>
+                  </span>
                 </button>
+                <span v-else class="notification-card__reason-control" :title="reasonTitle">
+                  <component :is="reasonIcon" :size="18" class="notification-card__reason-icon" />
+                </span>
               </div>
+
+              <button
+                v-if="todoAction"
+                class="notification-card__todo-btn"
+                :class="`notification-card__todo-btn--${todoAction}`"
+                type="button"
+                :title="todoActionTitle"
+                :aria-label="todoActionTitle"
+                @click.stop="emit('todo-action', currentNotification)"
+              >
+                <ListPlusIcon v-if="todoAction === 'add'" :size="16" />
+                <ListMinusIcon v-else :size="16" />
+              </button>
             </div>
           </div>
         </div>
@@ -102,6 +124,8 @@ import {
   CheckIcon,
   EyeIcon,
   GitCommitIcon,
+  ListMinusIcon,
+  ListPlusIcon,
   MailIcon,
   MessageSquareIcon,
   PenLineIcon,
@@ -120,12 +144,28 @@ import LoadingIcon from '~/components/ui/LoadingIcon.vue';
 import getDashboardSubjectStateVisual from '~/utils/getDashboardSubjectStateVisual';
 import shouldShowNotificationSubjectNumber from '~/utils/shouldShowNotificationSubjectNumber';
 
-const props = defineProps<{
-  notification: DashboardNotification;
-  markAsRead?: (notification: DashboardNotification) => Promise<boolean> | boolean;
+const props = withDefaults(
+  defineProps<{
+    notification: DashboardNotification;
+    markAsRead?: (notification: DashboardNotification) => Promise<boolean> | boolean;
+    todoAction?: 'add' | 'remove';
+    showReason?: boolean;
+    showMarkAsRead?: boolean;
+    forceRead?: boolean;
+  }>(),
+  {
+    todoAction: undefined,
+    showReason: true,
+    showMarkAsRead: true,
+    forceRead: false,
+  }
+);
+
+const emit = defineEmits<{
+  'todo-action': [notification: DashboardNotification];
 }>();
 
-const { locale } = useI18n();
+const { locale, t } = useI18n();
 const localeCode = computed(() => locale.value);
 const relativeTimeNow = useRelativeTimeNow();
 const markingAsRead = ref(false);
@@ -133,7 +173,7 @@ const isLocallyRead = ref(false);
 
 const currentNotification = computed(() => ({
   ...props.notification,
-  unread: isLocallyRead.value ? false : props.notification.unread,
+  unread: props.forceRead || isLocallyRead.value ? false : props.notification.unread,
 }));
 
 const subject = computed(() => currentNotification.value.subject);
@@ -186,6 +226,20 @@ const subjectVisual = computed(() => {
 });
 
 const subjectLabels = computed(() => subject.value?.labels ?? []);
+const showReason = computed(() => props.showReason);
+const showMarkAsRead = computed(() => props.showMarkAsRead);
+const todoAction = computed(() => props.todoAction);
+const showActionColumn = computed(() => showReason.value || Boolean(todoAction.value));
+const reasonMarksAsRead = computed(() => {
+  return showReason.value && showMarkAsRead.value && Boolean(currentNotification.value.unread);
+});
+const markAsReadTitle = computed(() => t('dashboard.notifications.markAsReadAction'));
+const reasonTitle = computed(() => t('dashboard.notifications.reasonAction'));
+const todoActionTitle = computed(() => {
+  return todoAction.value === 'remove'
+    ? t('dashboard.todos.removeAction')
+    : t('dashboard.todos.addAction');
+});
 
 const subjectStateTitle = computed(() => {
   if (isSubjectStatePending.value) {
@@ -248,7 +302,7 @@ const reasonIconMap: Record<string, typeof BellIcon> = {
 };
 
 const reasonIcon = computed(() => {
-  return reasonIconMap[String(currentNotification.value.reason ?? '')];
+  return reasonIconMap[String(currentNotification.value.reason ?? '')] ?? BellIcon;
 });
 </script>
 

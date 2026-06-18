@@ -141,6 +141,44 @@ describe('dashboard route filters', () => {
     });
   });
 
+  test('todo filters omit read state and keep todo sort controls', () => {
+    const sourceState = createDashboardFilterSourceState('todos', {
+      state: 'unread',
+      repo: 'owner/repo',
+      author: 'octocat',
+      labels: ['bug'],
+      reason: 'mention',
+      subjectType: 'PullRequest',
+      subjectState: 'open',
+      sort: 'updated',
+      order: 'asc',
+    });
+
+    expect(sourceState.filters).toEqual({
+      labels: [],
+      repo: 'owner/repo',
+      subjectType: 'PullRequest',
+      sort: 'updated',
+      order: 'asc',
+    });
+    expect(sourceState.chips.map((chip) => chip.key)).toEqual([
+      'repo',
+      'subjectType',
+      'sort',
+      'order',
+    ]);
+    expect(sourceState.hasActiveFilters).toBe(true);
+    expect(sourceState.notificationAdapter.local).toEqual({
+      readState: undefined,
+      repo: 'owner/repo',
+      author: undefined,
+      labels: [],
+      reason: undefined,
+      subjectType: 'PullRequest',
+      subjectState: undefined,
+    });
+  });
+
   test('drops source-inapplicable filters from active issue filters and chips', () => {
     const issueFilters = createDashboardEffectiveFilters('issues', {
       state: 'unread',

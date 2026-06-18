@@ -21,6 +21,8 @@ interface GraphQLAuthorNode {
 }
 
 interface GraphQLSubjectNode {
+  title?: string;
+  updatedAt?: string;
   state?: string;
   mergedAt?: string | null;
   author?: GraphQLAuthorNode;
@@ -74,7 +76,8 @@ const buildSubjectStatesQuery = (targets: NotificationSubjectStateTarget[]) => {
     values[`number${index}`] = target.number;
 
     const fieldName = target.type === 'pulls' ? 'pullRequest' : 'issue';
-    const nodeFields = target.type === 'pulls' ? 'state mergedAt' : 'state';
+    const nodeFields =
+      target.type === 'pulls' ? 'title updatedAt state mergedAt' : 'title updatedAt state';
     fields.push(
       `subject${index}: repository(owner: $owner${index}, name: $repo${index}) { ${fieldName}(number: $number${index}) { ${nodeFields} author { login avatarUrl } labels(first: 10) { nodes { name color } } } }`
     );
@@ -105,6 +108,8 @@ export default defineEventHandler(async (event) => {
 
       return {
         key: target.key,
+        title: node?.title,
+        updatedAt: node?.updatedAt,
         state: normalizeState(target.type, node),
         labels: normalizeLabels(node),
         authorLogin: node?.author?.login,

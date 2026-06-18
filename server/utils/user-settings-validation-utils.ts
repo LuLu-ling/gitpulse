@@ -50,7 +50,9 @@ const fontFamilySchema = z
   });
 
 const nonEmptyStringSchema = z.string().trim().min(1).max(240);
+const longNonEmptyStringSchema = z.string().trim().min(1).max(1000);
 const optionalNonEmptyStringSchema = nonEmptyStringSchema.optional();
+const optionalLongNonEmptyStringSchema = longNonEmptyStringSchema.optional();
 
 const fontSettingsPatchSchema = z
   .strictObject({
@@ -154,6 +156,50 @@ const customTabSchema = z
     }
   });
 
+const notificationLabelSchema = z.strictObject({
+  name: nonEmptyStringSchema,
+  color: z.string().trim().min(1).max(32),
+});
+
+const notificationSubjectSchema = z.strictObject({
+  title: optionalNonEmptyStringSchema,
+  type: optionalNonEmptyStringSchema,
+  url: optionalLongNonEmptyStringSchema,
+  number: z.number().int().positive().optional(),
+  state: z.enum(['open', 'closed', 'merged']).optional(),
+  stateStatus: z.enum(['pending', 'loaded', 'error', 'unavailable']).optional(),
+  labels: z.array(notificationLabelSchema).optional(),
+  authorLogin: optionalNonEmptyStringSchema,
+  authorAvatarUrl: optionalLongNonEmptyStringSchema,
+});
+
+const notificationRepositorySchema = z.strictObject({
+  full_name: optionalNonEmptyStringSchema,
+  url: optionalLongNonEmptyStringSchema,
+  owner: z
+    .strictObject({
+      login: optionalNonEmptyStringSchema,
+      avatar_url: optionalLongNonEmptyStringSchema,
+    })
+    .optional(),
+});
+
+const dashboardNotificationSchema = z.strictObject({
+  id: z.union([nonEmptyStringSchema, z.number()]),
+  subject: notificationSubjectSchema.optional(),
+  repository: notificationRepositorySchema.optional(),
+  unread: z.boolean().optional(),
+  updated_at: z.string().trim().min(1).max(80).optional(),
+  reason: optionalNonEmptyStringSchema,
+  html_url: optionalLongNonEmptyStringSchema,
+});
+
+const notificationTodoSchema = z.strictObject({
+  id: nonEmptyStringSchema,
+  addedAt: z.string().trim().min(1).max(80),
+  notification: dashboardNotificationSchema,
+});
+
 export const userSettingsPatchSchema = z
   .strictObject({
     fonts: fontSettingsPatchSchema.optional(),
@@ -161,6 +207,7 @@ export const userSettingsPatchSchema = z
     notificationBehavior: notificationBehaviorSettingsPatchSchema.optional(),
     tabGroups: z.array(tabGroupSchema).optional(),
     customTabs: z.array(customTabSchema).optional(),
+    notificationTodos: z.array(notificationTodoSchema).optional(),
   })
   .refine((patch) => Object.keys(patch).length > 0, {
     message: 'At least one settings field is required',

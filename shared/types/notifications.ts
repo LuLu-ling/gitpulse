@@ -51,6 +51,8 @@ export interface NotificationSubjectStateTarget {
 
 export interface NotificationSubjectStateResult {
   key: string;
+  title?: string;
+  updatedAt?: string;
   state?: NotificationSubjectState;
   labels?: NotificationLabel[];
   authorLogin?: string;

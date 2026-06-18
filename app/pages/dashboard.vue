@@ -82,7 +82,7 @@
 
           <div class="card-content dashboard-list-card-content">
             <div
-              v-if="dashboardListLoading || !error"
+              v-if="dashboardListLoading || !dashboardListError"
               :class="[
                 'dashboard-list-shell',
                 { 'dashboard-list-shell--without-pagination': !showPagination },
@@ -90,6 +90,27 @@
             >
               <SimpleBar class="dashboard-list-scroll">
                 <DashboardLoadingList v-if="dashboardListLoading" :current-tab="currentTab" />
+
+                <template v-else-if="currentTab === 'todos'">
+                  <div v-if="filteredTodoItems.length === 0" class="dashboard-empty-state">
+                    {{ todoEmptyMessage }}
+                  </div>
+                  <div
+                    v-for="todo in filteredTodoItems"
+                    :key="todo.id"
+                    class="mb-4 mr-4"
+                    @click="handleTodoOpen(todo.notification)"
+                  >
+                    <AsyncNotificationItem
+                      :notification="todo.notification"
+                      :force-read="true"
+                      :show-reason="false"
+                      :show-mark-as-read="false"
+                      todo-action="remove"
+                      @todo-action="removeNotificationTodo(todo.id)"
+                    />
+                  </div>
+                </template>
 
                 <template v-else-if="currentTab === 'notifications'">
                   <div v-if="filteredNotifications.length === 0" class="dashboard-empty-state">
@@ -104,6 +125,8 @@
                     <AsyncNotificationItem
                       :notification="notification"
                       :mark-as-read="markNotificationAsReadFromDashboard"
+                      :todo-action="isNotificationTodo(notification) ? 'remove' : 'add'"
+                      @todo-action="toggleNotificationTodo"
                     />
                   </div>
                 </template>
@@ -172,7 +195,7 @@
                     }}
                   </button>
                   <pre v-if="showErrorDetails" class="dashboard-error-state__details">{{
-                    error
+                    dashboardListError
                   }}</pre>
                 </div>
               </div>
@@ -265,6 +288,7 @@ import {
   CircleDotIcon,
   FilterIcon,
   GitPullRequestIcon,
+  ListTodoIcon,
   RefreshCwIcon,
   SearchIcon,
 } from '@lucide/vue';
@@ -336,7 +360,7 @@ const { currentEntry, navigateToFile } = useNavigationHistory();
 const { resolveDashboardUrlTarget, getDashboardUrlRoute, trackDashboardUrlNavigation } =
   useDashboardUrlNavigation();
 
-const dashboardTabs: DashboardTab[] = ['notifications', 'issues', 'pulls', 'repos'];
+const dashboardTabs: DashboardTab[] = ['todos', 'notifications', 'issues', 'pulls', 'repos'];
 interface DashboardEntity {
   id: PropertyKey;
   repository_url?: string | null;
@@ -468,6 +492,15 @@ const {
 } = useGithubData();
 
 const { settings } = useUserSettings();
+const {
+  todos: notificationTodos,
+  refreshing: refreshingNotificationTodos,
+  refreshError: notificationTodoRefreshError,
+  isNotificationTodo,
+  removeNotificationTodo,
+  toggleNotificationTodo,
+  refreshNotificationTodos,
+} = useNotificationTodos();
 const { getNotificationDetails } = useUrlHelper();
 const { filters: dashboardFilters, updateFilters, clearSourceFilters } = useDashboardFilters();
 const isFilterDrawerOpen = shallowRef(false);
@@ -477,6 +510,7 @@ const hasPrefetchedDashboardInteractionChunks = shallowRef(false);
 const showErrorDetails = shallowRef(false);
 const userLogin = computed(() => user.value?.login);
 const filterSourceStates = computed(() => ({
+  todos: createDashboardFilterSourceState('todos', dashboardFilters.value),
   notifications: createDashboardFilterSourceState('notifications', dashboardFilters.value),
   issues: createDashboardFilterSourceState('issues', dashboardFilters.value, userLogin.value),
   pulls: createDashboardFilterSourceState('pulls', dashboardFilters.value, userLogin.value),
@@ -485,6 +519,7 @@ const filterSourceStates = computed(() => ({
 const notificationFilterAdapter = computed(
   () => filterSourceStates.value.notifications.notificationAdapter
 );
+const todoFilterAdapter = computed(() => filterSourceStates.value.todos.notificationAdapter);
 
 watch(isFilterDrawerOpen, (open) => {
   if (open) {
@@ -555,10 +590,9 @@ const pullRequestFetchOptions = computed(() => {
   };
 });
 
-const hasCompletedInitialDashboardLoad = shallowRef(false);
-const dashboardListLoading = computed(
-  () => !hasCompletedInitialDashboardLoad.value || loading.value
-);
+const fetchTodos = async (_page = 1, _options: { force?: boolean } = {}) => {
+  await refreshNotificationTodos();
+};
 
 const { customTabs, getCustomTabById } = useCustomTabs();
 
@@ -567,6 +601,7 @@ const {
   refreshCurrentTab,
   switchTab,
 } = useDashboardTabs({
+  fetchTodos,
   fetchNotifications: (page, options = {}) =>
     fetchNotifications(page, {
       ...options,
@@ -687,6 +722,17 @@ const routeFilterFetchKey = computed(() => {
     });
   }
 
+  if (source === 'todos') {
+    return JSON.stringify({
+      filters: {
+        repo: sourceState.filters.repo,
+        subjectType: sourceState.filters.subjectType,
+        sort: sourceState.filters.sort ?? 'added',
+        order: sourceState.filters.order ?? 'desc',
+      },
+    });
+  }
+
   if (source === 'repos') {
     return 'repos';
   }
@@ -711,6 +757,7 @@ const routeFilterFetchKey = computed(() => {
 
 const sidebarTabs = computed(() => {
   const iconByTab: Record<DashboardTab, Component> = {
+    todos: ListTodoIcon,
     notifications: BellIcon,
     issues: CircleDotIcon,
     pulls: GitPullRequestIcon,
@@ -742,12 +789,23 @@ const currentTab = computed<DashboardTab>(() => {
   return selectedCustomTab.value ? 'issues' : currentBuiltinTab.value;
 });
 
+const hasCompletedInitialDashboardLoad = shallowRef(false);
+const dashboardListLoading = computed(
+  () =>
+    !hasCompletedInitialDashboardLoad.value ||
+    (currentTab.value === 'todos' ? refreshingNotificationTodos.value : loading.value)
+);
+const dashboardListError = computed(() => {
+  return currentTab.value === 'todos' ? notificationTodoRefreshError.value : error.value;
+});
+
 const currentTabTitle = computed(() => {
   if (selectedCustomTab.value) return selectedCustomTab.value.name;
   const foundTab = tabs.value.find((t) => t.id === currentTab.value);
   if (foundTab) return foundTab.name;
   // fallback map if translation is needed but not found in tabs
   const tabNames: Record<string, string> = {
+    todos: 'Todo',
     notifications: 'Notifications',
     issues: 'Issues',
     pulls: 'Pull Requests',
@@ -769,6 +827,7 @@ const currentRouteTabId = computed(() => selectedCustomTab.value?.id ?? currentT
 
 const activityGroups = computed(() => {
   const iconByTab: Record<DashboardTab, string> = {
+    todos: 'list-todo',
     notifications: 'bell',
     issues: 'circle-dot',
     pulls: 'git-pull-request',
@@ -804,10 +863,39 @@ const filteredNotifications = computed(() => {
   return applyNotificationLocalFilters(notifications.value, notificationFilterAdapter.value.local);
 });
 
+const filteredTodoItems = computed(() => {
+  const visibleNotificationIds = new Set(
+    applyNotificationLocalFilters(
+      notificationTodos.value.map((item) => item.notification),
+      todoFilterAdapter.value.local
+    ).map((notification) => String(notification.id))
+  );
+  const sort = filterSourceStates.value.todos.filters.sort === 'updated' ? 'updated' : 'added';
+  const order = filterSourceStates.value.todos.filters.order ?? 'desc';
+  const getSortTime = (item: (typeof notificationTodos.value)[number]) => {
+    const value = sort === 'updated' ? item.notification.updated_at : item.addedAt;
+    const time = Date.parse(value ?? '');
+    return Number.isNaN(time) ? 0 : time;
+  };
+
+  return notificationTodos.value
+    .filter((item) => visibleNotificationIds.has(String(item.notification.id)))
+    .sort((left, right) => {
+      const diff = getSortTime(left) - getSortTime(right);
+      return order === 'asc' ? diff : -diff;
+    });
+});
+
 const notificationEmptyMessage = computed(() => {
   return hasActiveVisibleFilters.value
     ? t('dashboard.notifications.emptyFiltered')
     : t('dashboard.notifications.empty');
+});
+
+const todoEmptyMessage = computed(() => {
+  return hasActiveVisibleFilters.value
+    ? t('dashboard.todos.emptyFiltered')
+    : t('dashboard.todos.empty');
 });
 
 const getEntityRepoName = (entity: DashboardEntity) => {
@@ -852,6 +940,12 @@ const repoFilterSuggestions = computed(() => {
     if (notification.repository?.full_name) suggestions.add(notification.repository.full_name);
   }
 
+  for (const todo of notificationTodos.value) {
+    if (todo.notification.repository?.full_name) {
+      suggestions.add(todo.notification.repository.full_name);
+    }
+  }
+
   for (const item of [...issues.value, ...pulls.value]) {
     const repoName = getEntityRepoName(item);
     if (repoName) suggestions.add(repoName);
@@ -865,6 +959,11 @@ const authorFilterSuggestions = computed(() => {
 
   for (const notification of notifications.value) {
     if (notification.subject?.authorLogin) suggestions.add(notification.subject.authorLogin);
+  }
+
+  for (const todo of notificationTodos.value) {
+    if (todo.notification.subject?.authorLogin)
+      suggestions.add(todo.notification.subject.authorLogin);
   }
 
   for (const item of [...issues.value, ...pulls.value]) {
@@ -885,6 +984,13 @@ const labelFilterSuggestions = computed(() => {
   for (const notification of notifications.value) {
     if (notification.repository?.full_name !== visibleDashboardFilters.value.repo) continue;
     for (const label of notification.subject?.labels ?? []) {
+      if (label.name) suggestions.add(label.name);
+    }
+  }
+
+  for (const todo of notificationTodos.value) {
+    if (todo.notification.repository?.full_name !== visibleDashboardFilters.value.repo) continue;
+    for (const label of todo.notification.subject?.labels ?? []) {
       if (label.name) suggestions.add(label.name);
     }
   }
@@ -1084,6 +1190,10 @@ const handleNotificationOpen = (notification: DashboardNotification) => {
   handleNotificationAutoRead(notification);
 };
 
+const handleTodoOpen = (notification: DashboardNotification) => {
+  openNotification(notification);
+};
+
 watch(
   [
     pendingNotificationRead,
@@ -1210,6 +1320,10 @@ const dashboardListFreshnessUrl = computed(() => {
 
   if (currentTab.value === 'notifications') {
     return notificationFreshnessUrl.value;
+  }
+
+  if (currentTab.value === 'todos') {
+    return '';
   }
 
   if (currentTab.value === 'issues') {
@@ -1462,12 +1576,14 @@ watch(
 
 watch(
   () => ({
+    todos: filteredTodoItems.value.length,
     notifications: filteredNotifications.value.length,
     issues: stats.value.issues,
     pulls: stats.value.prs,
     repos: stats.value.repos,
   }),
-  ({ notifications, issues, pulls, repos }) => {
+  ({ todos, notifications, issues, pulls, repos }) => {
+    setBadgeCount('todos', todos);
     setBadgeCount('notifications', notifications);
     setBadgeCount('issues', issues);
     setBadgeCount('pulls', pulls);

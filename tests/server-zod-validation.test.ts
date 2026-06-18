@@ -165,6 +165,36 @@ describe('server Zod request validation', () => {
           },
         },
       ],
+      notificationTodos: [
+        {
+          id: 'todo-1',
+          addedAt: '2026-06-18T00:00:00.000Z',
+          notification: {
+            id: '123',
+            unread: false,
+            updated_at: '2026-06-17T12:00:00.000Z',
+            subject: {
+              title: ' Fix workflow ',
+              type: 'Issue',
+              url: ' https://api.github.com/repos/owner/repo/issues/1 ',
+              number: 1,
+              state: 'open',
+              stateStatus: 'loaded',
+              labels: [{ name: ' bug ', color: 'd73a4a' }],
+              authorLogin: ' octocat ',
+              authorAvatarUrl: ' https://avatars.githubusercontent.com/u/1?v=4 ',
+            },
+            repository: {
+              full_name: ' owner/repo ',
+              url: ' https://api.github.com/repos/owner/repo ',
+              owner: {
+                login: ' owner ',
+                avatar_url: ' https://avatars.githubusercontent.com/u/2?v=4 ',
+              },
+            },
+          },
+        },
+      ],
     };
 
     expect(parseUserSettingsPatchBody(validPatch)).toEqual({
@@ -213,6 +243,36 @@ describe('server Zod request validation', () => {
           },
         },
       ],
+      notificationTodos: [
+        {
+          id: 'todo-1',
+          addedAt: '2026-06-18T00:00:00.000Z',
+          notification: {
+            id: '123',
+            unread: false,
+            updated_at: '2026-06-17T12:00:00.000Z',
+            subject: {
+              title: 'Fix workflow',
+              type: 'Issue',
+              url: 'https://api.github.com/repos/owner/repo/issues/1',
+              number: 1,
+              state: 'open',
+              stateStatus: 'loaded',
+              labels: [{ name: 'bug', color: 'd73a4a' }],
+              authorLogin: 'octocat',
+              authorAvatarUrl: 'https://avatars.githubusercontent.com/u/1?v=4',
+            },
+            repository: {
+              full_name: 'owner/repo',
+              url: 'https://api.github.com/repos/owner/repo',
+              owner: {
+                login: 'owner',
+                avatar_url: 'https://avatars.githubusercontent.com/u/2?v=4',
+              },
+            },
+          },
+        },
+      ],
     });
 
     expect(() => parseUserSettingsPatchBody({ fonts: { appFont: 'invalid' } })).toThrow(
@@ -247,6 +307,18 @@ describe('server Zod request validation', () => {
             subtitleMode: 'auto',
             source: 'github-search',
             query: { type: 'issues', state: 'open' },
+          },
+        ],
+      })
+    ).toThrow('Invalid settings request body');
+    expect(() =>
+      parseUserSettingsPatchBody({
+        notificationTodos: [
+          {
+            id: 'todo-1',
+            addedAt: '2026-06-18T00:00:00.000Z',
+            notification: { id: '123' },
+            extra: true,
           },
         ],
       })

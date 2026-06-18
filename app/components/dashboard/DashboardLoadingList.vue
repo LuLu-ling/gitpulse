@@ -36,7 +36,7 @@ const skeletonCardCount = 5;
               </div>
 
               <div
-                v-if="props.currentTab === 'notifications'"
+                v-if="props.currentTab === 'notifications' || props.currentTab === 'todos'"
                 class="dashboard-loading-card__line dashboard-loading-card__line--subtitle mt-2"
               />
 

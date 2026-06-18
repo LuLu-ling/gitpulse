@@ -15,7 +15,26 @@
 
     <nav class="activity-bar__groups" aria-label="View groups">
       <button
-        v-for="group in groups"
+        v-for="group in primaryGroups"
+        :key="group.id"
+        class="activity-bar__icon-btn"
+        :class="{ 'is-active': activeGroupId === group.id }"
+        :title="group.name"
+        :aria-label="group.name"
+        :aria-current="activeGroupId === group.id ? 'page' : undefined"
+        type="button"
+        @click="$emit('group-select', group.id)"
+      >
+        <component :is="getGroupIcon(group.icon)" :size="19" />
+      </button>
+      <div
+        v-if="primaryGroups.length > 0 && mainGroups.length > 0"
+        class="activity-bar__groups-divider"
+        role="separator"
+        aria-hidden="true"
+      ></div>
+      <button
+        v-for="group in mainGroups"
         :key="group.id"
         class="activity-bar__icon-btn"
         :class="{ 'is-active': activeGroupId === group.id }"
@@ -60,6 +79,7 @@ import {
   CircleDotIcon,
   GitPullRequestIcon,
   InboxIcon,
+  ListTodoIcon,
   LogOutIcon,
   SettingsIcon,
   UserIcon,
@@ -73,7 +93,7 @@ interface Group {
   icon?: string;
 }
 
-defineProps<{
+const props = defineProps<{
   userAvatar?: string;
   userName?: string;
   activeGroupId?: string;
@@ -86,7 +106,12 @@ defineEmits<{
   'logout-click': [];
 }>();
 
+const activityGroups = computed(() => props.groups ?? []);
+const primaryGroups = computed(() => activityGroups.value.filter((group) => group.id === 'todos'));
+const mainGroups = computed(() => activityGroups.value.filter((group) => group.id !== 'todos'));
+
 const iconMap: Record<string, typeof UserIcon> = {
+  'list-todo': ListTodoIcon,
   inbox: InboxIcon,
   bell: BellIcon,
   'circle-dot': CircleDotIcon,
@@ -148,6 +173,14 @@ function getGroupIcon(icon?: string) {
     flex-direction: column;
     align-items: center;
     gap: 0.2rem;
+  }
+
+  &__groups-divider {
+    width: 20px;
+    height: 1px;
+    margin: 0.3rem 0;
+    border-radius: 1px;
+    background: var(--gitpulse-border);
   }
 
   &__icon-btn {

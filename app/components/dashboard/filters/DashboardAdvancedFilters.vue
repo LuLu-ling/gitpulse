@@ -10,6 +10,10 @@ import type {
   DashboardFilterSource,
   DashboardRouteFilters,
 } from '~/composables/useDashboardFilters';
+import {
+  DASHBOARD_NOTIFICATION_SUBJECT_TYPES,
+  getDashboardSubjectTypeVisual,
+} from '~/utils/getDashboardSubjectStateVisual';
 
 const props = defineProps<{
   currentTab: DashboardFilterSource;
@@ -39,7 +43,15 @@ const authorSuggestionItems = computed(() =>
   (props.authorSuggestions ?? []).map((author) => ({ value: author }))
 );
 
+const isNotificationSubjectFilterTab = computed(() => {
+  return props.currentTab === 'notifications' || props.currentTab === 'todos';
+});
+
 const activeFilterCount = computed(() => {
+  if (isNotificationSubjectFilterTab.value) {
+    return props.filters.subjectType ? 1 : 0;
+  }
+
   let count = props.filters.labels.length;
   if (props.filters.repo) count++;
   if (props.filters.author) count++;
@@ -77,7 +89,19 @@ const orderOptions: FilterOption[] = [
   { value: 'asc', label: t('dashboard.filters.options.asc') },
 ];
 
-const updateSelect = (key: 'review' | 'archived' | 'sort' | 'order', value: string) => {
+const subjectTypeOptions = computed<FilterOption[]>(() => [
+  { value: '', label: t('dashboard.filters.options.any') },
+  ...DASHBOARD_NOTIFICATION_SUBJECT_TYPES.map((subjectType) => ({
+    value: subjectType.value,
+    label: t(subjectType.labelKey),
+    icon: getDashboardSubjectTypeVisual(subjectType.value).icon,
+  })),
+]);
+
+const updateSelect = (
+  key: 'review' | 'archived' | 'sort' | 'order' | 'subjectType',
+  value: string
+) => {
   emit('update', { [key]: value || undefined });
 };
 
@@ -99,7 +123,7 @@ const toggleCollapsed = () => {
 </script>
 
 <template>
-  <div v-if="currentTab !== 'repos' && currentTab !== 'notifications'" class="sidebar-card">
+  <div v-if="currentTab !== 'repos'" class="sidebar-card">
     <button
       class="sidebar-card__header sidebar-card__header--collapsible"
       :aria-expanded="!isCollapsed"
@@ -126,77 +150,89 @@ const toggleCollapsed = () => {
     >
       <div class="sidebar-card__content">
         <div class="dashboard-advanced-filters__body">
-          <label class="dashboard-advanced-filters__control">
-            <span>{{ t('dashboard.filters.repo') }}</span>
-            <FilterAutocomplete
-              :suggestions="repoSuggestionItems"
-              :model-value="filters.repo ?? ''"
-              :placeholder="t('dashboard.filters.repoPlaceholder')"
-              @update:model-value="handleRepoChange"
-            />
-          </label>
-
-          <label class="dashboard-advanced-filters__control">
-            <span>{{ t('dashboard.filters.author') }}</span>
-            <FilterAutocomplete
-              :suggestions="authorSuggestionItems"
-              :model-value="filters.author ?? ''"
-              :placeholder="t('dashboard.filters.authorPlaceholder')"
-              @update:model-value="handleAuthorChange"
-            />
-          </label>
-
-          <label class="dashboard-advanced-filters__control">
-            <span>{{ t('dashboard.filters.labels') }}</span>
-            <FilterMultiSelect
-              :suggestions="labelSuggestionItems"
-              :model-value="filters.labels"
-              :placeholder="t('dashboard.filters.labelsPlaceholder')"
-              :empty-message="t('dashboard.filters.noResults')"
-              :aria-label="t('dashboard.filters.labels')"
-              @update:model-value="updateLabels"
-            />
-          </label>
-
-          <label v-if="currentTab === 'pulls'" class="dashboard-advanced-filters__control">
-            <span>{{ t('dashboard.filters.review') }}</span>
+          <label v-if="isNotificationSubjectFilterTab" class="dashboard-advanced-filters__control">
+            <span>{{ t('dashboard.filters.subjectType') }}</span>
             <FilterDropdown
-              :options="reviewOptions"
-              :model-value="filters.review ?? ''"
-              :aria-label="t('dashboard.filters.review')"
-              @update:model-value="updateSelect('review', $event)"
+              :options="subjectTypeOptions"
+              :model-value="filters.subjectType ?? ''"
+              :aria-label="t('dashboard.filters.subjectType')"
+              @update:model-value="updateSelect('subjectType', $event)"
             />
           </label>
 
-          <label class="dashboard-advanced-filters__control">
-            <span>{{ t('dashboard.filters.archived') }}</span>
-            <FilterDropdown
-              :options="archivedOptions"
-              :model-value="filters.archived ?? ''"
-              :aria-label="t('dashboard.filters.archived')"
-              @update:model-value="updateSelect('archived', $event)"
-            />
-          </label>
+          <template v-else>
+            <label class="dashboard-advanced-filters__control">
+              <span>{{ t('dashboard.filters.repo') }}</span>
+              <FilterAutocomplete
+                :suggestions="repoSuggestionItems"
+                :model-value="filters.repo ?? ''"
+                :placeholder="t('dashboard.filters.repoPlaceholder')"
+                @update:model-value="handleRepoChange"
+              />
+            </label>
 
-          <label class="dashboard-advanced-filters__control">
-            <span>{{ t('dashboard.filters.sort') }}</span>
-            <FilterDropdown
-              :options="sortOptions"
-              :model-value="filters.sort ?? ''"
-              :aria-label="t('dashboard.filters.sort')"
-              @update:model-value="updateSelect('sort', $event)"
-            />
-          </label>
+            <label class="dashboard-advanced-filters__control">
+              <span>{{ t('dashboard.filters.author') }}</span>
+              <FilterAutocomplete
+                :suggestions="authorSuggestionItems"
+                :model-value="filters.author ?? ''"
+                :placeholder="t('dashboard.filters.authorPlaceholder')"
+                @update:model-value="handleAuthorChange"
+              />
+            </label>
 
-          <label class="dashboard-advanced-filters__control">
-            <span>{{ t('dashboard.filters.order') }}</span>
-            <FilterDropdown
-              :options="orderOptions"
-              :model-value="filters.order ?? ''"
-              :aria-label="t('dashboard.filters.order')"
-              @update:model-value="updateSelect('order', $event)"
-            />
-          </label>
+            <label class="dashboard-advanced-filters__control">
+              <span>{{ t('dashboard.filters.labels') }}</span>
+              <FilterMultiSelect
+                :suggestions="labelSuggestionItems"
+                :model-value="filters.labels"
+                :placeholder="t('dashboard.filters.labelsPlaceholder')"
+                :empty-message="t('dashboard.filters.noResults')"
+                :aria-label="t('dashboard.filters.labels')"
+                @update:model-value="updateLabels"
+              />
+            </label>
+
+            <label v-if="currentTab === 'pulls'" class="dashboard-advanced-filters__control">
+              <span>{{ t('dashboard.filters.review') }}</span>
+              <FilterDropdown
+                :options="reviewOptions"
+                :model-value="filters.review ?? ''"
+                :aria-label="t('dashboard.filters.review')"
+                @update:model-value="updateSelect('review', $event)"
+              />
+            </label>
+
+            <label class="dashboard-advanced-filters__control">
+              <span>{{ t('dashboard.filters.archived') }}</span>
+              <FilterDropdown
+                :options="archivedOptions"
+                :model-value="filters.archived ?? ''"
+                :aria-label="t('dashboard.filters.archived')"
+                @update:model-value="updateSelect('archived', $event)"
+              />
+            </label>
+
+            <label class="dashboard-advanced-filters__control">
+              <span>{{ t('dashboard.filters.sort') }}</span>
+              <FilterDropdown
+                :options="sortOptions"
+                :model-value="filters.sort ?? ''"
+                :aria-label="t('dashboard.filters.sort')"
+                @update:model-value="updateSelect('sort', $event)"
+              />
+            </label>
+
+            <label class="dashboard-advanced-filters__control">
+              <span>{{ t('dashboard.filters.order') }}</span>
+              <FilterDropdown
+                :options="orderOptions"
+                :model-value="filters.order ?? ''"
+                :aria-label="t('dashboard.filters.order')"
+                @update:model-value="updateSelect('order', $event)"
+              />
+            </label>
+          </template>
         </div>
       </div>
     </div>

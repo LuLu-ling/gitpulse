@@ -12,8 +12,17 @@ import type {
   GitHubSearchVisibilityFilter,
 } from '#shared/types/custom-search';
 import type {
+  DashboardNotification,
+  DashboardNotificationRepository,
+  DashboardNotificationSubject,
+  NotificationLabel,
+  NotificationSubjectState,
+  NotificationSubjectStateStatus,
+} from '#shared/types/notifications';
+import type {
   AppFontId,
   CodeFontId,
+  NotificationTodoItem,
   NotificationReadMarkDelaySeconds,
   NotificationReadMarkMode,
   ShikiDarkThemeId,
@@ -62,6 +71,13 @@ const NOTIFICATION_READ_MARK_DELAYS = new Set<NotificationReadMarkDelaySeconds>(
 );
 const SHIKI_LIGHT_THEMES = new Set<ShikiLightThemeId>(SHIKI_LIGHT_THEME_IDS);
 const SHIKI_DARK_THEMES = new Set<ShikiDarkThemeId>(SHIKI_DARK_THEME_IDS);
+const NOTIFICATION_SUBJECT_STATES = new Set<NotificationSubjectState>(['open', 'closed', 'merged']);
+const NOTIFICATION_SUBJECT_STATE_STATUSES = new Set<NotificationSubjectStateStatus>([
+  'pending',
+  'loaded',
+  'error',
+  'unavailable',
+]);
 
 const REQUIRED_BUILTIN_GROUP: TabGroup = {
   id: BUILTIN_TAB_GROUP_ID,
@@ -106,6 +122,29 @@ const normalizeString = (value: unknown, maxLength = 240) => {
   return normalized ? normalized.slice(0, maxLength) : undefined;
 };
 
+const normalizeDateTimeString = (value: unknown) => {
+  const normalized = normalizeString(value, 80);
+  if (!normalized) return undefined;
+
+  return Number.isNaN(Date.parse(normalized)) ? undefined : normalized;
+};
+
+const normalizeNotificationId = (value: unknown) => {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return String(value);
+  }
+
+  return normalizeString(value);
+};
+
+const normalizeNotificationNumber = (value: unknown) => {
+  if (typeof value !== 'number' || !Number.isSafeInteger(value) || value < 1) {
+    return undefined;
+  }
+
+  return value;
+};
+
 const normalizeStringList = (values: unknown) => {
   if (!Array.isArray(values)) {
     return undefined;
@@ -147,6 +186,7 @@ export function createDefaultUserSettings(): UserSettings {
     notificationBehavior: { ...DEFAULT_USER_NOTIFICATION_BEHAVIOR_SETTINGS },
     tabGroups: createDefaultTabGroups(),
     customTabs: [],
+    notificationTodos: [],
   };
 }
 
@@ -175,6 +215,178 @@ export function cloneCustomTab(tab: CustomTab): CustomTab {
 
 export function cloneCustomTabs(tabs: CustomTab[]) {
   return tabs.map((tab) => cloneCustomTab(tab));
+}
+
+const cloneNotificationLabels = (labels?: NotificationLabel[]) => {
+  return labels?.map((label) => ({ ...label }));
+};
+
+const cloneDashboardNotificationSubject = (
+  subject?: DashboardNotificationSubject
+): DashboardNotificationSubject | undefined => {
+  if (!subject) return undefined;
+
+  return {
+    ...subject,
+    labels: cloneNotificationLabels(subject.labels),
+  };
+};
+
+const cloneDashboardNotificationRepository = (
+  repository?: DashboardNotificationRepository
+): DashboardNotificationRepository | undefined => {
+  if (!repository) return undefined;
+
+  return {
+    ...repository,
+    owner: repository.owner ? { ...repository.owner } : undefined,
+  };
+};
+
+export function cloneDashboardNotification(
+  notification: DashboardNotification
+): DashboardNotification {
+  return {
+    ...notification,
+    subject: cloneDashboardNotificationSubject(notification.subject),
+    repository: cloneDashboardNotificationRepository(notification.repository),
+  };
+}
+
+export function cloneNotificationTodoItem(item: NotificationTodoItem): NotificationTodoItem {
+  return {
+    ...item,
+    notification: cloneDashboardNotification(item.notification),
+  };
+}
+
+export function cloneNotificationTodos(items: NotificationTodoItem[]) {
+  return items.map((item) => cloneNotificationTodoItem(item));
+}
+
+const normalizeNotificationLabels = (value: unknown) => {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+
+  const labels = value.flatMap((entry) => {
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
+      return [];
+    }
+
+    const candidate = entry as Partial<NotificationLabel>;
+    const name = normalizeString(candidate.name);
+    const color = normalizeString(candidate.color, 32);
+    return name && color ? [{ name, color }] : [];
+  });
+
+  return labels.length > 0 ? labels : undefined;
+};
+
+const normalizeDashboardNotificationSubject = (
+  value: unknown
+): DashboardNotificationSubject | undefined => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return undefined;
+  }
+
+  const candidate = value as Partial<DashboardNotificationSubject>;
+  const state = NOTIFICATION_SUBJECT_STATES.has(candidate.state as NotificationSubjectState)
+    ? (candidate.state as NotificationSubjectState)
+    : undefined;
+  const stateStatus = NOTIFICATION_SUBJECT_STATE_STATUSES.has(
+    candidate.stateStatus as NotificationSubjectStateStatus
+  )
+    ? (candidate.stateStatus as NotificationSubjectStateStatus)
+    : undefined;
+
+  return {
+    title: normalizeString(candidate.title),
+    type: normalizeString(candidate.type),
+    url: normalizeString(candidate.url, 1000),
+    number: normalizeNotificationNumber(candidate.number),
+    state,
+    stateStatus,
+    labels: normalizeNotificationLabels(candidate.labels),
+    authorLogin: normalizeString(candidate.authorLogin),
+    authorAvatarUrl: normalizeString(candidate.authorAvatarUrl, 1000),
+  };
+};
+
+const normalizeDashboardNotificationRepository = (
+  value: unknown
+): DashboardNotificationRepository | undefined => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return undefined;
+  }
+
+  const candidate = value as Partial<DashboardNotificationRepository>;
+  const owner =
+    candidate.owner && typeof candidate.owner === 'object' && !Array.isArray(candidate.owner)
+      ? {
+          login: normalizeString(candidate.owner.login),
+          avatar_url: normalizeString(candidate.owner.avatar_url, 1000),
+        }
+      : undefined;
+
+  return {
+    full_name: normalizeString(candidate.full_name),
+    url: normalizeString(candidate.url, 1000),
+    owner,
+  };
+};
+
+export function normalizeDashboardNotification(value: unknown): DashboardNotification | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return null;
+  }
+
+  const candidate = value as Partial<DashboardNotification>;
+  const id = normalizeNotificationId(candidate.id);
+  if (!id) {
+    return null;
+  }
+
+  return {
+    id,
+    subject: normalizeDashboardNotificationSubject(candidate.subject),
+    repository: normalizeDashboardNotificationRepository(candidate.repository),
+    unread: false,
+    updated_at: normalizeDateTimeString(candidate.updated_at),
+    reason: normalizeString(candidate.reason),
+    html_url: normalizeString(candidate.html_url, 1000),
+  };
+}
+
+export function normalizeNotificationTodoItem(value: unknown): NotificationTodoItem | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return null;
+  }
+
+  const candidate = value as Partial<NotificationTodoItem>;
+  const notification = normalizeDashboardNotification(candidate.notification);
+  const id = normalizeString(candidate.id) ?? (notification ? String(notification.id) : undefined);
+  const addedAt = normalizeDateTimeString(candidate.addedAt);
+
+  if (!id || !addedAt || !notification) {
+    return null;
+  }
+
+  return {
+    id,
+    addedAt,
+    notification,
+  };
+}
+
+export function normalizeNotificationTodos(value: unknown, fallback: NotificationTodoItem[] = []) {
+  if (!Array.isArray(value)) {
+    return cloneNotificationTodos(fallback);
+  }
+
+  return value
+    .map((entry) => normalizeNotificationTodoItem(entry))
+    .filter((entry): entry is NotificationTodoItem => entry !== null);
 }
 
 export function normalizeTabGroup(group: unknown): TabGroup | null {
@@ -463,6 +675,7 @@ export function normalizeUserSettings(value: unknown, fallback = createDefaultUs
       notificationBehavior: { ...fallback.notificationBehavior },
       tabGroups: cloneTabGroups(fallback.tabGroups),
       customTabs: cloneCustomTabs(fallback.customTabs),
+      notificationTodos: cloneNotificationTodos(fallback.notificationTodos),
     };
   }
 
@@ -478,6 +691,10 @@ export function normalizeUserSettings(value: unknown, fallback = createDefaultUs
     ),
     tabGroups: normalizeTabGroups(candidate.tabGroups, fallback.tabGroups),
     customTabs: normalizeCustomTabs(candidate.customTabs, fallback.customTabs),
+    notificationTodos: normalizeNotificationTodos(
+      candidate.notificationTodos,
+      fallback.notificationTodos
+    ),
     updatedAt: normalizeString(candidate.updatedAt),
   };
 }
@@ -513,6 +730,9 @@ export function mergeUserSettingsPatch(current: UserSettings, patch: unknown) {
     customTabs: hasOwn(candidate, 'customTabs')
       ? normalizeCustomTabs(candidate.customTabs, base.customTabs)
       : cloneCustomTabs(base.customTabs),
+    notificationTodos: hasOwn(candidate, 'notificationTodos')
+      ? normalizeNotificationTodos(candidate.notificationTodos, base.notificationTodos)
+      : cloneNotificationTodos(base.notificationTodos),
     updatedAt: base.updatedAt,
   };
 }

@@ -95,6 +95,79 @@ const markLoaded = (harness: ReturnType<typeof createHarness>, settings = create
 };
 
 describe('user settings store', () => {
+  test('normalizes notification todo items through settings patches', () => {
+    const todoAddedAt = '2026-06-18T00:00:00.000Z';
+    const todoUpdatedAt = '2026-06-17T12:00:00.000Z';
+    const settings = createSettings({
+      notificationTodos: [
+        {
+          id: 'todo-1',
+          addedAt: todoAddedAt,
+          notification: {
+            id: '123',
+            unread: true,
+            updated_at: todoUpdatedAt,
+            reason: 'mention',
+            subject: {
+              title: 'Fix the failing workflow',
+              type: 'Issue',
+              url: 'https://api.github.com/repos/owner/repo/issues/1',
+              number: 1,
+              state: 'open',
+              labels: [{ name: 'bug', color: 'd73a4a' }],
+              authorLogin: 'octocat',
+              authorAvatarUrl: 'https://avatars.githubusercontent.com/u/1?v=4',
+            },
+            repository: {
+              full_name: 'owner/repo',
+              url: 'https://api.github.com/repos/owner/repo',
+              owner: {
+                login: 'owner',
+                avatar_url: 'https://avatars.githubusercontent.com/u/2?v=4',
+              },
+            },
+          },
+        },
+        {
+          id: '',
+          addedAt: todoAddedAt,
+          notification: { id: '' },
+        },
+      ],
+    } as UserSettingsPatch);
+
+    expect(settings.notificationTodos).toEqual([
+      {
+        id: 'todo-1',
+        addedAt: todoAddedAt,
+        notification: {
+          id: '123',
+          unread: false,
+          updated_at: todoUpdatedAt,
+          reason: 'mention',
+          subject: {
+            title: 'Fix the failing workflow',
+            type: 'Issue',
+            url: 'https://api.github.com/repos/owner/repo/issues/1',
+            number: 1,
+            state: 'open',
+            labels: [{ name: 'bug', color: 'd73a4a' }],
+            authorLogin: 'octocat',
+            authorAvatarUrl: 'https://avatars.githubusercontent.com/u/1?v=4',
+          },
+          repository: {
+            full_name: 'owner/repo',
+            url: 'https://api.github.com/repos/owner/repo',
+            owner: {
+              login: 'owner',
+              avatar_url: 'https://avatars.githubusercontent.com/u/2?v=4',
+            },
+          },
+        },
+      },
+    ]);
+  });
+
   test('ignores stale load responses after the active login changes', async () => {
     const harness = createHarness('octocat');
 

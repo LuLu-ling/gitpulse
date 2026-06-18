@@ -1,4 +1,10 @@
-import { BellIcon, BookMarkedIcon, CircleDotIcon, GitPullRequestIcon } from '@lucide/vue';
+import {
+  BellIcon,
+  BookMarkedIcon,
+  CircleDotIcon,
+  GitPullRequestIcon,
+  ListTodoIcon,
+} from '@lucide/vue';
 import type { Component } from 'vue';
 import { computed, ref } from 'vue';
 
@@ -24,13 +30,14 @@ const DEFAULT_GROUPS: MigratedTabGroup[] = [
 ];
 
 const DEFAULT_TABS: TabItem[] = [
+  { id: 'todos', groupId: BUILTIN_TAB_GROUP_ID, name: 'Todo', icon: ListTodoIcon },
   { id: 'notifications', groupId: BUILTIN_TAB_GROUP_ID, name: 'Notifications', icon: BellIcon },
   { id: 'issues', groupId: BUILTIN_TAB_GROUP_ID, name: 'Issues', icon: CircleDotIcon },
   { id: 'pulls', groupId: BUILTIN_TAB_GROUP_ID, name: 'Pull Requests', icon: GitPullRequestIcon },
   { id: 'repos', groupId: BUILTIN_TAB_GROUP_ID, name: 'Repositories', icon: BookMarkedIcon },
 ];
 
-const DASHBOARD_TABS: DashboardTab[] = ['notifications', 'issues', 'pulls', 'repos'];
+const DASHBOARD_TABS: DashboardTab[] = ['todos', 'notifications', 'issues', 'pulls', 'repos'];
 
 export interface UseTabMigrationOptions {
   initialTab?: DashboardTab;

@@ -1,11 +1,15 @@
 <script setup lang="ts">
 import {
+  ArrowDownIcon,
+  ArrowUpIcon,
   BellIcon,
   CheckCircleIcon,
   CircleDotIcon,
   CircleMinusIcon,
+  ClockIcon,
   GitMergeIcon,
   LayoutGridIcon,
+  ListTodoIcon,
 } from '@lucide/vue';
 import { computed } from 'vue';
 
@@ -13,6 +17,7 @@ import FilterSegmentedControl from '~/components/ui/FilterSegmentedControl.vue';
 import type { SegmentedOption } from '~/components/ui/FilterSegmentedControl.vue';
 import type {
   DashboardFilterSource,
+  DashboardRouteSort,
   DashboardRouteFilters,
   DashboardRouteState,
 } from '~/composables/useDashboardFilters';
@@ -116,12 +121,72 @@ const handleStateChange = (value: string) => {
   emit('update', { state: (value || undefined) as DashboardRouteState | undefined });
 };
 
+const todoSortOptions = computed<SegmentedOption[]>(() => [
+  {
+    value: 'added',
+    label: t('dashboard.filters.options.added'),
+    icon: ListTodoIcon,
+    color: 'var(--gitpulse-accent)',
+  },
+  {
+    value: 'updated',
+    label: t('dashboard.filters.options.updated'),
+    icon: ClockIcon,
+    color: 'var(--gitpulse-info)',
+  },
+]);
+
+const todoOrderOptions = computed<SegmentedOption[]>(() => [
+  {
+    value: 'desc',
+    label: t('dashboard.filters.options.desc'),
+    icon: ArrowDownIcon,
+    color: 'var(--gitpulse-text-muted)',
+  },
+  {
+    value: 'asc',
+    label: t('dashboard.filters.options.asc'),
+    icon: ArrowUpIcon,
+    color: 'var(--gitpulse-text-muted)',
+  },
+]);
+
+const selectedTodoSort = computed(() => (props.filters.sort === 'updated' ? 'updated' : 'added'));
+const selectedTodoOrder = computed(() => props.filters.order ?? 'desc');
+
+const handleTodoSortChange = (value: string) => {
+  emit('update', { sort: value as DashboardRouteSort });
+};
+
+const handleTodoOrderChange = (value: string) => {
+  emit('update', { order: value === 'asc' ? 'asc' : 'desc' });
+};
+
 const showPills = computed(() => props.currentTab !== 'repos');
+const showTodoControls = computed(() => props.currentTab === 'todos');
 </script>
 
 <template>
   <div v-if="showPills" class="filter-pills">
-    <div v-if="stateOptions.length > 0" class="filter-pills__segmented-control">
+    <template v-if="showTodoControls">
+      <div class="filter-pills__segmented-control">
+        <FilterSegmentedControl
+          :options="todoSortOptions"
+          :model-value="selectedTodoSort"
+          :aria-label="t('dashboard.filters.sort')"
+          @update:model-value="handleTodoSortChange"
+        />
+      </div>
+      <div class="filter-pills__segmented-control">
+        <FilterSegmentedControl
+          :options="todoOrderOptions"
+          :model-value="selectedTodoOrder"
+          :aria-label="t('dashboard.filters.order')"
+          @update:model-value="handleTodoOrderChange"
+        />
+      </div>
+    </template>
+    <div v-else-if="stateOptions.length > 0" class="filter-pills__segmented-control">
       <FilterSegmentedControl
         :options="stateOptions"
         :model-value="selectedState"

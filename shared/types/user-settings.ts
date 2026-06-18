@@ -1,4 +1,5 @@
 import type { CustomTab } from '#shared/types/custom-search';
+import type { DashboardNotification } from '#shared/types/notifications';
 import type { TabGroup } from '#shared/types/tab-groups';
 
 export const APP_FONT_IDS = ['harmonyos-sans', 'misans-latin', 'system'] as const;
@@ -50,6 +51,12 @@ export interface UserNotificationBehaviorSettings {
   readMarkDelaySeconds: NotificationReadMarkDelaySeconds;
 }
 
+export interface NotificationTodoItem {
+  id: string;
+  addedAt: string;
+  notification: DashboardNotification;
+}
+
 export interface UserSettings {
   version: 1;
   fonts: UserFontSettings;
@@ -57,6 +64,7 @@ export interface UserSettings {
   notificationBehavior: UserNotificationBehaviorSettings;
   tabGroups: TabGroup[];
   customTabs: CustomTab[];
+  notificationTodos: NotificationTodoItem[];
   updatedAt?: string;
 }
 
@@ -66,4 +74,5 @@ export interface UserSettingsPatch {
   notificationBehavior?: Partial<UserNotificationBehaviorSettings>;
   tabGroups?: TabGroup[];
   customTabs?: CustomTab[];
+  notificationTodos?: NotificationTodoItem[];
 }

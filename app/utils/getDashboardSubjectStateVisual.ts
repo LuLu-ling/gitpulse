@@ -1,11 +1,16 @@
 import {
+  CheckSquareIcon,
   CircleDotIcon,
   CircleMinusIcon,
+  GitCommitIcon,
   GitMergeIcon,
   GitPullRequestClosedIcon,
   GitPullRequestIcon,
+  MailIcon,
   MessagesSquareIcon,
+  ShieldAlertIcon,
   TagIcon,
+  WorkflowIcon,
 } from '@lucide/vue';
 import type { Component } from 'vue';
 
@@ -19,37 +24,90 @@ interface DashboardSubjectStateVisualOptions {
 
 export interface DashboardSubjectStateVisual {
   icon?: Component;
-  color?: string;
   label: string;
-  state?: 'open' | 'closed' | 'merged' | 'discussion' | 'release';
+  state?:
+    | 'open'
+    | 'closed'
+    | 'merged'
+    | 'discussion'
+    | 'release'
+    | 'commit'
+    | 'check-suite'
+    | 'security-alert'
+    | 'workflow-run'
+    | 'invitation';
+}
+
+export interface DashboardNotificationSubjectTypeOption {
+  value: string;
+  labelKey: string;
 }
 
 const subjectTypeVisuals: Record<string, DashboardSubjectStateVisual> = {
   Issue: {
     icon: CircleDotIcon,
-    color: '#1a7f37',
     label: 'Issue',
     state: 'open',
   },
   PullRequest: {
     icon: GitPullRequestIcon,
-    color: '#8250df',
     label: 'Pull request',
     state: 'open',
   },
   Discussion: {
     icon: MessagesSquareIcon,
-    color: '#0969da',
     label: 'Discussion',
     state: 'discussion',
   },
   Release: {
     icon: TagIcon,
-    color: '#bf8700',
     label: 'Release',
     state: 'release',
   },
+  Commit: {
+    icon: GitCommitIcon,
+    label: 'Commit',
+    state: 'commit',
+  },
+  CheckSuite: {
+    icon: CheckSquareIcon,
+    label: 'Check suite',
+    state: 'check-suite',
+  },
+  RepositoryVulnerabilityAlert: {
+    icon: ShieldAlertIcon,
+    label: 'Security alert',
+    state: 'security-alert',
+  },
+  WorkflowRun: {
+    icon: WorkflowIcon,
+    label: 'Workflow run',
+    state: 'workflow-run',
+  },
+  RepositoryInvitation: {
+    icon: MailIcon,
+    label: 'Repository invitation',
+    state: 'invitation',
+  },
 };
+
+export const DASHBOARD_NOTIFICATION_SUBJECT_TYPES: DashboardNotificationSubjectTypeOption[] = [
+  { value: 'Issue', labelKey: 'dashboard.filters.subjectTypes.issue' },
+  { value: 'PullRequest', labelKey: 'dashboard.filters.subjectTypes.pullRequest' },
+  { value: 'Discussion', labelKey: 'dashboard.filters.subjectTypes.discussion' },
+  { value: 'Release', labelKey: 'dashboard.filters.subjectTypes.release' },
+  { value: 'Commit', labelKey: 'dashboard.filters.subjectTypes.commit' },
+  { value: 'CheckSuite', labelKey: 'dashboard.filters.subjectTypes.checkSuite' },
+  {
+    value: 'RepositoryVulnerabilityAlert',
+    labelKey: 'dashboard.filters.subjectTypes.repositoryVulnerabilityAlert',
+  },
+  { value: 'WorkflowRun', labelKey: 'dashboard.filters.subjectTypes.workflowRun' },
+  {
+    value: 'RepositoryInvitation',
+    labelKey: 'dashboard.filters.subjectTypes.repositoryInvitation',
+  },
+];
 
 export const getDashboardSubjectTypeVisual = (
   subjectType?: string
@@ -72,7 +130,6 @@ export default function getDashboardSubjectStateVisual({
     if (state === 'open') {
       return {
         icon: GitPullRequestIcon,
-        color: '#1a7f37',
         label: 'Open pull request',
         state: 'open',
       };
@@ -81,7 +138,6 @@ export default function getDashboardSubjectStateVisual({
     if (state === 'merged') {
       return {
         icon: GitMergeIcon,
-        color: '#0969da',
         label: 'Merged pull request',
         state: 'merged',
       };
@@ -89,7 +145,6 @@ export default function getDashboardSubjectStateVisual({
 
     return {
       icon: GitPullRequestClosedIcon,
-      color: '#000000',
       label: 'Closed pull request',
       state: 'closed',
     };
@@ -98,7 +153,6 @@ export default function getDashboardSubjectStateVisual({
   if (state === 'open') {
     return {
       icon: CircleDotIcon,
-      color: '#1a7f37',
       label: 'Open issue',
       state: 'open',
     };
@@ -106,7 +160,6 @@ export default function getDashboardSubjectStateVisual({
 
   return {
     icon: CircleMinusIcon,
-    color: '#000000',
     label: 'Closed issue',
     state: 'closed',
   };

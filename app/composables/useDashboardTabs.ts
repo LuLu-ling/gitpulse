@@ -1,8 +1,9 @@
 import { ref } from 'vue';
 
-export type DashboardTab = 'notifications' | 'issues' | 'pulls' | 'repos';
+export type DashboardTab = 'todos' | 'notifications' | 'issues' | 'pulls' | 'repos';
 
 interface DashboardTabFetchers {
+  fetchTodos: (page?: number, options?: { force?: boolean }) => Promise<void>;
   fetchNotifications: (page?: number, options?: { force?: boolean }) => Promise<void>;
   fetchIssues: (page?: number, options?: { force?: boolean }) => Promise<void>;
   fetchPulls: (page?: number, options?: { force?: boolean }) => Promise<void>;
@@ -11,6 +12,7 @@ interface DashboardTabFetchers {
 }
 
 export function useDashboardTabs({
+  fetchTodos,
   fetchNotifications,
   fetchIssues,
   fetchPulls,
@@ -23,6 +25,7 @@ export function useDashboardTabs({
     DashboardTab,
     (page?: number, options?: { force?: boolean }) => Promise<void>
   > = {
+    todos: fetchTodos,
     notifications: fetchNotifications,
     issues: fetchIssues,
     pulls: fetchPulls,

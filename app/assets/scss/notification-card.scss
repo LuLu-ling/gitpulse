@@ -64,6 +64,26 @@
   color: var(--gitpulse-warning);
 }
 
+.notification-type-badge--commit {
+  color: var(--gitpulse-text-muted);
+}
+
+.notification-type-badge--check-suite {
+  color: var(--gitpulse-success);
+}
+
+.notification-type-badge--security-alert {
+  color: var(--gitpulse-danger);
+}
+
+.notification-type-badge--workflow-run {
+  color: var(--gitpulse-info);
+}
+
+.notification-type-badge--invitation {
+  color: var(--gitpulse-purple);
+}
+
 .notification-state-icon-enter-active,
 .notification-state-icon-leave-active {
   transition: opacity 0.2s ease;
@@ -74,42 +94,176 @@
   opacity: 0;
 }
 
-.mark-read-btn {
-  opacity: 0;
-  visibility: hidden;
-  color: var(--gitpulse-text);
-  cursor: pointer;
-  padding: 4px;
-  width: 24px;
-  height: 24px;
-  border-radius: 4px;
-  transition: all 0.3s ease;
+.notification-card__content-frame {
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+.notification-card__text-stack {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.notification-card__action-column {
+  align-self: stretch;
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.25rem;
+  min-height: 100%;
 }
 
 .notification-card__actions {
-  display: grid;
-  grid-template-columns: 24px 24px;
-  gap: 0.35rem;
-  flex: 0 0 auto;
-}
-
-.notification-card__reason-slot,
-.notification-card__mark-read-slot {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
+  flex: 0 0 auto;
+  width: 30px;
+  height: 30px;
+}
+
+.notification-card__reason-control {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--gitpulse-text-muted);
+  line-height: 1;
+}
+
+.notification-card__reason-control--action {
+  border-color: color-mix(in srgb, var(--gitpulse-info) 18%, var(--gitpulse-border));
+  background: color-mix(in srgb, var(--gitpulse-info) 4%, var(--gitpulse-surface));
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.notification-card__reason-control--action:hover {
+  border-color: color-mix(in srgb, var(--gitpulse-info) 34%, var(--gitpulse-border));
+  background: color-mix(in srgb, var(--gitpulse-info) 9%, var(--gitpulse-surface));
+  color: var(--gitpulse-info);
+}
+
+.notification-card__reason-control--action:focus-visible {
+  outline: 2px solid var(--gitpulse-focus-ring);
+  outline-offset: 2px;
+}
+
+.notification-card__reason-control--action:disabled {
+  cursor: progress;
+}
+
+.notification-card__reason-control--action:disabled .notification-card__reason-icon {
+  opacity: 0.8;
 }
 
 .notification-card__reason-icon {
-  color: var(--gitpulse-text-muted);
   flex: 0 0 auto;
 }
 
-.notification-card:hover .mark-read-btn {
-  opacity: 1;
-  visibility: visible;
+.notification-card__reason-read-hint {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--gitpulse-surface);
+  border-radius: 50%;
+  background: var(--gitpulse-info);
+  color: var(--gitpulse-surface);
+  line-height: 1;
+  box-shadow:
+    0 2px 8px color-mix(in srgb, var(--gitpulse-info) 32%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--gitpulse-info) 12%, transparent);
+  transition:
+    background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+    color 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+    transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.notification-card__reason-control--action:hover .notification-card__reason-read-hint {
+  transform: scale(1.1);
+  box-shadow:
+    0 4px 12px color-mix(in srgb, var(--gitpulse-info) 42%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--gitpulse-info) 18%, transparent);
+}
+
+.notification-card__reason-control--action:disabled .notification-card__reason-read-hint {
+  background: var(--gitpulse-surface);
+  color: var(--gitpulse-info);
+  box-shadow:
+    0 2px 8px color-mix(in srgb, var(--gitpulse-info) 18%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--gitpulse-info) 16%, transparent);
+}
+
+.notification-card__reason-read-hint .loading-spinner {
+  color: inherit;
+}
+
+.notification-card__todo-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid var(--gitpulse-border);
+  border-radius: 6px;
+  background: var(--gitpulse-surface);
+  color: var(--gitpulse-text-muted);
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.notification-card__todo-btn--add {
+  border-color: color-mix(in srgb, var(--gitpulse-accent) 28%, var(--gitpulse-border));
+  background: color-mix(in srgb, var(--gitpulse-accent) 8%, var(--gitpulse-surface));
+  color: var(--gitpulse-accent);
+}
+
+.notification-card__todo-btn--remove {
+  border-color: color-mix(in srgb, var(--gitpulse-danger) 28%, var(--gitpulse-border));
+  background: color-mix(in srgb, var(--gitpulse-danger) 8%, var(--gitpulse-surface));
+  color: var(--gitpulse-danger);
+}
+
+.notification-card__todo-btn--add:hover {
+  border-color: color-mix(in srgb, var(--gitpulse-accent) 45%, var(--gitpulse-border));
+  background: color-mix(in srgb, var(--gitpulse-accent) 14%, var(--gitpulse-surface));
+  color: var(--gitpulse-accent);
+}
+
+.notification-card__todo-btn:focus-visible {
+  outline: 2px solid var(--gitpulse-focus-ring);
+  outline-offset: 2px;
+}
+
+.notification-card__todo-btn--remove:hover {
+  border-color: color-mix(in srgb, var(--gitpulse-danger) 45%, var(--gitpulse-border));
+  background: color-mix(in srgb, var(--gitpulse-danger) 14%, var(--gitpulse-surface));
+  color: var(--gitpulse-danger);
 }
 
 .notification-card__number {
@@ -140,20 +294,6 @@
   transition: color 0.15s ease;
 }
 
-.mark-read-btn:hover {
-  background-color: var(--gitpulse-surface-hover);
-  color: var(--bulma-text-strong, var(--gitpulse-text-strong));
-}
-
-.mark-read-btn:disabled {
-  opacity: 0.8;
-  cursor: not-allowed;
-}
-
-.is-spinning {
-  animation: spin 1.4s linear infinite;
-}
-
 @keyframes notification-state-pulse {
   0%,
   100% {
@@ -163,4 +303,21 @@
   50% {
     opacity: 0.65;
   }
+}
+
+.notification-read-icon-enter-active,
+.notification-read-icon-leave-active {
+  transition:
+    opacity 0.15s ease,
+    transform 0.15s ease;
+}
+
+.notification-read-icon-enter-from {
+  opacity: 0;
+  transform: scale(0.6);
+}
+
+.notification-read-icon-leave-to {
+  opacity: 0;
+  transform: scale(0.6);
 }

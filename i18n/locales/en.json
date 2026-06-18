@@ -294,6 +294,7 @@
         "excludeArchived": "Exclude archived",
         "includeArchived": "Include archived",
         "onlyArchived": "Only archived",
+        "added": "Added",
         "updated": "Updated",
         "created": "Created",
         "comments": "Comments",
@@ -321,7 +322,10 @@
         "release": "Releases",
         "commit": "Commits",
         "checkSuite": "Check Suites",
-        "securityAlert": "Security Alerts"
+        "securityAlert": "Security Alerts",
+        "repositoryVulnerabilityAlert": "Security Alerts",
+        "workflowRun": "Workflow Runs",
+        "repositoryInvitation": "Repository Invitations"
       }
     },
     "settings": {
@@ -514,7 +518,15 @@
     },
     "notifications": {
       "empty": "No notifications to show.",
-      "emptyFiltered": "No notifications match the current filters."
+      "emptyFiltered": "No notifications match the current filters.",
+      "reasonAction": "Notification reason",
+      "markAsReadAction": "Mark as read"
+    },
+    "todos": {
+      "empty": "No todo notifications yet.",
+      "emptyFiltered": "No todo notifications match the current filters.",
+      "addAction": "Add to todo",
+      "removeAction": "Remove from todo"
     },
     "widgets": {
       "stats": {
