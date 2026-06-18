@@ -301,10 +301,8 @@ import {
 
 import 'simplebar-vue/dist/simplebar.min.css';
 import SimpleBar from 'simplebar-vue';
-import { defineAsyncComponent, computed, onBeforeUnmount, shallowRef, watch } from 'vue';
-import type { LocationQueryRaw } from 'vue-router';
+import { defineAsyncComponent, computed, shallowRef, watch } from 'vue';
 
-import type { DashboardNotification } from '#shared/types/notifications';
 import ActivityBar from '~/components/dashboard/activity-bar/ActivityBar.vue';
 import DashboardLayout from '~/components/dashboard/DashboardLayout.vue';
 import DashboardLoadingList from '~/components/dashboard/DashboardLoadingList.vue';
@@ -323,11 +321,7 @@ import TabSidebar from '~/components/dashboard/tab-sidebar/TabSidebar.vue';
 import QuickActions from '~/components/dashboard/widgets/QuickActions.vue';
 import WidgetsPanel from '~/components/dashboard/widgets/WidgetsPanel.vue';
 import Button from '~/components/ui/Button.vue';
-import type { GitHubSearchQuery } from '~/composables/useCustomTabs';
-import {
-  createCustomTabPreviewSearchParams,
-  resolveCustomTabSubtitle,
-} from '~/composables/useCustomTabSettingsOptions';
+import { resolveCustomTabSubtitle } from '~/composables/useCustomTabSettingsOptions';
 import {
   applyNotificationLocalFilters,
   createCustomTabFilterSourceState,
@@ -336,6 +330,15 @@ import {
   type DashboardFilterSource,
   type DashboardRouteFilters,
 } from '~/composables/useDashboardFilters';
+import {
+  type DashboardEntity,
+  isPullRequestDashboardEntity,
+} from '~/composables/useDashboardFilterSuggestions';
+import {
+  buildDashboardQuery,
+  parseDashboardPage,
+  parseDashboardTab,
+} from '~/composables/useDashboardRouteState';
 import type { DashboardTab } from '~/composables/useDashboardTabs';
 import { buildDashboardTabSwitchQuery } from '~/utils/dashboardUrlNavigationUtils';
 import getQueryParamValue from '~/utils/getQueryParamValue';
@@ -365,20 +368,6 @@ const apiFetch = useGitPulseApiFetch();
 const { currentEntry, navigateToFile } = useNavigationHistory();
 const { resolveDashboardUrlTarget, getDashboardUrlRoute, trackDashboardUrlNavigation } =
   useDashboardUrlNavigation();
-
-const dashboardTabs: DashboardTab[] = ['todos', 'notifications', 'issues', 'pulls', 'repos'];
-interface DashboardEntity {
-  id: PropertyKey;
-  repository_url?: string | null;
-  number?: number | null;
-  pull_request?: unknown;
-  [key: string]: unknown;
-}
-
-interface FreshnessResponse {
-  signature: string;
-  pollIntervalMs?: number;
-}
 
 const isDashboardChildRoute = computed(() => {
   return !route.path.replace(/\/$/, '').endsWith('/dashboard');
@@ -451,34 +440,6 @@ watch(
   },
   { immediate: true }
 );
-
-const parseDashboardTab = (value: unknown): DashboardTab => {
-  const tab = getQueryParamValue(value);
-  return dashboardTabs.includes(tab as DashboardTab) ? (tab as DashboardTab) : 'notifications';
-};
-
-const parseDashboardPage = (value: unknown) => {
-  const rawValue = getQueryParamValue(value);
-
-  if (!rawValue || !/^\d+$/.test(rawValue)) {
-    return 1;
-  }
-
-  const parsedPage = Number.parseInt(rawValue, 10);
-  return Number.isSafeInteger(parsedPage) && parsedPage > 0 ? parsedPage : 1;
-};
-
-const buildDashboardQuery = (query: LocationQueryRaw) => {
-  const nextQuery: LocationQueryRaw = {};
-
-  for (const [key, value] of Object.entries(query)) {
-    if (value !== undefined && value !== null && value !== '') {
-      nextQuery[key] = value;
-    }
-  }
-
-  return nextQuery;
-};
 
 const {
   loading,
@@ -904,116 +865,15 @@ const todoEmptyMessage = computed(() => {
     : t('dashboard.todos.empty');
 });
 
-const getEntityRepoName = (entity: DashboardEntity) => {
-  const repositoryUrl = typeof entity.repository_url === 'string' ? entity.repository_url : '';
-  return parseGitHubRepoPath(repositoryUrl)?.fullName ?? '';
-};
-
-const getEntityAuthor = (entity: DashboardEntity) => {
-  const user = entity.user;
-  if (!user || typeof user !== 'object' || !('login' in user)) {
-    return '';
-  }
-
-  return typeof user.login === 'string' ? user.login : '';
-};
-
-const getEntityLabels = (entity: DashboardEntity) => {
-  const labels = entity.labels;
-  if (!Array.isArray(labels)) {
-    return [];
-  }
-
-  return labels
-    .map((label) => {
-      if (typeof label === 'string') return label;
-      if (label && typeof label === 'object' && 'name' in label && typeof label.name === 'string') {
-        return label.name;
-      }
-      return '';
-    })
-    .filter(Boolean);
-};
-
-const repoFilterSuggestions = computed(() => {
-  const suggestions = new Set<string>();
-
-  for (const repo of repos.value) {
-    if (typeof repo.full_name === 'string') suggestions.add(repo.full_name);
-  }
-
-  for (const notification of notifications.value) {
-    if (notification.repository?.full_name) suggestions.add(notification.repository.full_name);
-  }
-
-  for (const todo of notificationTodos.value) {
-    if (todo.notification.repository?.full_name) {
-      suggestions.add(todo.notification.repository.full_name);
-    }
-  }
-
-  for (const item of [...issues.value, ...pulls.value]) {
-    const repoName = getEntityRepoName(item);
-    if (repoName) suggestions.add(repoName);
-  }
-
-  return Array.from(suggestions).sort((left, right) => left.localeCompare(right));
-});
-
-const authorFilterSuggestions = computed(() => {
-  const suggestions = new Set<string>();
-
-  for (const notification of notifications.value) {
-    if (notification.subject?.authorLogin) suggestions.add(notification.subject.authorLogin);
-  }
-
-  for (const todo of notificationTodos.value) {
-    if (todo.notification.subject?.authorLogin)
-      suggestions.add(todo.notification.subject.authorLogin);
-  }
-
-  for (const item of [...issues.value, ...pulls.value]) {
-    const author = getEntityAuthor(item);
-    if (author) suggestions.add(author);
-  }
-
-  return Array.from(suggestions).sort((left, right) => left.localeCompare(right));
-});
-
-const labelFilterSuggestions = computed(() => {
-  if (!visibleDashboardFilters.value.repo) {
-    return [];
-  }
-
-  const suggestions = new Set<string>();
-
-  for (const notification of notifications.value) {
-    if (notification.repository?.full_name !== visibleDashboardFilters.value.repo) continue;
-    for (const label of notification.subject?.labels ?? []) {
-      if (label.name) suggestions.add(label.name);
-    }
-  }
-
-  for (const todo of notificationTodos.value) {
-    if (todo.notification.repository?.full_name !== visibleDashboardFilters.value.repo) continue;
-    for (const label of todo.notification.subject?.labels ?? []) {
-      if (label.name) suggestions.add(label.name);
-    }
-  }
-
-  for (const item of [...issues.value, ...pulls.value]) {
-    if (getEntityRepoName(item) !== visibleDashboardFilters.value.repo) continue;
-    for (const label of getEntityLabels(item)) {
-      suggestions.add(label);
-    }
-  }
-
-  return Array.from(suggestions).sort((left, right) => left.localeCompare(right));
-});
-
-const isPullRequestResult = (item: DashboardEntity) => {
-  return typeof item.pull_request === 'object' && item.pull_request !== null;
-};
+const { repoFilterSuggestions, authorFilterSuggestions, labelFilterSuggestions } =
+  useDashboardFilterSuggestions({
+    notifications,
+    notificationTodos,
+    issues,
+    pulls,
+    repos,
+    visibleFilters: visibleDashboardFilters,
+  });
 
 const {
   currentIssue,
@@ -1067,249 +927,37 @@ watch(
   { immediate: true }
 );
 
-type NotificationDetails = NonNullable<ReturnType<typeof getNotificationDetails>>;
-
-interface PendingNotificationRead {
-  notification: DashboardNotification;
-  detailKey: string;
-}
-
-const sourceNotification = shallowRef<DashboardNotification | null>(null);
-const pendingNotificationRead = shallowRef<PendingNotificationRead | null>(null);
-const notificationReadTimers = new Map<string, ReturnType<typeof setTimeout>>();
-
-const currentVisibleDetailKey = computed(() => {
-  if (isIssueDetailVisible.value) return issueDetailKey.value;
-  if (isPRDetailVisible.value) return prDetailKey.value;
-  if (isDiscussionDetailVisible.value) return discussionDetailKey.value;
-  if (isReleaseDetailVisible.value) return releaseDetailKey.value;
-  if (isRepoDetailVisible.value) return repoDetailKey.value;
-  return null;
-});
-
-const notificationReadMarkMode = computed(() => settings.value.notificationBehavior.readMarkMode);
-const notificationReadMarkDelayMs = computed(
-  () => settings.value.notificationBehavior.readMarkDelaySeconds * 1000
-);
-
-const getNotificationThreadId = (notification: DashboardNotification) => {
-  return String(notification.id);
-};
-
-const buildNotificationDetailKey = (details: NotificationDetails) => {
-  if (details.isIssue) {
-    return `issue-${details.owner}-${details.repo}-${details.number}`;
-  }
-
-  if (details.isDiscussion) {
-    return `discussion-${details.owner}-${details.repo}-${details.number}`;
-  }
-
-  if (details.isRelease) {
-    return `release-${details.owner}-${details.repo}-id-${details.number}`;
-  }
-
-  return `pr-${details.owner}-${details.repo}-${details.number}`;
-};
-
-const getNotificationSourceDetailKey = (notification: DashboardNotification) => {
-  const details = getNotificationDetails(notification);
-  return details ? buildNotificationDetailKey(details) : null;
-};
-
-const visibleSourceNotification = computed(() => {
-  const notification = sourceNotification.value;
-  if (
-    !notification ||
-    getNotificationSourceDetailKey(notification) !== currentVisibleDetailKey.value
-  ) {
-    return null;
-  }
-
-  return notification;
-});
-
-const clearNotificationReadTimer = (threadId: string) => {
-  const timer = notificationReadTimers.get(threadId);
-  if (!timer) return;
-
-  clearTimeout(timer);
-  notificationReadTimers.delete(threadId);
-};
-
-const clearNotificationReadTimers = () => {
-  for (const threadId of Array.from(notificationReadTimers.keys())) {
-    clearNotificationReadTimer(threadId);
-  }
-};
-
-const clearNotificationDetailContext = () => {
-  sourceNotification.value = null;
-  pendingNotificationRead.value = null;
-  clearNotificationReadTimers();
-};
-
-const markNotificationAsReadFromDashboard = async (notification: DashboardNotification) => {
-  clearNotificationReadTimer(getNotificationThreadId(notification));
-  return markNotificationAsRead(notification);
-};
-
-const isPendingNotificationDetailLoaded = (detailKey: string) => {
-  if (detailKey === issueDetailKey.value) {
-    return isIssueDetailVisible.value && Boolean(currentIssue.value) && !loadingIssue.value;
-  }
-
-  if (detailKey === prDetailKey.value) {
-    return isPRDetailVisible.value && Boolean(currentPR.value) && !loadingPR.value;
-  }
-
-  if (detailKey === discussionDetailKey.value) {
-    return (
-      isDiscussionDetailVisible.value &&
-      Boolean(currentDiscussion.value) &&
-      !loadingDiscussion.value
-    );
-  }
-
-  if (detailKey === releaseDetailKey.value) {
-    return isReleaseDetailVisible.value && Boolean(currentRelease.value) && !loadingRelease.value;
-  }
-
-  return false;
-};
-
-const scheduleNotificationReadTimer = (notification: DashboardNotification) => {
-  const threadId = getNotificationThreadId(notification);
-  clearNotificationReadTimer(threadId);
-
-  const timer = setTimeout(() => {
-    notificationReadTimers.delete(threadId);
-    void markNotificationAsReadFromDashboard(notification);
-  }, notificationReadMarkDelayMs.value);
-
-  notificationReadTimers.set(threadId, timer);
-};
-
-const schedulePendingNotificationReadIfReady = () => {
-  const pending = pendingNotificationRead.value;
-  const mode = notificationReadMarkMode.value;
-  if (!pending || mode === 'manual') return;
-
-  if (!isPendingNotificationDetailLoaded(pending.detailKey)) return;
-
-  pendingNotificationRead.value = null;
-  if (mode === 'immediate') {
-    void markNotificationAsReadFromDashboard(pending.notification);
-    return;
-  }
-
-  scheduleNotificationReadTimer(pending.notification);
-};
-
-const handleNotificationAutoRead = (notification: DashboardNotification) => {
-  if (!notification.unread) return;
-
-  if (notificationReadMarkMode.value === 'manual') {
-    pendingNotificationRead.value = null;
-    return;
-  }
-
-  const details = getNotificationDetails(notification);
-  if (!details) return;
-
-  pendingNotificationRead.value = {
-    notification,
-    detailKey: buildNotificationDetailKey(details),
-  };
-  schedulePendingNotificationReadIfReady();
-};
-
-const setSourceNotificationForDetail = (notification: DashboardNotification) => {
-  const detailKey = getNotificationSourceDetailKey(notification);
-  if (!detailKey) {
-    clearNotificationDetailContext();
-    return false;
-  }
-
-  if (detailKey !== currentVisibleDetailKey.value) {
-    pendingNotificationRead.value = null;
-    clearNotificationReadTimers();
-  }
-
-  sourceNotification.value = notification;
-  return true;
-};
-
-const handleNotificationOpen = (notification: DashboardNotification) => {
-  const hasDetailTarget = setSourceNotificationForDetail(notification);
-  openNotification(notification);
-  if (hasDetailTarget) {
-    handleNotificationAutoRead(notification);
-  }
-};
-
-const handleTodoOpen = (notification: DashboardNotification) => {
-  setSourceNotificationForDetail(notification);
-  openNotification(notification);
-};
-
-watch(
-  [
-    pendingNotificationRead,
-    issueDetailKey,
-    prDetailKey,
-    discussionDetailKey,
-    releaseDetailKey,
-    loadingIssue,
-    loadingPR,
-    loadingDiscussion,
-    loadingRelease,
-    currentIssue,
-    currentPR,
-    currentDiscussion,
-    currentRelease,
-  ],
-  schedulePendingNotificationReadIfReady,
-  { flush: 'post' }
-);
-
-watch(notificationReadMarkMode, (mode) => {
-  if (mode === 'manual') {
-    pendingNotificationRead.value = null;
-    clearNotificationReadTimers();
-    return;
-  }
-
-  if (mode === 'immediate') {
-    clearNotificationReadTimers();
-  }
-
-  schedulePendingNotificationReadIfReady();
-});
-
-watch(currentVisibleDetailKey, (detailKey, previousDetailKey) => {
-  if (!detailKey) {
-    clearNotificationDetailContext();
-    return;
-  }
-
-  if (previousDetailKey && previousDetailKey !== detailKey) {
-    clearNotificationReadTimers();
-  }
-
-  const notification = sourceNotification.value;
-  if (notification && getNotificationSourceDetailKey(notification) !== detailKey) {
-    sourceNotification.value = null;
-  }
-
-  const pending = pendingNotificationRead.value;
-  if (pending && pending.detailKey !== detailKey) {
-    pendingNotificationRead.value = null;
-  }
-});
-
-onBeforeUnmount(() => {
-  clearNotificationReadTimers();
+const {
+  visibleSourceNotification,
+  markNotificationAsReadFromDashboard,
+  handleNotificationOpen,
+  handleTodoOpen,
+  clearSourceNotification,
+} = useDashboardNotificationDetailContext({
+  settings,
+  detailState: {
+    issueKey: issueDetailKey,
+    pullRequestKey: prDetailKey,
+    discussionKey: discussionDetailKey,
+    releaseKey: releaseDetailKey,
+    repositoryKey: repoDetailKey,
+    issueVisible: isIssueDetailVisible,
+    pullRequestVisible: isPRDetailVisible,
+    discussionVisible: isDiscussionDetailVisible,
+    releaseVisible: isReleaseDetailVisible,
+    repositoryVisible: isRepoDetailVisible,
+    issueLoaded: currentIssue,
+    pullRequestLoaded: currentPR,
+    discussionLoaded: currentDiscussion,
+    releaseLoaded: currentRelease,
+    issueLoading: loadingIssue,
+    pullRequestLoading: loadingPR,
+    discussionLoading: loadingDiscussion,
+    releaseLoading: loadingRelease,
+  },
+  getNotificationDetails,
+  openNotification,
+  markNotificationAsRead,
 });
 
 watch([hasCompletedInitialDashboardLoad, hasVisibleDetail], ([loaded, detailVisible]) => {
@@ -1319,8 +967,8 @@ watch([hasCompletedInitialDashboardLoad, hasVisibleDetail], ([loaded, detailVisi
 });
 
 const openSearchResult = async (item: DashboardEntity) => {
-  sourceNotification.value = null;
-  if (isPullRequestResult(item)) {
+  clearSourceNotification();
+  if (isPullRequestDashboardEntity(item)) {
     await openPR(item);
     return;
   }
@@ -1329,22 +977,22 @@ const openSearchResult = async (item: DashboardEntity) => {
 };
 
 const handleIssueOpen = (...args: Parameters<typeof openIssue>) => {
-  sourceNotification.value = null;
+  clearSourceNotification();
   openIssue(...args);
 };
 
 const handlePROpen = (...args: Parameters<typeof openPR>) => {
-  sourceNotification.value = null;
+  clearSourceNotification();
   openPR(...args);
 };
 
 const handleSwitchIssueFromDetail = (owner: string, repo: string, issueNumber: number) => {
-  sourceNotification.value = null;
+  clearSourceNotification();
   handleSwitchIssue(owner, repo, issueNumber);
 };
 
 const handleSwitchPRFromDetail = (owner: string, repo: string, pullNumber: number) => {
-  sourceNotification.value = null;
+  clearSourceNotification();
   handleSwitchPR(owner, repo, pullNumber);
 };
 
@@ -1353,7 +1001,7 @@ const handleSwitchDiscussionFromDetail = (
   repo: string,
   discussionNumber: number
 ) => {
-  sourceNotification.value = null;
+  clearSourceNotification();
   handleSwitchDiscussion(owner, repo, discussionNumber);
 };
 
@@ -1379,139 +1027,42 @@ const refreshCurrentTabSafely = async () => {
   }
 };
 
-const buildUrlWithParams = (path: string, params: Record<string, boolean | string | undefined>) => {
-  const searchParams = new URLSearchParams();
-  for (const [key, value] of Object.entries(params)) {
-    if (value !== undefined) {
-      searchParams.set(key, String(value));
-    }
-  }
-
-  const queryString = searchParams.toString();
-  return queryString ? `${path}?${queryString}` : path;
-};
-
-const buildSearchFreshnessUrl = (query: GitHubSearchQuery) => {
-  return `/api/search/issues/freshness?${createCustomTabPreviewSearchParams(
-    query,
-    1,
-    5
-  ).toString()}`;
-};
-
-const notificationFreshnessUrl = computed(() => {
-  const localFilters = notificationFilterAdapter.value.local;
-  if (localFilters.subjectState) {
-    return '';
-  }
-
-  return buildUrlWithParams('/api/notifications/freshness', {
-    ...notificationFilterAdapter.value.apiParams,
-    read_state: localFilters.readState,
-    repo: localFilters.repo,
-    reason: localFilters.reason,
-    subject_type: localFilters.subjectType,
-  });
-});
-
-const dashboardListFreshnessUrl = computed(() => {
-  const customTab = selectedCustomTab.value;
-  if (customTab) {
-    const customSourceState = filterSourceStates.value[getCustomTabFilterSource(customTab.query)];
-    return buildSearchFreshnessUrl(customSourceState.overlayCustomTabQuery(customTab.query));
-  }
-
-  if (currentTab.value === 'notifications') {
-    return notificationFreshnessUrl.value;
-  }
-
-  if (currentTab.value === 'todos') {
-    return '';
-  }
-
-  if (currentTab.value === 'issues') {
-    return issuePrFetchOptions.value.query
-      ? buildSearchFreshnessUrl(issuePrFetchOptions.value.query)
-      : '/api/issues/freshness';
-  }
-
-  if (currentTab.value === 'pulls') {
-    return pullRequestFetchOptions.value.query
-      ? buildSearchFreshnessUrl(pullRequestFetchOptions.value.query)
-      : '/api/pulls/freshness';
-  }
-
-  return '/api/repos/freshness';
-});
-
-const activeDashboardFreshnessUrl = computed(() => {
-  return hasVisibleDetail.value ? currentDetailFreshnessUrl.value : dashboardListFreshnessUrl.value;
-});
-
-const activeDashboardRefreshKey = computed(() => {
-  if (hasVisibleDetail.value) {
-    return currentDetailRefreshKey.value;
-  }
-
-  return JSON.stringify({
-    tab: currentRouteTabId.value,
-    page: currentPage.value,
-    filters: routeFilterFetchKey.value,
-  });
-});
-
-const fetchActiveDashboardFreshness = async () => {
-  if (!activeDashboardFreshnessUrl.value) {
-    return null;
-  }
-
-  return apiFetch<FreshnessResponse>(activeDashboardFreshnessUrl.value);
-};
-
-const refreshActiveDashboardSurface = async () => {
-  if (hasVisibleDetail.value) {
-    await refreshCurrentDetail();
-    return;
-  }
-
-  await refreshCurrentTabSafely();
-};
-
-const activeDashboardLoading = computed(() => {
-  if (!hasVisibleDetail.value) {
-    return dashboardListLoading.value;
-  }
-
-  return (
-    loadingIssue.value ||
-    loadingPR.value ||
-    loadingDiscussion.value ||
-    loadingRelease.value ||
-    loadingRepo.value
-  );
-});
-
-const dashboardRefresh = useRefreshableView({
-  refresh: refreshActiveDashboardSurface,
-  checkFreshness: fetchActiveDashboardFreshness,
-  freshnessKey: activeDashboardRefreshKey,
-  enabled: computed(() => {
-    return (
-      import.meta.client &&
-      sessionReady.value &&
-      loggedIn.value &&
-      !isDashboardChildRoute.value &&
-      !showFileBrowsingView.value &&
-      Boolean(activeDashboardFreshnessUrl.value)
-    );
-  }),
-});
 const {
-  hasNewContent: dashboardHasNewContent,
-  refreshing: dashboardRefreshing,
-  checking: dashboardChecking,
-  refreshNow: refreshDashboard,
-} = dashboardRefresh;
+  activeDashboardLoading,
+  dashboardHasNewContent,
+  dashboardRefreshing,
+  dashboardChecking,
+  refreshDashboard,
+} = useDashboardRefreshCoordinator({
+  apiFetch,
+  currentTab,
+  currentPage,
+  currentRouteTabId,
+  selectedCustomTab,
+  filterSourceStates,
+  routeFilterFetchKey,
+  issuePrQuery: computed(() => issuePrFetchOptions.value.query),
+  pullRequestQuery: computed(() => pullRequestFetchOptions.value.query),
+  hasVisibleDetail,
+  currentDetailRefreshKey,
+  currentDetailFreshnessUrl,
+  dashboardListLoading,
+  detailLoading: computed(
+    () =>
+      loadingIssue.value ||
+      loadingPR.value ||
+      loadingDiscussion.value ||
+      loadingRelease.value ||
+      loadingRepo.value
+  ),
+  sessionReady,
+  loggedIn,
+  isDashboardChildRoute,
+  showFileBrowsingView,
+  getCustomTabFilterSource,
+  refreshCurrentDetail,
+  refreshCurrentTab: refreshCurrentTabSafely,
+});
 
 const loadRouteTabSafely = async (tab: unknown, page: number) => {
   try {
