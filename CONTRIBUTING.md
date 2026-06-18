@@ -92,6 +92,7 @@ Run the core quality checks from the repository root:
 ```bash
 bun run fmt:check
 bun run lint
+bunx nuxi typecheck
 bun test
 ```
 
