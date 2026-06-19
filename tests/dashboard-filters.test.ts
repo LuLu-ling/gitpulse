@@ -18,6 +18,7 @@ import {
   normalizeCustomTabRouteFilterPatch,
   parseDashboardRouteFilters,
   serializeDashboardRouteFilters,
+  sourceUsesDashboardTodoSortControls,
 } from '../app/composables/useDashboardFilters';
 
 describe('dashboard route filters', () => {
@@ -157,6 +158,14 @@ describe('dashboard route filters', () => {
       repo: 'owner/repo',
       subjectType: 'PullRequest',
     });
+  });
+
+  test('todo sort controls are only available on the todo source', () => {
+    expect(sourceUsesDashboardTodoSortControls('todos')).toBe(true);
+    expect(sourceUsesDashboardTodoSortControls('issues')).toBe(false);
+    expect(sourceUsesDashboardTodoSortControls('pulls')).toBe(false);
+    expect(sourceUsesDashboardTodoSortControls('notifications')).toBe(false);
+    expect(sourceUsesDashboardTodoSortControls('repos')).toBe(false);
   });
 
   test('drops source-inapplicable filters from active issue filters and chips', () => {

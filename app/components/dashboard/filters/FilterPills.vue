@@ -21,7 +21,10 @@ import type {
   DashboardRouteFilters,
   DashboardRouteState,
 } from '~/composables/useDashboardFilters';
-import { sourceSupportsDashboardFilter } from '~/composables/useDashboardFilters';
+import {
+  sourceSupportsDashboardFilter,
+  sourceUsesDashboardTodoSortControls,
+} from '~/composables/useDashboardFilters';
 
 const props = defineProps<{
   currentTab: DashboardFilterSource;
@@ -166,9 +169,9 @@ const handleTodoOrderChange = (value: string) => {
 const supportsFilter = (key: keyof DashboardRouteFilters) =>
   sourceSupportsDashboardFilter(props.currentTab, key);
 const showPills = computed(
-  () => supportsFilter('state') || supportsFilter('sort') || supportsFilter('order')
+  () => supportsFilter('state') || sourceUsesDashboardTodoSortControls(props.currentTab)
 );
-const showTodoControls = computed(() => supportsFilter('sort') || supportsFilter('order'));
+const showTodoControls = computed(() => sourceUsesDashboardTodoSortControls(props.currentTab));
 </script>
 
 <template>

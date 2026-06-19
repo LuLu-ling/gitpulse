@@ -130,6 +130,9 @@ export const sourceSupportsDashboardFilter = (
   key: DashboardFilterKey
 ) => getDashboardFilterSourceSchema(source).keys.includes(key);
 
+export const sourceUsesDashboardTodoSortControls = (source: DashboardFilterSource) =>
+  source === 'todos';
+
 const STATE_VALUES = new Set<DashboardRouteState>([
   'all',
   'unread',
