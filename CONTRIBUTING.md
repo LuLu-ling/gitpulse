@@ -1,26 +1,17 @@
 # Contributing
 
-Thanks for taking the time to improve GitPulse. This guide covers commit
-messages and the checks that run before commits.
+Thanks for taking the time to improve GitPulse. This guide covers commit messages guidelines and necessary checks before opening a PR.
 
 ## Prerequisites
 
-- Use Bun. This project is Bun-only.
+- Use Bun as package manager.
 - Install dependencies from the repository root:
 
 ```bash
 bun install
 ```
 
-`bun install` also runs the `prepare` script, which installs the `prek`
-pre-commit hook.
-
-If the hook is missing or you cloned the repository before hooks were installed,
-run:
-
-```bash
-bunx prek install
-```
+`bun install` also runs the `prepare` script, which installs the `prek` pre-commit hook.
 
 ## Pre-Commit Checks
 
@@ -32,19 +23,11 @@ bun run fmt:check
 bun run lint
 ```
 
-These commands run against the repository, not just the files staged for the
-commit. Fix any failures before committing.
-
-To run the same hooks manually on the full repository:
-
-```bash
-bunx prek run --all-files
-```
+Fix any failures before committing.
 
 ## Commit Messages
 
-Commit messages should follow the
-[Conventional Commits](https://www.conventionalcommits.org) format:
+Commit messages should follow the [Conventional Commits](https://www.conventionalcommits.org) format:
 
 ```text
 <type>(<scope>): <description>
@@ -58,8 +41,7 @@ feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert
 
 The scope is optional. Keep the description concise and imperative.
 
-If you use AI to draft commit messages, you can use the
-[conventional-commit skill](https://www.skills.sh/github/awesome-copilot/conventional-commit).
+If you use AI to draft commit messages, you can use the [conventional-commit skill](https://www.skills.sh/github/awesome-copilot/conventional-commit).
 
 ## Format and Lint
 
