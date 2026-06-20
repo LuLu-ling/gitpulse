@@ -904,21 +904,18 @@ const { t, editorOpen, startNewTab, closeEditor } = props.model;
   font-size: 0.7rem;
 }
 
-.segmented-row,
-.source-selector {
+.segmented-row {
   display: flex;
   align-items: center;
   gap: 0.35rem;
 }
 
-.segmented-row.is-wrap,
-.source-selector {
+.segmented-row.is-wrap {
   flex-wrap: wrap;
 }
 
 .chip-button,
-.segmented-button,
-.source-option {
+.segmented-button {
   border: 1px solid var(--gitpulse-border);
   color: var(--gitpulse-text);
   background: var(--gitpulse-surface);
@@ -948,25 +945,10 @@ const { t, editorOpen, startNewTab, closeEditor } = props.model;
 }
 
 .chip-button:hover:not(:disabled),
-.segmented-button:hover,
-.source-option:hover:not(:disabled) {
+.segmented-button:hover {
   border-color: color-mix(in srgb, var(--gitpulse-accent) 36%, transparent);
   color: var(--gitpulse-accent);
   background: color-mix(in srgb, var(--gitpulse-accent) 14%, var(--gitpulse-surface));
-}
-
-.source-option:hover:not(:disabled) small {
-  color: var(--gitpulse-accent);
-}
-
-.source-option.is-active:hover:not(:disabled) {
-  border-color: var(--gitpulse-accent);
-  color: #ffffff;
-  background: color-mix(in srgb, var(--gitpulse-accent) 86%, #ffffff);
-}
-
-.source-option.is-active:hover:not(:disabled) small {
-  color: rgba(255, 255, 255, 0.76);
 }
 
 .chip-button.is-active {
@@ -983,55 +965,9 @@ const { t, editorOpen, startNewTab, closeEditor } = props.model;
   box-shadow: 0 1px 3px color-mix(in srgb, var(--active) 30%, transparent);
 }
 
-.chip-button:disabled,
-.source-option:disabled {
+.chip-button:disabled {
   cursor: not-allowed;
   opacity: 0.45;
-}
-
-.source-selector {
-  padding: 0.25rem;
-  margin-bottom: 1rem;
-  border: 1px solid var(--gitpulse-border);
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--gitpulse-surface-muted) 95%, transparent);
-}
-
-.source-option {
-  display: inline-grid;
-  grid-template-columns: auto 1fr;
-  grid-template-rows: auto auto;
-  column-gap: 0.45rem;
-  min-width: 11rem;
-  padding: 0.48rem 0.65rem;
-  border-radius: 6px;
-  text-align: left;
-}
-
-.source-option svg {
-  grid-row: 1 / span 2;
-  align-self: center;
-  fill: currentColor;
-}
-
-.source-option span {
-  font-size: 0.84rem;
-  font-weight: 750;
-}
-
-.source-option small {
-  color: var(--gitpulse-text-muted);
-  font-size: 0.7rem;
-}
-
-.source-option.is-active {
-  border-color: var(--gitpulse-accent);
-  color: #ffffff;
-  background: var(--gitpulse-accent);
-}
-
-.source-option.is-active small {
-  color: rgba(255, 255, 255, 0.76);
 }
 
 .endpoint-row {
@@ -1050,16 +986,14 @@ const { t, editorOpen, startNewTab, closeEditor } = props.model;
 
 .field-grid,
 .toggle-grid,
-.sort-row,
-.scope-grid {
+.sort-row {
   display: grid;
   gap: 0.75rem;
 }
 
 .field-grid.is-two,
 .toggle-grid,
-.sort-row,
-.scope-grid {
+.sort-row {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
@@ -1067,138 +1001,7 @@ const { t, editorOpen, startNewTab, closeEditor } = props.model;
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
-.toggle-section {
-  margin-bottom: 0.85rem;
-}
-
-.label-heading {
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-}
-
-.label-combobox {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.45rem;
-  min-height: 2.6rem;
-  padding: 0.45rem;
-  border: 1px solid var(--bulma-border, #dbdbdb);
-  border-radius: 6px;
-  background: var(--gitpulse-surface);
-}
-
-.label-chip {
-  gap: 0.25rem;
-}
-
-.label-input {
-  min-width: 12rem;
-  flex: 1;
-  border: 0;
-  outline: 0;
-  background: transparent;
-  font: inherit;
-}
-
-.label-suggestions {
-  display: grid;
-  gap: 0.15rem;
-  max-height: 11rem;
-  padding: 0.35rem;
-  margin-top: 0.35rem;
-  overflow: auto;
-  border: 1px solid var(--gitpulse-border);
-  border-radius: 8px;
-  background: var(--gitpulse-surface);
-  box-shadow: var(--gitpulse-shadow-raised);
-}
-
-.suggestion-row {
-  justify-content: flex-start;
-}
-
-/* Compact type/state row */
-.compact-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  margin-bottom: 0.85rem;
-}
-
-.compact-toggle {
-  margin-bottom: 0;
-  flex: 1;
-  min-width: fit-content;
-}
-
-/* Advanced filters collapsible */
-.advanced-section {
-  margin: 0.85rem 0;
-  border: 1px solid var(--gitpulse-border);
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--gitpulse-surface-muted) 50%, transparent);
-  transition: border-color 0.15s ease;
-
-  &.is-open {
-    border-color: color-mix(in srgb, var(--gitpulse-accent) 26%, transparent);
-    background: color-mix(in srgb, var(--gitpulse-surface-muted) 72%, transparent);
-  }
-}
-
-.advanced-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  width: 100%;
-  padding: 0.5rem 0.65rem;
-  border: 0;
-  background: transparent;
-  cursor: pointer;
-  color: var(--gitpulse-text-muted);
-  font-size: 0.78rem;
-  font-weight: 650;
-  transition: color 0.15s ease;
-
-  &:hover {
-    color: var(--gitpulse-accent);
-  }
-}
-
-.advanced-toggle__icon {
-  transition: transform 0.2s ease;
-  color: var(--gitpulse-text-muted);
-  flex: 0 0 auto;
-
-  &.rotated {
-    transform: rotate(90deg);
-    color: var(--gitpulse-accent);
-  }
-}
-
-.advanced-count {
-  margin-left: auto;
-}
-
-.advanced-body {
-  padding: 0 0.65rem 0.65rem;
-}
-
-.advanced-pr-band {
-  padding: 0.75rem;
-  margin-top: 0.5rem;
-  border: 1px solid var(--gitpulse-border);
-  border-radius: 8px;
-  background: var(--gitpulse-success-soft);
-}
-
 /* ------------------------------ Live preview ------------------------------- */
-
-.preview-results {
-  display: grid;
-  gap: 0.55rem;
-  min-width: 0;
-}
 
 .preview-pagination {
   display: flex;
@@ -1289,18 +1092,8 @@ const { t, editorOpen, startNewTab, closeEditor } = props.model;
   .field-grid.is-two,
   .field-grid.is-three,
   .toggle-grid,
-  .sort-row,
-  .scope-grid {
+  .sort-row {
     grid-template-columns: 1fr;
-  }
-
-  .source-selector {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-  }
-
-  .source-option {
-    min-width: 10.5rem;
   }
 
   .endpoint-row {
@@ -1333,41 +1126,21 @@ html.dark .tree-group-row {
 
 html.dark .tree-tab-row,
 html.dark .inline-child-creator,
-html.dark .label-combobox,
-html.dark .label-suggestions,
 html.dark .chip-button,
 html.dark .segmented-button,
 html.dark .github-test-link,
-html.dark .source-option,
 html.dark .preview-page-btn {
   background: var(--gitpulse-surface);
 }
 
 html.dark .chip-button.is-active,
-html.dark .segmented-button.is-active,
-html.dark .source-option.is-active {
+html.dark .segmented-button.is-active {
   background: var(--gitpulse-accent-soft);
   border-color: color-mix(in srgb, var(--gitpulse-accent) 30%, transparent);
   color: var(--gitpulse-accent);
 }
 
-html.dark .source-option:hover:not(:disabled) small,
-html.dark .source-option.is-active small {
-  color: var(--gitpulse-accent);
-}
-
-html.dark .source-option.is-active:hover:not(:disabled) {
-  border-color: color-mix(in srgb, var(--gitpulse-accent) 50%, transparent);
-  color: var(--gitpulse-accent);
-  background: color-mix(in srgb, var(--gitpulse-accent) 28%, var(--gitpulse-surface));
-}
-
-html.dark .source-option.is-active:hover:not(:disabled) small {
-  color: var(--gitpulse-accent);
-}
-
-html.dark .search-fields-panel,
-html.dark .source-selector {
+html.dark .search-fields-panel {
   background: var(--gitpulse-surface-muted);
 }
 
