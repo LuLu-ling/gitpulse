@@ -5,9 +5,7 @@ on:
     tags:
       - 'v[0-9]+.[0-9]+.[0-9]+'
 
-permissions:
-  contents: write
-  packages: write
+permissions: {}
 
 concurrency:
   group: app-release-${{ github.ref }}
@@ -19,13 +17,15 @@ env:
   DOCKERHUB_USERNAME: ${{ vars.DOCKERHUB_USERNAME }}
 
 jobs:
-  release:
-    name: Draft Release & Publish Images
+  validate:
+    name: Validate Release Inputs
     runs-on: ubuntu-latest
+    permissions: {}
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      ghcr_image: ${{ steps.version.outputs.ghcr_image }}
+      dockerhub_image: ${{ steps.version.outputs.dockerhub_image }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-
       - name: Validate release inputs
         id: version
         shell: bash
@@ -61,52 +61,289 @@ jobs:
           echo "ghcr_image=ghcr.io/${repository}" >> "$GITHUB_OUTPUT"
           echo "dockerhub_image=docker.io/${dockerhub_namespace}/${image_name}" >> "$GITHUB_OUTPUT"
 
+  build:
+    name: Build ${{ matrix.platform }}
+    needs: validate
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - linux/amd64
+          - linux/arm64
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+
+      - name: Prepare platform metadata
+        id: platform
+        shell: bash
+        run: |
+          platform="${{ matrix.platform }}"
+          echo "pair=${platform//\//-}" >> "$GITHUB_OUTPUT"
+
       - name: Login to GHCR
-        uses: docker/login-action@v4
+        uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee # v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Login to Docker Hub
-        uses: docker/login-action@v4
+        uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee # v4
         with:
           username: ${{ env.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v4
+        if: matrix.platform != 'linux/amd64'
+        uses: docker/setup-qemu-action@06116385d9baf250c9f4dcb4858b16962ea869c3 # v4
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
+        uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5 # v4
 
       - name: Docker metadata
         id: meta
-        uses: docker/metadata-action@v6
+        uses: docker/metadata-action@80c7e94dd9b9319bd5eb7a0e0fe9291e23a2a2e9 # v6
         with:
           images: |
-            ${{ steps.version.outputs.ghcr_image }}
-            ${{ steps.version.outputs.dockerhub_image }}
-          tags: |
-            type=semver,pattern={{version}}
-            type=raw,value=latest
+            ${{ needs.validate.outputs.ghcr_image }}
+            ${{ needs.validate.outputs.dockerhub_image }}
 
-      - name: Build and push Docker images
-        uses: docker/build-push-action@v7
+      - name: Build and push image digest
+        id: build
+        uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf # v7
         with:
           context: .
           file: ./Dockerfile
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
+          platforms: ${{ matrix.platform }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          outputs: |
+            type=image,name=${{ needs.validate.outputs.ghcr_image }},push-by-digest=true,name-canonical=true,push=true
+            type=image,name=${{ needs.validate.outputs.dockerhub_image }},push-by-digest=true,name-canonical=true,push=true
+          cache-from: type=gha,scope=app-${{ steps.platform.outputs.pair }}
+          cache-to: type=gha,mode=max,scope=app-${{ steps.platform.outputs.pair }}
 
+      - name: Export digest metadata
+        shell: bash
+        env:
+          PLATFORM: ${{ matrix.platform }}
+          PLATFORM_PAIR: ${{ steps.platform.outputs.pair }}
+          GHCR_IMAGE: ${{ needs.validate.outputs.ghcr_image }}
+          DOCKERHUB_IMAGE: ${{ needs.validate.outputs.dockerhub_image }}
+        run: |
+          mkdir -p "${RUNNER_TEMP}/digests"
+          digest="${{ steps.build.outputs.digest }}"
+          if [ -z "${digest}" ]; then
+            echo "Build did not produce an image digest." >&2
+            exit 1
+          fi
+
+          jq -n \
+            --arg platform "${PLATFORM}" \
+            --arg digest "${digest}" \
+            --arg ghcr_image "${GHCR_IMAGE}" \
+            --arg dockerhub_image "${DOCKERHUB_IMAGE}" \
+            '{
+              platform: $platform,
+              digest: $digest,
+              ghcr_image: $ghcr_image,
+              dockerhub_image: $dockerhub_image
+            }' > "${RUNNER_TEMP}/digests/${PLATFORM_PAIR}.json"
+
+      - name: Upload digest
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: digests-${{ steps.platform.outputs.pair }}
+          path: ${{ runner.temp }}/digests/*.json
+          if-no-files-found: error
+          retention-days: 1
+
+  merge:
+    name: Publish Multi-Arch Manifests
+    needs:
+      - validate
+      - build
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+    steps:
+      - name: Download digests
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          path: ${{ runner.temp }}/digests
+          pattern: digests-*
+          merge-multiple: true
+
+      - name: Login to GHCR
+        uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee # v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee # v4
+        with:
+          username: ${{ env.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5 # v4
+
+      - name: Create and push manifest lists
+        shell: bash
+        env:
+          VERSION: ${{ needs.validate.outputs.version }}
+          GHCR_IMAGE: ${{ needs.validate.outputs.ghcr_image }}
+          DOCKERHUB_IMAGE: ${{ needs.validate.outputs.dockerhub_image }}
+          DIGEST_DIR: ${{ runner.temp }}/digests
+          EXPECTED_PLATFORMS: linux/amd64 linux/arm64
+        run: |
+          shopt -s nullglob
+          metadata_files=("${DIGEST_DIR}"/*.json)
+          read -r -a expected_platforms <<< "${EXPECTED_PLATFORMS}"
+
+          if [ "${#metadata_files[@]}" -ne "${#expected_platforms[@]}" ]; then
+            echo "Expected ${#expected_platforms[@]} digest metadata files, got ${#metadata_files[@]}." >&2
+            exit 1
+          fi
+
+          declare -A digests_by_platform=()
+          declare -A seen_platforms=()
+
+          is_expected_platform() {
+            local candidate="$1"
+            local expected_platform
+
+            for expected_platform in "${expected_platforms[@]}"; do
+              if [ "${candidate}" = "${expected_platform}" ]; then
+                return 0
+              fi
+            done
+
+            return 1
+          }
+
+          for metadata_file in "${metadata_files[@]}"; do
+            platform="$(jq -r '.platform // empty' "${metadata_file}")"
+            digest="$(jq -r '.digest // empty' "${metadata_file}")"
+            ghcr_image="$(jq -r '.ghcr_image // empty' "${metadata_file}")"
+            dockerhub_image="$(jq -r '.dockerhub_image // empty' "${metadata_file}")"
+
+            if ! is_expected_platform "${platform}"; then
+              echo "Unexpected platform in ${metadata_file}: ${platform}" >&2
+              exit 1
+            fi
+
+            if [[ ! "${digest}" =~ ^sha256:[a-f0-9]{64}$ ]]; then
+              echo "Invalid digest in ${metadata_file}: ${digest}" >&2
+              exit 1
+            fi
+
+            if [ "${ghcr_image}" != "${GHCR_IMAGE}" ] || [ "${dockerhub_image}" != "${DOCKERHUB_IMAGE}" ]; then
+              echo "Image metadata in ${metadata_file} does not match validated release images." >&2
+              exit 1
+            fi
+
+            if [ -n "${seen_platforms[${platform}]:-}" ]; then
+              echo "Duplicate digest metadata for ${platform}." >&2
+              exit 1
+            fi
+
+            digests_by_platform["${platform}"]="${digest}"
+            seen_platforms["${platform}"]=1
+          done
+
+          for platform in "${expected_platforms[@]}"; do
+            if [ -z "${digests_by_platform[${platform}]:-}" ]; then
+              echo "Missing digest metadata for ${platform}." >&2
+              exit 1
+            fi
+          done
+
+          create_manifest() {
+            local image="$1"
+            shift
+            local sources=()
+            local platform
+            local digest
+
+            for platform in "${expected_platforms[@]}"; do
+              digest="${digests_by_platform[${platform}]}"
+              sources+=("${image}@${digest}")
+            done
+
+            docker buildx imagetools create "$@" "${sources[@]}"
+          }
+
+          create_manifest "${GHCR_IMAGE}" \
+            -t "${GHCR_IMAGE}:${VERSION}" \
+            -t "${GHCR_IMAGE}:latest"
+
+          create_manifest "${DOCKERHUB_IMAGE}" \
+            -t "${DOCKERHUB_IMAGE}:${VERSION}" \
+            -t "${DOCKERHUB_IMAGE}:latest"
+
+      - name: Inspect manifests
+        shell: bash
+        env:
+          VERSION: ${{ needs.validate.outputs.version }}
+          GHCR_IMAGE: ${{ needs.validate.outputs.ghcr_image }}
+          DOCKERHUB_IMAGE: ${{ needs.validate.outputs.dockerhub_image }}
+          EXPECTED_PLATFORMS: linux/amd64 linux/arm64
+        run: |
+          read -r -a expected_platforms <<< "${EXPECTED_PLATFORMS}"
+
+          verify_manifest() {
+            local image_tag="$1"
+            local raw
+            local platform
+            local os
+            local architecture
+
+            docker buildx imagetools inspect "${image_tag}"
+            raw="$(docker buildx imagetools inspect --raw "${image_tag}")"
+
+            for platform in "${expected_platforms[@]}"; do
+              os="${platform%%/*}"
+              architecture="${platform#*/}"
+              if ! jq -e \
+                --arg os "${os}" \
+                --arg architecture "${architecture}" \
+                '.manifests | type == "array" and any(.[]; .platform.os == $os and .platform.architecture == $architecture)' \
+                <<< "${raw}" > /dev/null; then
+                echo "${image_tag} is missing ${platform}." >&2
+                exit 1
+              fi
+            done
+          }
+
+          verify_manifest "${GHCR_IMAGE}:${VERSION}"
+          verify_manifest "${GHCR_IMAGE}:latest"
+          verify_manifest "${DOCKERHUB_IMAGE}:${VERSION}"
+          verify_manifest "${DOCKERHUB_IMAGE}:latest"
+
+  release:
+    name: Create Draft Release
+    needs:
+      - validate
+      - merge
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
       - name: Prepare release notes
         shell: bash
         env:
-          IMAGE_TAGS: ${{ steps.meta.outputs.tags }}
+          IMAGE_TAGS: |
+            ${{ needs.validate.outputs.ghcr_image }}:${{ needs.validate.outputs.version }}
+            ${{ needs.validate.outputs.ghcr_image }}:latest
+            ${{ needs.validate.outputs.dockerhub_image }}:${{ needs.validate.outputs.version }}
+            ${{ needs.validate.outputs.dockerhub_image }}:latest
           GH_TOKEN: ${{ github.token }}
         run: |
           # Fetch auto-generated release notes from GitHub. Falls back to empty
@@ -133,9 +370,10 @@ jobs:
       - name: Create GitHub Release (draft)
         env:
           GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
         run: |
           gh release create "${GITHUB_REF_NAME}" \
             --draft \
-            --title "GitPulse v${{ steps.version.outputs.version }}" \
+            --title "GitPulse v${{ needs.validate.outputs.version }}" \
             --notes-file release-notes.md \
             --verify-tag
